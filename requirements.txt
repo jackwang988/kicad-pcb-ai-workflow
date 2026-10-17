@@ -1,0 +1,3 @@
+# Additional Python packages; pcbnew comes from KiCad, NOT pip.
+PyMuPDF>=1.24
+Pillow>=10
