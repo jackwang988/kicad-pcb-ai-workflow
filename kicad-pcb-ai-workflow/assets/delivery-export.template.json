@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "origin": null,
+  "variant": null,
+  "gerber_layers": [],
+  "assembly_layers": [],
+  "bom_fields": [],
+  "gerber_dir": "gerber",
+  "drill_dir": "drill",
+  "position_file": "assembly/cpl.csv",
+  "bom_file": "assembly/bom.csv",
+  "assembly_file": "drawings/assembly.pdf"
+}

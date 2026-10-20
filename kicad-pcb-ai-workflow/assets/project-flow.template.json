@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "project_id": null,
+  "revision": null,
+  "inputs": {
+    "schematic": null,
+    "board": null,
+    "project": null
+  },
+  "requirements": [],
+  "features": {
+    "power": {
+      "applicability": "undecided",
+      "reason": null,
+      "source": null
+    },
+    "differential": {
+      "applicability": "undecided",
+      "reason": null,
+      "source": null
+    },
+    "rf": {
+      "applicability": "undecided",
+      "reason": null,
+      "source": null
+    },
+    "high_speed": {
+      "applicability": "undecided",
+      "reason": null,
+      "source": null
+    },
+    "safety": {
+      "applicability": "undecided",
+      "reason": null,
+      "source": null
+    },
+    "thermal": {
+      "applicability": "undecided",
+      "reason": null,
+      "source": null
+    },
+    "testability": {
+      "applicability": "undecided",
+      "reason": null,
+      "source": null
+    },
+    "assembly_variants": {
+      "applicability": "undecided",
+      "reason": null,
+      "source": null
+    }
+  },
+  "stages": {
+    "environment": {
+      "executor": null,
+      "method": null,
+      "required_files": [],
+      "verification_tools": [
+        "environment_start",
+        "doctor"
+      ]
+    },
+    "requirements": {
+      "executor": null,
+      "method": null,
+      "required_files": [],
+      "verification_tools": []
+    },
+    "sources": {
+      "executor": null,
+      "method": null,
+      "required_files": [],
+      "verification_tools": [
+        "device_knowledge"
+      ]
+    },
+    "reserve": {
+      "executor": null,
+      "method": null,
+      "required_files": [],
+      "verification_tools": [
+        "reserve_review"
+      ]
+    },
+    "schematic": {
+      "executor": null,
+      "method": null,
+      "required_files": [],
+      "verification_tools": [
+        "schematic_candidate",
+        "schematic_style",
+        "system_integration"
+      ]
+    },
+    "schematic_review": {
+      "executor": null,
+      "method": null,
+      "required_files": [],
+      "verification_tools": [
+        "static_review",
+        "static_review_gate",
+        "system_integration"
+      ]
+    },
+    "footprints": {
+      "executor": null,
+      "method": null,
+      "required_files": [],
+      "verification_tools": [
+        "pad_audit"
+      ]
+    },
+    "stackup": {
+      "executor": null,
+      "method": null,
+      "required_files": [],
+      "verification_tools": [
+        "design_intent",
+        "design_intent_audit"
+      ]
+    },
+    "placement": {
+      "executor": null,
+      "method": null,
+      "required_files": [],
+      "verification_tools": [
+        "placement_review"
+      ]
+    },
+    "routing": {
+      "executor": null,
+      "method": null,
+      "required_files": [],
+      "verification_tools": [
+        "link_audit",
+        "freeze_candidate"
+      ]
+    },
+    "pcb_review": {
+      "executor": null,
+      "method": null,
+      "required_files": [],
+      "verification_tools": [
+        "static_review",
+        "static_review_gate"
+      ]
+    },
+    "npi": {
+      "executor": null,
+      "method": null,
+      "required_files": [],
+      "verification_tools": [
+        "mass_production_review",
+        "validate_frozen_candidate"
+      ]
+    },
+    "manufacturing": {
+      "executor": null,
+      "method": null,
+      "required_files": [],
+      "verification_tools": [
+        "manufacturing_export",
+        "build_manifest"
+      ]
+    },
+    "cam_release": {
+      "executor": null,
+      "method": null,
+      "required_files": [],
+      "verification_tools": [
+        "npi_release"
+      ]
+    },
+    "prototype": {
+      "executor": null,
+      "method": null,
+      "required_files": [],
+      "verification_tools": []
+    },
+    "eco": {
+      "executor": null,
+      "method": null,
+      "required_files": [],
+      "verification_tools": [
+        "netlist_guard"
+      ]
+    }
+  },
+  "scope_note": "Project-specific declared inputs only; no automatic engineering approval or unsupported capability promise"
+}

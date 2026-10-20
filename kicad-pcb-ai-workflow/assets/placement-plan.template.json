@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "scope_reason": null,
+  "modules": [
+    {
+      "id": null,
+      "anchor": null,
+      "refs": [],
+      "roles": {},
+      "bounds_mm": null,
+      "source": {
+        "file": null,
+        "sha256": null,
+        "locator": null
+      }
+    }
+  ],
+  "critical_subcircuits": [],
+  "constraints": [],
+  "manual_geometry": {},
+  "reviews": {
+    "pre_route": {
+      "reviewer": null,
+      "date": null,
+      "reason": null,
+      "placement_sha256": null,
+      "netlist_sha256": null,
+      "policy_sha256": null,
+      "subcircuits": [],
+      "topics": {
+        "routability": null,
+        "return_paths": null,
+        "source_layouts": null,
+        "mechanical": null
+      },
+      "evidence": []
+    },
+    "final": {
+      "reviewer": null,
+      "date": null,
+      "reason": null,
+      "placement_sha256": null,
+      "netlist_sha256": null,
+      "policy_sha256": null,
+      "board_sha256": null,
+      "subcircuits": [],
+      "topics": {
+        "routability": null,
+        "return_paths": null,
+        "source_layouts": null,
+        "mechanical": null,
+        "visual": null,
+        "moves_rechecked": null
+      },
+      "evidence": []
+    }
+  },
+  "schematic_only": []
+}

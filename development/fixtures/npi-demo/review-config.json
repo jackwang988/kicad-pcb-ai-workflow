@@ -1,0 +1,122 @@
+{
+  "inputs": {
+    "schematic": "npi-demo.kicad_sch",
+    "board": "npi-demo.kicad_pcb",
+    "project": "npi-demo.kicad_pro",
+    "bom": "review-bom.csv"
+  },
+  "variants": [
+    "default"
+  ],
+  "variant_boms": {},
+  "variant_consistency": [],
+  "bom_fields": {
+    "ref": "Reference",
+    "mpn": "MPN",
+    "manufacturer": "Manufacturer",
+    "footprint": "Footprint",
+    "spec": "Value"
+  },
+  "process": {
+    "source": "DEMO ONLY — replace with approved PCB/SMT vendor specification",
+    "approved_by": "",
+    "min_track_width_mm": 0.15,
+    "min_clearance_mm": 0.15,
+    "min_drill_mm": 0.2,
+    "min_annulus_mm": 0.15,
+    "max_hole_aspect_ratio": 8,
+    "min_mask_bridge_mm": 0.1,
+    "component_edge_clearance_mm": 0.5,
+    "bga_edge_clearance_mm": 3,
+    "min_testpoint_diameter_mm": 1,
+    "testpoint_clearance_mm": 1,
+    "min_placement_clearance_mm": 0.5,
+    "mounting_hole_copper_clearance_mm": 2
+  },
+  "decouplers": [
+    {
+      "capacitor": "C1",
+      "ic": "U1",
+      "power_pad": "1",
+      "max_distance_mm": 1.5,
+      "source": "DEMO limit; replace with IC datasheet"
+    }
+  ],
+  "heat_sources": [
+    {
+      "ref": "U1",
+      "via_radius_mm": 2,
+      "min_sensitive_distance_mm": 5
+    }
+  ],
+  "temperature_sensitive": [
+    "C1"
+  ],
+  "power_loops": [
+    {
+      "refs": [
+        "U1",
+        "C1",
+        "TP1"
+      ],
+      "max_bbox_area_mm2": 10
+    }
+  ],
+  "differential_pairs": [],
+  "panel": {
+    "min_fiducials": 3
+  },
+  "baseline": {},
+  "manual_reviews": {},
+  "delivery_manifest": {
+    "gerber": [
+      "gerber/F_Cu.gbr",
+      "gerber/B_Cu.gbr",
+      "gerber/F_Mask.gbr",
+      "gerber/B_Mask.gbr",
+      "gerber/F_Silkscreen.gbr",
+      "gerber/Edge_Cuts.gbr"
+    ],
+    "drill": [
+      "drill/plated.drl",
+      "drill/nonplated.drl"
+    ],
+    "cpl": [
+      "assembly/cpl.csv"
+    ],
+    "assembly": [
+      "assembly/assembly.pdf"
+    ],
+    "bom": [
+      "bom/bom.csv"
+    ]
+  },
+  "delivery_layers": {
+    "F.Cu": "gerber/F_Cu.gbr",
+    "B.Cu": "gerber/B_Cu.gbr",
+    "F.Mask": "gerber/F_Mask.gbr",
+    "B.Mask": "gerber/B_Mask.gbr",
+    "F.SilkS": "gerber/F_Silkscreen.gbr",
+    "Edge.Cuts": "gerber/Edge_Cuts.gbr"
+  },
+  "design_intent": null,
+  "static_ai_reviews": {
+    "schematic": {
+      "packet": null,
+      "ai_review": null,
+      "engineer_review": null
+    },
+    "pcb": {
+      "packet": null,
+      "ai_review": null,
+      "engineer_review": null
+    }
+  },
+  "reserve_review": {
+    "policy": null,
+    "variant": null
+  },
+  "placement_review": {
+    "policy": null
+  }
+}

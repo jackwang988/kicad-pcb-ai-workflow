@@ -1,0 +1,32 @@
+{
+  "paths": [
+    {
+      "id": "PATH-001",
+      "net": null,
+      "start": {
+        "ref": null,
+        "pad": null,
+        "layer": null
+      },
+      "end": {
+        "ref": null,
+        "pad": null,
+        "layer": null
+      },
+      "source": {
+        "document": null,
+        "revision": null,
+        "section": null
+      },
+      "allowed_layers": [],
+      "reference_planes": [],
+      "delay_ps_per_mm": {},
+      "layer_z_mm": {},
+      "via_delay_ps_per_mm": null,
+      "max_length_mm": null,
+      "max_delay_ps": null,
+      "max_vias": null
+    }
+  ],
+  "pairs": []
+}

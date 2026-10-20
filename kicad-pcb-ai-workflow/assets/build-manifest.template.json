@@ -1,0 +1,28 @@
+{
+  "level": "D0",
+  "source_sha256": {},
+  "output_sha256": {},
+  "tools": [],
+  "commands": [],
+  "logs": [],
+  "cam_review": {
+    "file": null,
+    "sha256": null
+  },
+  "final_state_validation": {
+    "file": null,
+    "sha256": null
+  },
+  "factory_eq": {
+    "file": null,
+    "sha256": null
+  },
+  "production_authorization": {
+    "reviewer": null,
+    "date": null,
+    "factory": null,
+    "order_scope": null,
+    "source_basis_sha256": {},
+    "output_sha256": {}
+  }
+}

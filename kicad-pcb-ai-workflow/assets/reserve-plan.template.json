@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "scope_reason": null,
+  "default_variant": null,
+  "decisions": [
+    {
+      "id": null,
+      "block": null,
+      "uncertainty": null,
+      "decision": null,
+      "required": null,
+      "reason": null,
+      "verification_plan": null,
+      "source": {
+        "file": null,
+        "sha256": null,
+        "locator": null
+      },
+      "cost": {
+        "area_mm2": null,
+        "material_delta": null,
+        "currency": null,
+        "assembly_risk": null,
+        "signal_risk": null,
+        "benefit_reason": null
+      },
+      "refs": [],
+      "nets": [],
+      "context": null,
+      "role": null,
+      "safety_evidence": [],
+      "zero_ohm": {
+        "allowed": null,
+        "reason": null,
+        "evidence": []
+      },
+      "layout_review": {
+        "reason": null,
+        "reviewer": null,
+        "date": null,
+        "board_sha256": null,
+        "evidence": [],
+        "sensitive_path_checked": null
+      },
+      "production": {
+        "action": null,
+        "reason": null,
+        "evidence": []
+      },
+      "absent_refs": []
+    }
+  ],
+  "variants": [
+    {
+      "name": null,
+      "parts": {}
+    }
+  ],
+  "groups": []
+}

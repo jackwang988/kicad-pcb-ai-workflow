@@ -1,0 +1,17 @@
+{
+  "status": "BLOCKED",
+  "viewer": null,
+  "viewer_version": null,
+  "reviewer": null,
+  "date": null,
+  "checks": {
+    "all_copper_layers": "BLOCKED",
+    "assembly_variant_polarity": "BLOCKED",
+    "drills_slots_plating_spans": "BLOCKED",
+    "fabrication_requirements": "BLOCKED",
+    "mask_silk_paste": "BLOCKED",
+    "outline_cutouts": "BLOCKED",
+    "units_origin_mirror": "BLOCKED"
+  },
+  "actual_files_sha256": {}
+}

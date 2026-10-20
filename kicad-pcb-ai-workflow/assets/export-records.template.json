@@ -1,0 +1,43 @@
+{
+  "tools": [
+    {
+      "id": "cli",
+      "name": "kicad-cli",
+      "version": "10.0.7",
+      "executable_sha256": null
+    }
+  ],
+  "commands": [
+    {
+      "tool_id": "cli",
+      "argv": [
+        "kicad-cli",
+        "pcb",
+        "export",
+        "gerbers",
+        "--output",
+        "/absolute/candidate/gerber",
+        "/absolute/frozen/board.kicad_pcb"
+      ],
+      "cwd": "/absolute/frozen",
+      "source_root": "/absolute/frozen",
+      "output_root": "/absolute/candidate",
+      "returncode": null,
+      "log": "evidence/export-gerbers.log",
+      "source_basis_sha256": {},
+      "output_sha256": {}
+    }
+  ],
+  "logs": [],
+  "cam_review": "evidence/cam.json",
+  "factory_eq": "evidence/eq.json",
+  "final_state_validation": "evidence/final/final-state.json",
+  "production_authorization": {
+    "reviewer": null,
+    "date": null,
+    "factory": null,
+    "order_scope": null,
+    "source_basis_sha256": {},
+    "output_sha256": {}
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "max_check_age_days": null,
+  "devices": [{
+    "ref": null, "manufacturer": null, "mpn": null, "package": null,
+    "application": null,
+    "required_kinds": ["datasheet"],
+    "cards": [],
+    "latest_checks": {"datasheet": {
+      "date": null, "revision": null, "source_sha256": null,
+      "file": null, "sha256": null, "checked_by": null, "result": null
+    }}
+  }]
+}

@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "design_basis": {
+    "file": null,
+    "sha256": null,
+    "locator": null
+  },
+  "top": null,
+  "project": null,
+  "files": {},
+  "expected": {
+    "components": {},
+    "nets": {}
+  }
+}

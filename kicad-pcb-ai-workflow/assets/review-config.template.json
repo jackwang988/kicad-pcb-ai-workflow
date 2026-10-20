@@ -1,0 +1,94 @@
+{
+  "inputs": {
+    "schematic": null,
+    "board": null,
+    "project": null,
+    "bom": null
+  },
+  "variants": [],
+  "variant_boms": {},
+  "variant_consistency": [],
+  "bom_fields": {
+    "ref": "Reference",
+    "mpn": "MPN",
+    "manufacturer": "Manufacturer",
+    "footprint": "Footprint",
+    "spec": "Value"
+  },
+  "process": {
+    "source": null,
+    "approved_by": null,
+    "min_track_width_mm": null,
+    "min_clearance_mm": null,
+    "min_drill_mm": null,
+    "min_annulus_mm": null,
+    "max_hole_aspect_ratio": null,
+    "min_mask_bridge_mm": null,
+    "component_edge_clearance_mm": null,
+    "bga_edge_clearance_mm": null,
+    "min_testpoint_diameter_mm": null,
+    "testpoint_clearance_mm": null,
+    "min_placement_clearance_mm": null,
+    "mounting_hole_copper_clearance_mm": null
+  },
+  "decouplers": [],
+  "heat_sources": [],
+  "temperature_sensitive": [],
+  "power_loops": [],
+  "differential_pairs": [],
+  "panel": {
+    "min_fiducials": null
+  },
+  "baseline": {},
+  "manual_reviews": {},
+  "delivery_manifest": {
+    "gerber": [],
+    "drill": [],
+    "cpl": [],
+    "assembly": [],
+    "bom": []
+  },
+  "delivery_layers": {},
+  "design_intent": null,
+  "static_ai_reviews": {
+    "schematic": {
+      "packet": null,
+      "ai_review": null,
+      "engineer_review": null
+    },
+    "pcb": {
+      "packet": null,
+      "ai_review": null,
+      "engineer_review": null
+    }
+  },
+  "reserve_review": {
+    "policy": null,
+    "variant": null
+  },
+  "placement_review": {
+    "policy": null
+  },
+  "workflow_contract": null,
+  "schematic_style": {
+    "policy": null
+  },
+  "engineering_profile": null,
+  "delivery_export": {
+    "schema_version": 1,
+    "origin": null,
+    "variant": null,
+    "gerber_layers": [],
+    "assembly_layers": [],
+    "bom_fields": [],
+    "gerber_dir": "gerber",
+    "drill_dir": "drill",
+    "position_file": "assembly/cpl.csv",
+    "bom_file": "assembly/bom.csv",
+    "assembly_file": "drawings/assembly.pdf"
+  },
+  "require_system_integration": true,
+  "system_integration": {
+    "contract": null
+  }
+}

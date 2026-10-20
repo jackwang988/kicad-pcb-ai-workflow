@@ -1,0 +1,6 @@
+(kicad_sch (version 20260101) (generator "eeschema") (uuid "e8970a0c-bf71-4452-874c-d1f3bbd32a43") (paper "A4") (lib_symbols) (label "USB0_P" (at 10 20 0) (effects (font (size 1.27 1.27))) (uuid "82595efe-3bf5-58fe-ae61-c539e10cdfe4"))
+(label "USB0_N" (at 15 20 0) (effects (font (size 1.27 1.27))) (uuid "3ca1bd89-3035-539b-87aa-8c4cd9bc66b4"))
+(label "CSI0_D0_P" (at 20 20 0) (effects (font (size 1.27 1.27))) (uuid "79824017-c60e-5b72-a274-7840bbfe6073"))
+(label "CSI0_D0_N" (at 25 20 0) (effects (font (size 1.27 1.27))) (uuid "3182ffa1-bceb-5d91-98f8-71e7232cf958"))
+(label "VDD_TEST" (at 30 20 0) (effects (font (size 1.27 1.27))) (uuid "852af971-15f7-55e7-87c8-2044b1546e07"))
+(label "RF_FEED" (at 35 20 0) (effects (font (size 1.27 1.27))) (uuid "fbab66db-a8ca-59dc-952a-bbf2552a4884")))

@@ -1,0 +1,206 @@
+{
+  "product_id": null,
+  "revision": null,
+  "owner": null,
+  "assembly_variant": "default",
+  "netlist": {
+    "before": "baseline.xml",
+    "after": "candidate.xml",
+    "mode": "preserve",
+    "topology": false,
+    "eco": null,
+    "allow_zero_nets": false
+  },
+  "link_profile": "link-profile.json",
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "status": "BLOCKED",
+      "source": {
+        "document": null,
+        "revision": null,
+        "section": null
+      },
+      "design_rule": null,
+      "acceptance": null,
+      "verification_method": null,
+      "evidence": []
+    }
+  ],
+  "reviews": {
+    "requirements": {
+      "status": "BLOCKED",
+      "reviewer": null,
+      "date": null,
+      "reason": null,
+      "source": {
+        "document": null,
+        "revision": null,
+        "section": null
+      },
+      "evidence": []
+    },
+    "schematic": {
+      "status": "BLOCKED",
+      "reviewer": null,
+      "date": null,
+      "reason": null,
+      "source": {
+        "document": null,
+        "revision": null,
+        "section": null
+      },
+      "evidence": []
+    },
+    "footprints": {
+      "status": "BLOCKED",
+      "reviewer": null,
+      "date": null,
+      "reason": null,
+      "source": {
+        "document": null,
+        "revision": null,
+        "section": null
+      },
+      "evidence": []
+    },
+    "stackup": {
+      "status": "BLOCKED",
+      "reviewer": null,
+      "date": null,
+      "reason": null,
+      "source": {
+        "document": null,
+        "revision": null,
+        "section": null
+      },
+      "evidence": []
+    },
+    "signal_integrity": {
+      "status": "BLOCKED",
+      "reviewer": null,
+      "date": null,
+      "reason": null,
+      "source": {
+        "document": null,
+        "revision": null,
+        "section": null
+      },
+      "evidence": []
+    },
+    "power_integrity": {
+      "status": "BLOCKED",
+      "reviewer": null,
+      "date": null,
+      "reason": null,
+      "source": {
+        "document": null,
+        "revision": null,
+        "section": null
+      },
+      "evidence": []
+    },
+    "thermal": {
+      "status": "BLOCKED",
+      "reviewer": null,
+      "date": null,
+      "reason": null,
+      "source": {
+        "document": null,
+        "revision": null,
+        "section": null
+      },
+      "evidence": []
+    },
+    "safety": {
+      "status": "BLOCKED",
+      "reviewer": null,
+      "date": null,
+      "reason": null,
+      "source": {
+        "document": null,
+        "revision": null,
+        "section": null
+      },
+      "evidence": []
+    },
+    "manufacturing": {
+      "status": "BLOCKED",
+      "reviewer": null,
+      "date": null,
+      "reason": null,
+      "source": {
+        "document": null,
+        "revision": null,
+        "section": null
+      },
+      "evidence": []
+    },
+    "assembly": {
+      "status": "BLOCKED",
+      "reviewer": null,
+      "date": null,
+      "reason": null,
+      "source": {
+        "document": null,
+        "revision": null,
+        "section": null
+      },
+      "evidence": []
+    },
+    "cam": {
+      "status": "BLOCKED",
+      "reviewer": null,
+      "date": null,
+      "reason": null,
+      "source": {
+        "document": null,
+        "revision": null,
+        "section": null
+      },
+      "evidence": []
+    },
+    "factory_eq": {
+      "status": "BLOCKED",
+      "reviewer": null,
+      "date": null,
+      "reason": null,
+      "source": {
+        "document": null,
+        "revision": null,
+        "section": null
+      },
+      "evidence": []
+    },
+    "validation_plan": {
+      "status": "BLOCKED",
+      "reviewer": null,
+      "date": null,
+      "reason": null,
+      "source": {
+        "document": null,
+        "revision": null,
+        "section": null
+      },
+      "evidence": []
+    },
+    "change_control": {
+      "status": "BLOCKED",
+      "reviewer": null,
+      "date": null,
+      "reason": null,
+      "source": {
+        "document": null,
+        "revision": null,
+        "section": null
+      },
+      "evidence": []
+    }
+  },
+  "risk_acceptance": {},
+  "courtyard_exemptions": {},
+  "source_files": [],
+  "variant_netlists": {},
+  "bom_exclusions": {},
+  "bom_additions": {}
+}

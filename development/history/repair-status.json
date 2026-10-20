@@ -1,0 +1,207 @@
+{
+  "revision": "2026.10-R2",
+  "items": [
+    {
+      "id": "R01",
+      "priority": "P0",
+      "correction": "电气变更不再要求无条件网表零差异",
+      "control": "netlist_guard.py：preserve/eco模式；ECO基线哈希及精确实际差异匹配",
+      "verification_scope": "代码+反例测试；实际工程ECO待输入",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R02",
+      "priority": "P0",
+      "correction": "违规计数不再作为发布通过条件",
+      "control": "engineering_gate.py：违规身份比较；原生error阻断，排除项阻断；高风险逐项证据审批",
+      "verification_scope": "代码+反例测试；原生实测待完成",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R03",
+      "priority": "P0",
+      "correction": "取消按告警类型整体豁免未连接",
+      "control": "原生排除项阻断；不得用几何落点或pad-zone缺告警推断连通",
+      "verification_scope": "规则+代码；实际填铜连通待原生/CAM",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R04",
+      "priority": "P0",
+      "correction": "孔类型、层跨度、制造意图必须一致",
+      "control": "制造/叠层评审与CAM孔层对记录必需；盲埋孔矛盾不得人工忽略",
+      "verification_scope": "证据门禁；逐孔原生/CAM待验证",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R05",
+      "priority": "P0",
+      "correction": "撤销pitch-pad长边和45°能消铜短路判断",
+      "control": "pad_audit.py：旋转矩形/圆形铜重叠；其它形状明确未验证；原厂land pattern审查",
+      "verification_scope": "代码+旋转几何测试；复杂pad依DRC/原厂证据",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R06",
+      "priority": "P0",
+      "correction": "网表空解析/差异退出0假通过",
+      "control": "严格XML结构/元件/网络/引脚校验；FAIL=1、BLOCKED=2；保留singleton与unconnected",
+      "verification_scope": "代码+CLI反例回归",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R07",
+      "priority": "P0",
+      "correction": "差分审计不再漏圆弧或把圆弧算过孔",
+      "control": "link_audit.py：端点唯一链路、track/arc/via分开、ps预算、转层跨度/位置",
+      "verification_scope": "代码+路径反例测试；原生板集成待验证",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R08",
+      "priority": "P1",
+      "correction": "旧项目探针退出发布门禁",
+      "control": "原usb_spec_check/zcheck只作诊断；缺courtyard/未闭合/异常阻断；新profile配置化",
+      "verification_scope": "代码+缺失/畸形courtyard反例",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R09",
+      "priority": "P1",
+      "correction": "取消缺失工具“已生效”宣称",
+      "control": "tool-manifest列文件哈希/合同/版本/命令/验证范围；缺工具阻断；未打包route_3d等不作依赖",
+      "verification_scope": "代码+库存篡改测试",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R10",
+      "priority": "P1",
+      "correction": "不再用固定8层名代替物理叠层",
+      "control": "逐层顺序/介质/Dk/Df频点/铜厚/参考面/板厂签核证据；按路径选层",
+      "verification_scope": "有效规则+证据门禁；无通用默认值",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R11",
+      "priority": "P1",
+      "correction": "撤销AGND/DGND一律单点规则",
+      "control": "依据具体芯片/隔离架构和回流设计接地，分区不等于必须切地",
+      "verification_scope": "有效规则+原厂评审证据",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R12",
+      "priority": "P1",
+      "correction": "撤销跨地缝电容默认许可",
+      "control": "优先避免跨缝；区分GND到GND与电源参考转换；安全隔离不得随意桥接",
+      "verification_scope": "有效规则+回流/安全评审证据",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R13",
+      "priority": "P1",
+      "correction": "撤销接口统一毫米公差与错误分类",
+      "control": "协议/PHY/版本独立profile；DDR按真实控制器；HDMI模式和RGMII/MDI分开，ps预算含封装",
+      "verification_scope": "有效规则+端点profile门禁",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R14",
+      "priority": "P1",
+      "correction": "禁止改网名和全局降级skew掩盖问题",
+      "control": "逐串联段保持差分语义；跨器件端到端映射；支路和stub独立评估",
+      "verification_scope": "有效规则+保守路径审计；复杂拓扑阻断",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R15",
+      "priority": "P1",
+      "correction": "3W/20H/90°降为适用经验",
+      "control": "明确边距/中心距、叠层和串扰预算；45°/圆弧是偏好，不是电气合格证明",
+      "verification_scope": "有效规则+需求追踪证据",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R16",
+      "priority": "P1",
+      "correction": "撤销固定线宽/内层一半/单孔1A",
+      "control": "载流、压降、I²R、温升和峰值由实际铜厚/镀铜/散热模型验收；不靠加锡默认放行",
+      "verification_scope": "有效规则+电源/热/工艺门禁",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R17",
+      "priority": "P1",
+      "correction": "撤销按速率统一背钻和任意盘中孔",
+      "control": "按残桩/通道模型决策背钻，填孔盖帽平整度与板厂PCBA共同批准",
+      "verification_scope": "有效规则+制造证据门禁",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R18",
+      "priority": "P1",
+      "correction": "撤销小容值永远最近与全局FULL消警告",
+      "control": "按原厂PDN、DC bias/ESR/ESL/反谐振/负载瞬态布局；热焊盘按焊接/载流核对",
+      "verification_scope": "有效规则+PI/工艺签核",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R19",
+      "priority": "P1",
+      "correction": "撤销逆向2mm必换层和所有过孔距pad0.8mm",
+      "control": "方向仅偏好；扇出、回流、时序与工艺共同约束；支持合格dogbone/盘中孔/激光孔",
+      "verification_scope": "有效规则+封装/工艺证据",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R20",
+      "priority": "P1",
+      "correction": "BOM不再按Value+Footprint误合并",
+      "control": "assembly_guard.py按全部物料字段分组、DNP/变体隔离、CPL fitted集合一致；角度/极性人工审图",
+      "verification_scope": "代码+BOM/CPL反例测试",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R21",
+      "priority": "P1",
+      "correction": "不再拿PCB SVG当Gerber验收",
+      "control": "核对实际Gerber/Excellon结构和哈希，独立CAM记录必须绑定当前所有铜/钻孔输出",
+      "verification_scope": "代码+假文件/旧CAM证据测试；真实CAM待输入",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R22",
+      "priority": "P1",
+      "correction": "最终替换后必须refill/save/reload再审计",
+      "control": "freeze_candidate只写独立副本；validate_frozen_candidate执行最终原生/规格检查；旧源不覆盖",
+      "verification_scope": "代码+预览/陈旧freeze反例；原生运行待完成",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R23",
+      "priority": "P2",
+      "correction": "撤销30器件/A4/绕行比绝对标准",
+      "control": "按功能与可读性分页；数字只是提醒；关键时序不由几何美观验收",
+      "verification_scope": "有效规则；历史案例已隔离",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R24",
+      "priority": "P2",
+      "correction": "统一阶段、签核与工厂EQ顺序",
+      "control": "统一0–7+2.5、G1–G6，五个DFX检查叠加；D0/D1/D2/D3分级，EQ后才D2授权",
+      "verification_scope": "有效规则+生产分级门禁",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    },
+    {
+      "id": "R25",
+      "priority": "P1",
+      "correction": "撤销所有产品通用测试/认证数值",
+      "control": "每电源轨与工作环境独立验收标准；可靠性/认证按市场类别和产品适用性；D2不等于D3",
+      "verification_scope": "有效规则+需求/验证计划门禁",
+      "status": "controls_implemented_native_or_project_evidence_pending"
+    }
+  ],
+  "production_ready": false,
+  "native_validation": "NOT_RUN — no KiCad 10.0.7 runtime"
+}

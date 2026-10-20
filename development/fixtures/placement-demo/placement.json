@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "scope_reason": "TEST ONLY all components",
+  "modules": [
+    {
+      "id": "main",
+      "anchor": "U1",
+      "refs": [
+        "U1",
+        "C1",
+        "R1"
+      ],
+      "roles": {
+        "U1": "controller",
+        "C1": "decoupling",
+        "R1": "passive"
+      },
+      "bounds_mm": [
+        9,
+        9,
+        14,
+        12
+      ],
+      "source": {
+        "file": "source.md",
+        "sha256": "4f09e621fdede23bb7a33e28b96398f60052a52a9542ab60063492a0248bc97c",
+        "locator": "TEST §1"
+      }
+    }
+  ],
+  "critical_subcircuits": [
+    {
+      "id": "power-local",
+      "type": "decoupling",
+      "reason": "TEST",
+      "refs": [
+        "U1",
+        "C1"
+      ],
+      "check_ids": [
+        "dec"
+      ],
+      "source": {
+        "file": "source.md",
+        "sha256": "4f09e621fdede23bb7a33e28b96398f60052a52a9542ab60063492a0248bc97c",
+        "locator": "TEST §1"
+      }
+    }
+  ],
+  "constraints": [
+    {
+      "id": "dec",
+      "kind": "decoupling",
+      "level": "阻断级",
+      "source": {
+        "file": "source.md",
+        "sha256": "4f09e621fdede23bb7a33e28b96398f60052a52a9542ab60063492a0248bc97c",
+        "locator": "TEST §1"
+      },
+      "ic_power": {
+        "ref": "U1",
+        "pad": "1",
+        "net": "VDD"
+      },
+      "cap_power": {
+        "ref": "C1",
+        "pad": "1",
+        "net": "VDD"
+      },
+      "cap_ground": {
+        "ref": "C1",
+        "pad": "2",
+        "net": "GND"
+      },
+      "return_anchor": {
+        "kind": "via",
+        "uuid": "TEST_GND_VIA",
+        "net": "GND"
+      },
+      "max_power_mm": 2,
+      "max_return_mm": 1,
+      "same_side": true
+    },
+    {
+      "id": "row",
+      "kind": "alignment",
+      "level": "优化建议",
+      "source": {
+        "file": "source.md",
+        "sha256": "4f09e621fdede23bb7a33e28b96398f60052a52a9542ab60063492a0248bc97c",
+        "locator": "TEST §1"
+      },
+      "refs": [
+        "U1",
+        "R1"
+      ],
+      "axis": "y",
+      "tolerance": 0.05
+    }
+  ],
+  "reviews": {},
+  "demonstration_only": true
+}

@@ -1,0 +1,569 @@
+{
+  "schema_version": 1,
+  "demonstration_only": false,
+  "documents": [
+    {
+      "id": "PROJECT_SOURCE",
+      "file": null,
+      "sha256": null,
+      "title": null,
+      "revision": null,
+      "issuer": null,
+      "authority": "datasheet",
+      "applicability": null,
+      "approved_by": null
+    }
+  ],
+  "stages": {
+    "schematic": {
+      "inputs": {
+        "schematic": null,
+        "project": null,
+        "board": null,
+        "provided_netlist": null
+      },
+      "critical_nets": [],
+      "component_sources": {},
+      "support_files": [],
+      "tasks": [
+        {
+          "id": "schematic.requirements",
+          "category": "requirements",
+          "level": "阻断级",
+          "requirement": null,
+          "strength": null,
+          "targets": {
+            "refs": [],
+            "nets": [],
+            "layers": [],
+            "footprints": []
+          },
+          "source_refs": [
+            {
+              "document_id": "PROJECT_SOURCE",
+              "locator": null
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "schematic.system_integration",
+          "category": "system_integration",
+          "level": "阻断级",
+          "requirement": null,
+          "strength": "mandatory",
+          "targets": {
+            "refs": [],
+            "nets": [],
+            "layers": [],
+            "footprints": []
+          },
+          "source_refs": [
+            {
+              "document_id": "PROJECT_SOURCE",
+              "locator": null
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "schematic.device_recommended_circuit",
+          "category": "device_recommended_circuit",
+          "level": "阻断级",
+          "requirement": null,
+          "strength": null,
+          "targets": {
+            "refs": [],
+            "nets": [],
+            "layers": [],
+            "footprints": []
+          },
+          "source_refs": [
+            {
+              "document_id": "PROJECT_SOURCE",
+              "locator": null
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "schematic.power_domains",
+          "category": "power_domains",
+          "level": "阻断级",
+          "requirement": null,
+          "strength": null,
+          "targets": {
+            "refs": [],
+            "nets": [],
+            "layers": [],
+            "footprints": []
+          },
+          "source_refs": [
+            {
+              "document_id": "PROJECT_SOURCE",
+              "locator": null
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "schematic.reset_boot_sequence",
+          "category": "reset_boot_sequence",
+          "level": "阻断级",
+          "requirement": null,
+          "strength": null,
+          "targets": {
+            "refs": [],
+            "nets": [],
+            "layers": [],
+            "footprints": []
+          },
+          "source_refs": [
+            {
+              "document_id": "PROJECT_SOURCE",
+              "locator": null
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "schematic.clock",
+          "category": "clock",
+          "level": "阻断级",
+          "requirement": null,
+          "strength": null,
+          "targets": {
+            "refs": [],
+            "nets": [],
+            "layers": [],
+            "footprints": []
+          },
+          "source_refs": [
+            {
+              "document_id": "PROJECT_SOURCE",
+              "locator": null
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "schematic.interfaces",
+          "category": "interfaces",
+          "level": "阻断级",
+          "requirement": null,
+          "strength": null,
+          "targets": {
+            "refs": [],
+            "nets": [],
+            "layers": [],
+            "footprints": []
+          },
+          "source_refs": [
+            {
+              "document_id": "PROJECT_SOURCE",
+              "locator": null
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "schematic.protection",
+          "category": "protection",
+          "level": "阻断级",
+          "requirement": null,
+          "strength": null,
+          "targets": {
+            "refs": [],
+            "nets": [],
+            "layers": [],
+            "footprints": []
+          },
+          "source_refs": [
+            {
+              "document_id": "PROJECT_SOURCE",
+              "locator": null
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "schematic.passives_unused_pins",
+          "category": "passives_unused_pins",
+          "level": "阻断级",
+          "requirement": null,
+          "strength": null,
+          "targets": {
+            "refs": [],
+            "nets": [],
+            "layers": [],
+            "footprints": []
+          },
+          "source_refs": [
+            {
+              "document_id": "PROJECT_SOURCE",
+              "locator": null
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "schematic.footprint_pinmap_variants",
+          "category": "footprint_pinmap_variants",
+          "level": "阻断级",
+          "requirement": null,
+          "strength": null,
+          "targets": {
+            "refs": [],
+            "nets": [],
+            "layers": [],
+            "footprints": []
+          },
+          "source_refs": [
+            {
+              "document_id": "PROJECT_SOURCE",
+              "locator": null
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "schematic.reserve_options",
+          "category": "reserve_options",
+          "level": "阻断级",
+          "requirement": null,
+          "strength": null,
+          "targets": {
+            "refs": [],
+            "nets": [],
+            "layers": [],
+            "footprints": []
+          },
+          "source_refs": [
+            {
+              "document_id": "PROJECT_SOURCE",
+              "locator": null
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "schematic.style",
+          "category": "schematic_style",
+          "level": "阻断级",
+          "requirement": null,
+          "strength": "mandatory",
+          "targets": {
+            "refs": [],
+            "nets": [],
+            "layers": [],
+            "footprints": []
+          },
+          "source_refs": [
+            {
+              "document_id": "PROJECT_SOURCE",
+              "locator": null
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        }
+      ]
+    },
+    "pcb": {
+      "inputs": {
+        "schematic": null,
+        "project": null,
+        "board": null,
+        "provided_netlist": null
+      },
+      "critical_nets": [],
+      "component_sources": {},
+      "support_files": [],
+      "tasks": [
+        {
+          "id": "pcb.requirements",
+          "category": "requirements",
+          "level": "阻断级",
+          "requirement": null,
+          "strength": null,
+          "targets": {
+            "refs": [],
+            "nets": [],
+            "layers": [],
+            "footprints": []
+          },
+          "source_refs": [
+            {
+              "document_id": "PROJECT_SOURCE",
+              "locator": null
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "pcb.stackup_reference_planes",
+          "category": "stackup_reference_planes",
+          "level": "阻断级",
+          "requirement": null,
+          "strength": null,
+          "targets": {
+            "refs": [],
+            "nets": [],
+            "layers": [],
+            "footprints": []
+          },
+          "source_refs": [
+            {
+              "document_id": "PROJECT_SOURCE",
+              "locator": null
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "pcb.critical_signal_paths",
+          "category": "critical_signal_paths",
+          "level": "阻断级",
+          "requirement": null,
+          "strength": null,
+          "targets": {
+            "refs": [],
+            "nets": [],
+            "layers": [],
+            "footprints": []
+          },
+          "source_refs": [
+            {
+              "document_id": "PROJECT_SOURCE",
+              "locator": null
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "pcb.power_return_loops",
+          "category": "power_return_loops",
+          "level": "阻断级",
+          "requirement": null,
+          "strength": null,
+          "targets": {
+            "refs": [],
+            "nets": [],
+            "layers": [],
+            "footprints": []
+          },
+          "source_refs": [
+            {
+              "document_id": "PROJECT_SOURCE",
+              "locator": null
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "pcb.decoupling",
+          "category": "decoupling",
+          "level": "阻断级",
+          "requirement": null,
+          "strength": null,
+          "targets": {
+            "refs": [],
+            "nets": [],
+            "layers": [],
+            "footprints": []
+          },
+          "source_refs": [
+            {
+              "document_id": "PROJECT_SOURCE",
+              "locator": null
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "pcb.clock",
+          "category": "clock",
+          "level": "阻断级",
+          "requirement": null,
+          "strength": null,
+          "targets": {
+            "refs": [],
+            "nets": [],
+            "layers": [],
+            "footprints": []
+          },
+          "source_refs": [
+            {
+              "document_id": "PROJECT_SOURCE",
+              "locator": null
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "pcb.rf_antenna",
+          "category": "rf_antenna",
+          "level": "阻断级",
+          "requirement": null,
+          "strength": null,
+          "targets": {
+            "refs": [],
+            "nets": [],
+            "layers": [],
+            "footprints": []
+          },
+          "source_refs": [
+            {
+              "document_id": "PROJECT_SOURCE",
+              "locator": null
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "pcb.pads_vias_fanout",
+          "category": "pads_vias_fanout",
+          "level": "阻断级",
+          "requirement": null,
+          "strength": null,
+          "targets": {
+            "refs": [],
+            "nets": [],
+            "layers": [],
+            "footprints": []
+          },
+          "source_refs": [
+            {
+              "document_id": "PROJECT_SOURCE",
+              "locator": null
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "pcb.mechanical_manufacturing",
+          "category": "mechanical_manufacturing",
+          "level": "阻断级",
+          "requirement": null,
+          "strength": null,
+          "targets": {
+            "refs": [],
+            "nets": [],
+            "layers": [],
+            "footprints": []
+          },
+          "source_refs": [
+            {
+              "document_id": "PROJECT_SOURCE",
+              "locator": null
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "pcb.reserve_options",
+          "category": "reserve_options",
+          "level": "阻断级",
+          "requirement": null,
+          "strength": null,
+          "targets": {
+            "refs": [],
+            "nets": [],
+            "layers": [],
+            "footprints": []
+          },
+          "source_refs": [
+            {
+              "document_id": "PROJECT_SOURCE",
+              "locator": null
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "pcb.placement_quality",
+          "category": "placement_quality",
+          "level": "阻断级",
+          "requirement": null,
+          "strength": null,
+          "targets": {
+            "refs": [],
+            "nets": [],
+            "layers": [],
+            "footprints": []
+          },
+          "source_refs": [
+            {
+              "document_id": "PROJECT_SOURCE",
+              "locator": null
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        }
+      ]
+    }
+  },
+  "require_device_knowledge": true,
+  "device_knowledge": null,
+  "require_reserve_review": true,
+  "reserve_review": {
+    "policy": null
+  },
+  "require_placement_review": true,
+  "placement_review": {
+    "policy": null
+  },
+  "require_schematic_style": true,
+  "schematic_style": {
+    "policy": null
+  },
+  "require_system_integration": true,
+  "system_integration": {
+    "contract": null
+  }
+}

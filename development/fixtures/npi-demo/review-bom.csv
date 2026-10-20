@@ -1,0 +1,5 @@
+Reference,MPN,Manufacturer,Footprint,Value
+U1,DEMO-IC,DEMO,NPI:Fixture,TEST_IC
+C1,DEMO-CAP,,NPI:Fixture,100nF
+TP1,DEMO-TP,DEMO,NPI:Fixture,TEST
+H1,DEMO-HOLE,DEMO,NPI:Fixture,MountingHole

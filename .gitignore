@@ -25,3 +25,7 @@ backups/
 *.gbr
 *.drl
 *-backups/
+!development/fixtures/**/*.kicad_sch
+!development/fixtures/**/*.kicad_pcb
+!development/fixtures/**/*.kicad_pro
+!dist/*.zip

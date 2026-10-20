@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<export version="E"><nets>
-  <net code="8" name="/Module/SIGNAL_A"><node ref="R_A" pin="1"/><node ref="U_A" pin="1"/></net>
-  <net code="9" name="/Module/RETURN"><node ref="R_A" pin="2"/><node ref="U_A" pin="2"/></net>
-</nets></export>

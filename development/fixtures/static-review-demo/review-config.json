@@ -1,0 +1,551 @@
+{
+  "schema_version": 1,
+  "demonstration_only": true,
+  "documents": [
+    {
+      "id": "TEST",
+      "file": "source.md",
+      "sha256": "f3f87e9a7eb19aa9bed427940678f2e90fd4140c5b6e09c9763e68ac7eb662eb",
+      "title": "Synthetic test-only source",
+      "revision": "0",
+      "issuer": "TEST",
+      "authority": "datasheet",
+      "applicability": "Software test device only",
+      "approved_by": "TEST"
+    }
+  ],
+  "stages": {
+    "schematic": {
+      "inputs": {
+        "schematic": "test.kicad_sch",
+        "project": "test.kicad_pro",
+        "board": "test.kicad_pcb",
+        "provided_netlist": "provided.xml"
+      },
+      "critical_nets": [
+        "VIN",
+        "FB"
+      ],
+      "component_sources": {
+        "U1": [
+          "TEST"
+        ],
+        "R1": [
+          "TEST"
+        ],
+        "R2": [
+          "TEST"
+        ]
+      },
+      "support_files": [],
+      "tasks": [
+        {
+          "id": "schematic.requirements",
+          "category": "requirements",
+          "level": "阻断级",
+          "requirement": "核对测试电路的requirements",
+          "strength": "mandatory",
+          "targets": {
+            "refs": [
+              "U1"
+            ],
+            "nets": [
+              "FB"
+            ],
+            "layers": []
+          },
+          "source_refs": [
+            {
+              "document_id": "TEST",
+              "locator": "§1"
+            }
+          ],
+          "check": {
+            "kind": "pin_net",
+            "pin": {
+              "ref": "U1",
+              "pin": "1"
+            },
+            "net": "FB"
+          }
+        },
+        {
+          "id": "schematic.device_recommended_circuit",
+          "category": "device_recommended_circuit",
+          "level": "阻断级",
+          "requirement": "核对测试电路的device_recommended_circuit",
+          "strength": "mandatory",
+          "targets": {
+            "refs": [
+              "U1"
+            ],
+            "nets": [
+              "FB"
+            ],
+            "layers": []
+          },
+          "source_refs": [
+            {
+              "document_id": "TEST",
+              "locator": "§1"
+            }
+          ],
+          "check": {
+            "kind": "resistor_divider",
+            "upper_ref": "R1",
+            "lower_ref": "R2",
+            "upper_pins": [
+              "1",
+              "2"
+            ],
+            "lower_pins": [
+              "1",
+              "2"
+            ],
+            "supply_net": "VIN",
+            "output_net": "FB",
+            "ground_net": "GND",
+            "upper_tolerance": 0.01,
+            "lower_tolerance": 0.01,
+            "input_min_v": 4.9,
+            "input_max_v": 5.1,
+            "output_min_v": 0.9,
+            "output_max_v": 1.1
+          }
+        },
+        {
+          "id": "schematic.power_domains",
+          "category": "power_domains",
+          "level": "阻断级",
+          "requirement": "核对测试电路的power_domains",
+          "strength": "mandatory",
+          "targets": {
+            "refs": [
+              "U1"
+            ],
+            "nets": [
+              "FB"
+            ],
+            "layers": []
+          },
+          "source_refs": [
+            {
+              "document_id": "TEST",
+              "locator": "§1"
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "schematic.reset_boot_sequence",
+          "category": "reset_boot_sequence",
+          "level": "阻断级",
+          "requirement": "核对测试电路的reset_boot_sequence",
+          "strength": "mandatory",
+          "targets": {
+            "refs": [
+              "U1"
+            ],
+            "nets": [
+              "FB"
+            ],
+            "layers": []
+          },
+          "source_refs": [
+            {
+              "document_id": "TEST",
+              "locator": "§1"
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "schematic.clock",
+          "category": "clock",
+          "level": "阻断级",
+          "requirement": "核对测试电路的clock",
+          "strength": "mandatory",
+          "targets": {
+            "refs": [
+              "U1"
+            ],
+            "nets": [
+              "FB"
+            ],
+            "layers": []
+          },
+          "source_refs": [
+            {
+              "document_id": "TEST",
+              "locator": "§1"
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "schematic.interfaces",
+          "category": "interfaces",
+          "level": "阻断级",
+          "requirement": "核对测试电路的interfaces",
+          "strength": "mandatory",
+          "targets": {
+            "refs": [
+              "U1"
+            ],
+            "nets": [
+              "FB"
+            ],
+            "layers": []
+          },
+          "source_refs": [
+            {
+              "document_id": "TEST",
+              "locator": "§1"
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "schematic.protection",
+          "category": "protection",
+          "level": "阻断级",
+          "requirement": "核对测试电路的protection",
+          "strength": "mandatory",
+          "targets": {
+            "refs": [
+              "U1"
+            ],
+            "nets": [
+              "FB"
+            ],
+            "layers": []
+          },
+          "source_refs": [
+            {
+              "document_id": "TEST",
+              "locator": "§1"
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "schematic.passives_unused_pins",
+          "category": "passives_unused_pins",
+          "level": "阻断级",
+          "requirement": "核对测试电路的passives_unused_pins",
+          "strength": "mandatory",
+          "targets": {
+            "refs": [
+              "U1"
+            ],
+            "nets": [
+              "FB"
+            ],
+            "layers": []
+          },
+          "source_refs": [
+            {
+              "document_id": "TEST",
+              "locator": "§1"
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "schematic.footprint_pinmap_variants",
+          "category": "footprint_pinmap_variants",
+          "level": "阻断级",
+          "requirement": "核对测试电路的footprint_pinmap_variants",
+          "strength": "mandatory",
+          "targets": {
+            "refs": [
+              "U1"
+            ],
+            "nets": [
+              "FB"
+            ],
+            "layers": []
+          },
+          "source_refs": [
+            {
+              "document_id": "TEST",
+              "locator": "§1"
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        }
+      ]
+    },
+    "pcb": {
+      "inputs": {
+        "schematic": "test.kicad_sch",
+        "project": "test.kicad_pro",
+        "board": "test.kicad_pcb",
+        "provided_netlist": "provided.xml"
+      },
+      "critical_nets": [
+        "VIN",
+        "FB"
+      ],
+      "component_sources": {
+        "U1": [
+          "TEST"
+        ],
+        "R1": [
+          "TEST"
+        ],
+        "R2": [
+          "TEST"
+        ]
+      },
+      "support_files": [],
+      "tasks": [
+        {
+          "id": "pcb.requirements",
+          "category": "requirements",
+          "level": "阻断级",
+          "requirement": "核对测试电路的requirements",
+          "strength": "mandatory",
+          "targets": {
+            "refs": [
+              "U1"
+            ],
+            "nets": [
+              "FB"
+            ],
+            "layers": []
+          },
+          "source_refs": [
+            {
+              "document_id": "TEST",
+              "locator": "§1"
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "pcb.stackup_reference_planes",
+          "category": "stackup_reference_planes",
+          "level": "阻断级",
+          "requirement": "核对测试电路的stackup_reference_planes",
+          "strength": "mandatory",
+          "targets": {
+            "refs": [
+              "U1"
+            ],
+            "nets": [
+              "FB"
+            ],
+            "layers": []
+          },
+          "source_refs": [
+            {
+              "document_id": "TEST",
+              "locator": "§1"
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "pcb.critical_signal_paths",
+          "category": "critical_signal_paths",
+          "level": "阻断级",
+          "requirement": "核对测试电路的critical_signal_paths",
+          "strength": "mandatory",
+          "targets": {
+            "refs": [
+              "U1"
+            ],
+            "nets": [
+              "FB"
+            ],
+            "layers": []
+          },
+          "source_refs": [
+            {
+              "document_id": "TEST",
+              "locator": "§1"
+            }
+          ],
+          "check": {
+            "kind": "track_geometry",
+            "net": "FB",
+            "allowed_layers": [
+              "F.Cu"
+            ],
+            "min_width_mm": 0.2,
+            "max_width_mm": 0.3
+          }
+        },
+        {
+          "id": "pcb.power_return_loops",
+          "category": "power_return_loops",
+          "level": "阻断级",
+          "requirement": "核对测试电路的power_return_loops",
+          "strength": "mandatory",
+          "targets": {
+            "refs": [
+              "U1"
+            ],
+            "nets": [
+              "FB"
+            ],
+            "layers": []
+          },
+          "source_refs": [
+            {
+              "document_id": "TEST",
+              "locator": "§1"
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "pcb.decoupling",
+          "category": "decoupling",
+          "level": "阻断级",
+          "requirement": "核对测试电路的decoupling",
+          "strength": "mandatory",
+          "targets": {
+            "refs": [
+              "U1"
+            ],
+            "nets": [
+              "FB"
+            ],
+            "layers": []
+          },
+          "source_refs": [
+            {
+              "document_id": "TEST",
+              "locator": "§1"
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "pcb.clock",
+          "category": "clock",
+          "level": "阻断级",
+          "requirement": "核对测试电路的clock",
+          "strength": "mandatory",
+          "targets": {
+            "refs": [
+              "U1"
+            ],
+            "nets": [
+              "FB"
+            ],
+            "layers": []
+          },
+          "source_refs": [
+            {
+              "document_id": "TEST",
+              "locator": "§1"
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "pcb.rf_antenna",
+          "category": "rf_antenna",
+          "level": "阻断级",
+          "requirement": "核对测试电路的rf_antenna",
+          "strength": "mandatory",
+          "targets": {
+            "refs": [
+              "U1"
+            ],
+            "nets": [
+              "FB"
+            ],
+            "layers": []
+          },
+          "source_refs": [
+            {
+              "document_id": "TEST",
+              "locator": "§1"
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "pcb.pads_vias_fanout",
+          "category": "pads_vias_fanout",
+          "level": "阻断级",
+          "requirement": "核对测试电路的pads_vias_fanout",
+          "strength": "mandatory",
+          "targets": {
+            "refs": [
+              "U1"
+            ],
+            "nets": [
+              "FB"
+            ],
+            "layers": []
+          },
+          "source_refs": [
+            {
+              "document_id": "TEST",
+              "locator": "§1"
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        },
+        {
+          "id": "pcb.mechanical_manufacturing",
+          "category": "mechanical_manufacturing",
+          "level": "阻断级",
+          "requirement": "核对测试电路的mechanical_manufacturing",
+          "strength": "mandatory",
+          "targets": {
+            "refs": [
+              "U1"
+            ],
+            "nets": [
+              "FB"
+            ],
+            "layers": []
+          },
+          "source_refs": [
+            {
+              "document_id": "TEST",
+              "locator": "§1"
+            }
+          ],
+          "check": {
+            "kind": "semantic"
+          }
+        }
+      ]
+    }
+  }
+}

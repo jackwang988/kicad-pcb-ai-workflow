@@ -1,0 +1,442 @@
+{
+  "schema_version": 1,
+  "project_file": "test.kicad_pro",
+  "board_file": "test.kicad_pcb",
+  "coverage": {
+    "reviewer": "TEST",
+    "date": "2026-10-17",
+    "reason": "UNIT TEST ONLY",
+    "source": {
+      "document": "TEST",
+      "revision": "0",
+      "section": "fixture"
+    },
+    "evidence": [
+      {
+        "file": "review.txt",
+        "sha256": "254d3e94d7c8144e14cd1fccd6714eb9fec68bede9586e49eb7b3df88b82c48b"
+      }
+    ],
+    "critical_nets": [
+      "USB0_P",
+      "USB0_N",
+      "CSI0_D0_P",
+      "CSI0_D0_N",
+      "VDD_TEST",
+      "RF_FEED"
+    ]
+  },
+  "classes": [
+    {
+      "name": "USB",
+      "kind": "differential",
+      "clearance_mm": 0.2,
+      "geometry": [
+        {
+          "layer": "F.Cu",
+          "width_mm": 0.25,
+          "min_width_mm": 0.24,
+          "max_width_mm": 0.26,
+          "reference_layers": [
+            "B.Cu"
+          ],
+          "gap_mm": 0.15,
+          "min_gap_mm": 0.14,
+          "max_gap_mm": 0.16
+        }
+      ],
+      "approval": {
+        "reviewer": "TEST",
+        "date": "2026-10-17",
+        "reason": "UNIT TEST ONLY",
+        "source": {
+          "document": "TEST",
+          "revision": "0",
+          "section": "fixture"
+        },
+        "evidence": [
+          {
+            "file": "review.txt",
+            "sha256": "254d3e94d7c8144e14cd1fccd6714eb9fec68bede9586e49eb7b3df88b82c48b"
+          }
+        ]
+      },
+      "target_impedance_ohm": 90,
+      "impedance_tolerance_percent": 10,
+      "stackup_sha256": "4953f6ebd4abfba619eb4df47bdfafa8ffac33a03ae69551344a554755832c99"
+    },
+    {
+      "name": "MIPI",
+      "kind": "differential",
+      "clearance_mm": 0.2,
+      "geometry": [
+        {
+          "layer": "F.Cu",
+          "width_mm": 0.25,
+          "min_width_mm": 0.24,
+          "max_width_mm": 0.26,
+          "reference_layers": [
+            "B.Cu"
+          ],
+          "gap_mm": 0.15,
+          "min_gap_mm": 0.14,
+          "max_gap_mm": 0.16
+        }
+      ],
+      "approval": {
+        "reviewer": "TEST",
+        "date": "2026-10-17",
+        "reason": "UNIT TEST ONLY",
+        "source": {
+          "document": "TEST",
+          "revision": "0",
+          "section": "fixture"
+        },
+        "evidence": [
+          {
+            "file": "review.txt",
+            "sha256": "254d3e94d7c8144e14cd1fccd6714eb9fec68bede9586e49eb7b3df88b82c48b"
+          }
+        ]
+      },
+      "target_impedance_ohm": 100,
+      "impedance_tolerance_percent": 10,
+      "stackup_sha256": "4953f6ebd4abfba619eb4df47bdfafa8ffac33a03ae69551344a554755832c99"
+    },
+    {
+      "name": "POWER",
+      "kind": "power",
+      "clearance_mm": 0.2,
+      "geometry": [
+        {
+          "layer": "F.Cu",
+          "width_mm": 0.6,
+          "min_width_mm": 0.5,
+          "max_width_mm": 2
+        }
+      ],
+      "approval": {
+        "reviewer": "TEST",
+        "date": "2026-10-17",
+        "reason": "UNIT TEST ONLY",
+        "source": {
+          "document": "TEST",
+          "revision": "0",
+          "section": "fixture"
+        },
+        "evidence": [
+          {
+            "file": "review.txt",
+            "sha256": "254d3e94d7c8144e14cd1fccd6714eb9fec68bede9586e49eb7b3df88b82c48b"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RF",
+      "kind": "rf",
+      "clearance_mm": 0.2,
+      "geometry": [
+        {
+          "layer": "F.Cu",
+          "width_mm": 0.25,
+          "min_width_mm": 0.24,
+          "max_width_mm": 0.26,
+          "reference_layers": [
+            "B.Cu"
+          ]
+        }
+      ],
+      "approval": {
+        "reviewer": "TEST",
+        "date": "2026-10-17",
+        "reason": "UNIT TEST ONLY",
+        "source": {
+          "document": "TEST",
+          "revision": "0",
+          "section": "fixture"
+        },
+        "evidence": [
+          {
+            "file": "review.txt",
+            "sha256": "254d3e94d7c8144e14cd1fccd6714eb9fec68bede9586e49eb7b3df88b82c48b"
+          }
+        ]
+      },
+      "target_impedance_ohm": 50,
+      "impedance_tolerance_percent": 10,
+      "stackup_sha256": "4953f6ebd4abfba619eb4df47bdfafa8ffac33a03ae69551344a554755832c99"
+    }
+  ],
+  "nets": [
+    {
+      "name": "USB0_P",
+      "netclass": "USB",
+      "kind": "differential",
+      "anchors": [
+        {
+          "file": "test.kicad_sch",
+          "label_uuid": "82595efe-3bf5-58fe-ae61-c539e10cdfe4"
+        }
+      ]
+    },
+    {
+      "name": "USB0_N",
+      "netclass": "USB",
+      "kind": "differential",
+      "anchors": [
+        {
+          "file": "test.kicad_sch",
+          "label_uuid": "3ca1bd89-3035-539b-87aa-8c4cd9bc66b4"
+        }
+      ]
+    },
+    {
+      "name": "CSI0_D0_P",
+      "netclass": "MIPI",
+      "kind": "differential",
+      "anchors": [
+        {
+          "file": "test.kicad_sch",
+          "label_uuid": "79824017-c60e-5b72-a274-7840bbfe6073"
+        }
+      ]
+    },
+    {
+      "name": "CSI0_D0_N",
+      "netclass": "MIPI",
+      "kind": "differential",
+      "anchors": [
+        {
+          "file": "test.kicad_sch",
+          "label_uuid": "3182ffa1-bceb-5d91-98f8-71e7232cf958"
+        }
+      ]
+    },
+    {
+      "name": "VDD_TEST",
+      "netclass": "POWER",
+      "kind": "power",
+      "anchors": [
+        {
+          "file": "test.kicad_sch",
+          "label_uuid": "852af971-15f7-55e7-87c8-2044b1546e07"
+        }
+      ],
+      "power": {
+        "continuous_a": 2,
+        "peak_a": 4,
+        "peak_duration_ms": 10,
+        "ambient_c": 40,
+        "max_temp_rise_c": 30,
+        "max_conductor_c": 70,
+        "max_drop_v": 0.1,
+        "max_peak_drop_v": 0.2,
+        "max_path_length_mm": 20,
+        "thermal_min_width_mm": {
+          "F.Cu": 0.5
+        },
+        "layer_copper_um": {
+          "F.Cu": 35
+        },
+        "path_model": "single_uniform_trace",
+        "stackup_sha256": "4953f6ebd4abfba619eb4df47bdfafa8ffac33a03ae69551344a554755832c99",
+        "approval": {
+          "reviewer": "TEST",
+          "date": "2026-10-17",
+          "reason": "UNIT TEST ONLY",
+          "source": {
+            "document": "TEST",
+            "revision": "0",
+            "section": "fixture"
+          },
+          "evidence": [
+            {
+              "file": "review.txt",
+              "sha256": "254d3e94d7c8144e14cd1fccd6714eb9fec68bede9586e49eb7b3df88b82c48b"
+            }
+          ]
+        },
+        "layout_review": {
+          "reviewer": "TEST",
+          "date": "2026-10-17",
+          "reason": "UNIT TEST ONLY",
+          "source": {
+            "document": "TEST",
+            "revision": "0",
+            "section": "fixture"
+          },
+          "evidence": [
+            {
+              "file": "review.txt",
+              "sha256": "254d3e94d7c8144e14cd1fccd6714eb9fec68bede9586e49eb7b3df88b82c48b"
+            }
+          ],
+          "layout_sha256": "25f776a482cc20bae484c519804a66f97e11fc44ff46bc8feb908844d1d87a58",
+          "checks": {
+            "via_ampacity": "PASS",
+            "pad_necks": "PASS",
+            "copper_necks": "PASS",
+            "return_path": "PASS",
+            "contacts": "PASS",
+            "fault_protection": "PASS",
+            "transient_thermal": "PASS"
+          }
+        },
+        "peak_duty_cycle": 0.1
+      }
+    },
+    {
+      "name": "RF_FEED",
+      "netclass": "RF",
+      "kind": "rf",
+      "anchors": [
+        {
+          "file": "test.kicad_sch",
+          "label_uuid": "fbab66db-a8ca-59dc-952a-bbf2552a4884"
+        }
+      ],
+      "rf": {
+        "role": "feedline",
+        "frequency_hz": 2400000000.0,
+        "power_dbm": 10,
+        "max_path_length_mm": 20,
+        "reference_net": "GND",
+        "return_review": {
+          "reviewer": "TEST",
+          "date": "2026-10-17",
+          "reason": "UNIT TEST ONLY",
+          "source": {
+            "document": "TEST",
+            "revision": "0",
+            "section": "fixture"
+          },
+          "evidence": [
+            {
+              "file": "review.txt",
+              "sha256": "254d3e94d7c8144e14cd1fccd6714eb9fec68bede9586e49eb7b3df88b82c48b"
+            }
+          ],
+          "layout_sha256": "25f776a482cc20bae484c519804a66f97e11fc44ff46bc8feb908844d1d87a58"
+        },
+        "matching_review": {
+          "reviewer": "TEST",
+          "date": "2026-10-17",
+          "reason": "UNIT TEST ONLY",
+          "source": {
+            "document": "TEST",
+            "revision": "0",
+            "section": "fixture"
+          },
+          "evidence": [
+            {
+              "file": "review.txt",
+              "sha256": "254d3e94d7c8144e14cd1fccd6714eb9fec68bede9586e49eb7b3df88b82c48b"
+            }
+          ],
+          "layout_sha256": "25f776a482cc20bae484c519804a66f97e11fc44ff46bc8feb908844d1d87a58"
+        }
+      }
+    }
+  ],
+  "pairs": [
+    {
+      "id": "USB0",
+      "positive": "USB0_P",
+      "negative": "USB0_N",
+      "protocol": "USB2_HS",
+      "chain_id": "USB0",
+      "segment_index": 0
+    },
+    {
+      "id": "CSI0_D0",
+      "positive": "CSI0_D0_P",
+      "negative": "CSI0_D0_N",
+      "protocol": "MIPI_DPHY",
+      "chain_id": "CSI0_D0",
+      "segment_index": 0
+    }
+  ],
+  "regions": [
+    {
+      "id": "ANT_TEST",
+      "kind": "antenna_keepout",
+      "layers": [
+        "F.Cu",
+        "B.Cu"
+      ],
+      "polygon_mm": [
+        [
+          30,
+          30
+        ],
+        [
+          35,
+          30
+        ],
+        [
+          35,
+          35
+        ],
+        [
+          30,
+          35
+        ]
+      ],
+      "anchor": {
+        "ref": "ANT1",
+        "position_mm": [
+          10.0,
+          10.0
+        ],
+        "rotation_deg": 0
+      },
+      "approval": {
+        "reviewer": "TEST",
+        "date": "2026-10-17",
+        "reason": "UNIT TEST ONLY",
+        "source": {
+          "document": "TEST",
+          "revision": "0",
+          "section": "fixture"
+        },
+        "evidence": [
+          {
+            "file": "review.txt",
+            "sha256": "254d3e94d7c8144e14cd1fccd6714eb9fec68bede9586e49eb7b3df88b82c48b"
+          }
+        ]
+      },
+      "rf_net": "RF_FEED"
+    }
+  ],
+  "loops": [
+    {
+      "id": "TEST_LOOP",
+      "nets": [
+        "VDD_TEST"
+      ],
+      "max_area_mm2": 20,
+      "review": {
+        "reviewer": "TEST",
+        "date": "2026-10-17",
+        "reason": "UNIT TEST ONLY",
+        "source": {
+          "document": "TEST",
+          "revision": "0",
+          "section": "fixture"
+        },
+        "evidence": [
+          {
+            "file": "review.txt",
+            "sha256": "254d3e94d7c8144e14cd1fccd6714eb9fec68bede9586e49eb7b3df88b82c48b"
+          }
+        ],
+        "layout_sha256": "25f776a482cc20bae484c519804a66f97e11fc44ff46bc8feb908844d1d87a58",
+        "method": "TEST measurement",
+        "measured_area_mm2": 10
+      }
+    }
+  ],
+  "demonstration_only": true
+}

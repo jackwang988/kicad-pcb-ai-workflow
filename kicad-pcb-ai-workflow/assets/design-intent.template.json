@@ -1,0 +1,356 @@
+{
+  "schema_version": 1,
+  "project_file": "test.kicad_pro",
+  "board_file": "test.kicad_pcb",
+  "coverage": {
+    "reviewer": null,
+    "date": null,
+    "reason": null,
+    "source": {
+      "document": null,
+      "revision": null,
+      "section": null
+    },
+    "evidence": [],
+    "critical_nets": [
+      "USB0_P",
+      "USB0_N",
+      "CSI0_D0_P",
+      "CSI0_D0_N",
+      "VDD_TEST",
+      "RF_FEED"
+    ]
+  },
+  "classes": [
+    {
+      "name": "USB",
+      "kind": "differential",
+      "clearance_mm": 0.2,
+      "geometry": [
+        {
+          "layer": "F.Cu",
+          "width_mm": null,
+          "min_width_mm": null,
+          "max_width_mm": null,
+          "reference_layers": [
+            "B.Cu"
+          ],
+          "gap_mm": null,
+          "min_gap_mm": null,
+          "max_gap_mm": null
+        }
+      ],
+      "approval": {
+        "reviewer": null,
+        "date": null,
+        "reason": null,
+        "source": {
+          "document": null,
+          "revision": null,
+          "section": null
+        },
+        "evidence": []
+      },
+      "target_impedance_ohm": null,
+      "impedance_tolerance_percent": null,
+      "stackup_sha256": null
+    },
+    {
+      "name": "MIPI",
+      "kind": "differential",
+      "clearance_mm": 0.2,
+      "geometry": [
+        {
+          "layer": "F.Cu",
+          "width_mm": null,
+          "min_width_mm": null,
+          "max_width_mm": null,
+          "reference_layers": [
+            "B.Cu"
+          ],
+          "gap_mm": null,
+          "min_gap_mm": null,
+          "max_gap_mm": null
+        }
+      ],
+      "approval": {
+        "reviewer": null,
+        "date": null,
+        "reason": null,
+        "source": {
+          "document": null,
+          "revision": null,
+          "section": null
+        },
+        "evidence": []
+      },
+      "target_impedance_ohm": null,
+      "impedance_tolerance_percent": null,
+      "stackup_sha256": null
+    },
+    {
+      "name": "POWER",
+      "kind": "power",
+      "clearance_mm": 0.2,
+      "geometry": [
+        {
+          "layer": "F.Cu",
+          "width_mm": null,
+          "min_width_mm": null,
+          "max_width_mm": null
+        }
+      ],
+      "approval": {
+        "reviewer": null,
+        "date": null,
+        "reason": null,
+        "source": {
+          "document": null,
+          "revision": null,
+          "section": null
+        },
+        "evidence": []
+      },
+      "stackup_sha256": null
+    },
+    {
+      "name": "RF",
+      "kind": "rf",
+      "clearance_mm": 0.2,
+      "geometry": [
+        {
+          "layer": "F.Cu",
+          "width_mm": null,
+          "min_width_mm": null,
+          "max_width_mm": null,
+          "reference_layers": [
+            "B.Cu"
+          ]
+        }
+      ],
+      "approval": {
+        "reviewer": null,
+        "date": null,
+        "reason": null,
+        "source": {
+          "document": null,
+          "revision": null,
+          "section": null
+        },
+        "evidence": []
+      },
+      "target_impedance_ohm": null,
+      "impedance_tolerance_percent": null,
+      "stackup_sha256": null
+    }
+  ],
+  "nets": [
+    {
+      "name": "USB0_P",
+      "netclass": "USB",
+      "kind": "differential",
+      "anchors": [
+        {
+          "file": "test.kicad_sch",
+          "label_uuid": null
+        }
+      ]
+    },
+    {
+      "name": "USB0_N",
+      "netclass": "USB",
+      "kind": "differential",
+      "anchors": [
+        {
+          "file": "test.kicad_sch",
+          "label_uuid": null
+        }
+      ]
+    },
+    {
+      "name": "CSI0_D0_P",
+      "netclass": "MIPI",
+      "kind": "differential",
+      "anchors": [
+        {
+          "file": "test.kicad_sch",
+          "label_uuid": null
+        }
+      ]
+    },
+    {
+      "name": "CSI0_D0_N",
+      "netclass": "MIPI",
+      "kind": "differential",
+      "anchors": [
+        {
+          "file": "test.kicad_sch",
+          "label_uuid": null
+        }
+      ]
+    },
+    {
+      "name": "VDD_TEST",
+      "netclass": "POWER",
+      "kind": "power",
+      "anchors": [
+        {
+          "file": "test.kicad_sch",
+          "label_uuid": null
+        }
+      ],
+      "power": {
+        "continuous_a": null,
+        "peak_a": null,
+        "peak_duration_ms": null,
+        "ambient_c": null,
+        "max_temp_rise_c": null,
+        "max_conductor_c": null,
+        "max_drop_v": null,
+        "max_peak_drop_v": null,
+        "max_path_length_mm": null,
+        "thermal_min_width_mm": {
+          "F.Cu": null
+        },
+        "layer_copper_um": {
+          "F.Cu": null
+        },
+        "path_model": "single_uniform_trace",
+        "stackup_sha256": null,
+        "approval": {
+          "reviewer": null,
+          "date": null,
+          "reason": null,
+          "source": {
+            "document": null,
+            "revision": null,
+            "section": null
+          },
+          "evidence": []
+        },
+        "layout_review": {
+          "reviewer": null,
+          "date": null,
+          "reason": null,
+          "source": {
+            "document": null,
+            "revision": null,
+            "section": null
+          },
+          "evidence": []
+        },
+        "peak_duty_cycle": null
+      }
+    },
+    {
+      "name": "RF_FEED",
+      "netclass": "RF",
+      "kind": "rf",
+      "anchors": [
+        {
+          "file": "test.kicad_sch",
+          "label_uuid": null
+        }
+      ],
+      "rf": {
+        "role": "feedline",
+        "frequency_hz": null,
+        "power_dbm": null,
+        "max_path_length_mm": null,
+        "reference_net": "GND",
+        "return_review": {
+          "reviewer": null,
+          "date": null,
+          "reason": null,
+          "source": {
+            "document": null,
+            "revision": null,
+            "section": null
+          },
+          "evidence": []
+        },
+        "matching_review": {
+          "reviewer": null,
+          "date": null,
+          "reason": null,
+          "source": {
+            "document": null,
+            "revision": null,
+            "section": null
+          },
+          "evidence": []
+        }
+      }
+    }
+  ],
+  "pairs": [
+    {
+      "id": "USB0",
+      "positive": "USB0_P",
+      "negative": "USB0_N",
+      "protocol": "USB2_HS",
+      "chain_id": "USB0",
+      "segment_index": 0
+    },
+    {
+      "id": "CSI0_D0",
+      "positive": "CSI0_D0_P",
+      "negative": "CSI0_D0_N",
+      "protocol": "MIPI_DPHY",
+      "chain_id": "CSI0_D0",
+      "segment_index": 0
+    }
+  ],
+  "regions": [
+    {
+      "id": "ANT_TEST",
+      "kind": "antenna_keepout",
+      "layers": [
+        "F.Cu",
+        "B.Cu"
+      ],
+      "polygon_mm": [],
+      "anchor": {
+        "ref": null,
+        "position_mm": null,
+        "rotation_deg": null
+      },
+      "approval": {
+        "reviewer": null,
+        "date": null,
+        "reason": null,
+        "source": {
+          "document": null,
+          "revision": null,
+          "section": null
+        },
+        "evidence": []
+      },
+      "rf_net": "RF_FEED"
+    }
+  ],
+  "loops": [
+    {
+      "id": "TEST_LOOP",
+      "nets": [
+        "VDD_TEST"
+      ],
+      "max_area_mm2": null,
+      "review": {
+        "reviewer": null,
+        "date": null,
+        "reason": null,
+        "source": {
+          "document": null,
+          "revision": null,
+          "section": null
+        },
+        "evidence": [],
+        "layout_sha256": null,
+        "method": null,
+        "measured_area_mm2": null
+      }
+    }
+  ],
+  "demonstration_only": false
+}

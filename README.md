@@ -1,212 +1,154 @@
-# KiCad PCB AI 工作流
+# KiCad PCB AI 工作流 · R9.3
 
-**从器件手册推荐电路出发，让 AI 按工程流程画板，用基线、机检和评审记录验收每一步。**
+**从器件原厂手册的推荐电路出发，让 AI 按工程流程设计与评审，用 KiCad 检查、版本证据和工程师确认推进每一步。**
 
-这是一套面向 **KiCad 9** 的 AI 辅助硬件设计 Skill：从需求、原理图、封装、叠层、布局布线，到制造文件、回板调试与 ECO。它把工作拆成 **十个阶段、六个评审门禁**，并提供一组通用脚本，帮助你检查“改了什么、依据是什么、还有什么没验证”。
+这是一套面向 **KiCad 10.0.7** 的电子设计 Skill，覆盖需求、系统架构、器件资料、原理图、封装、叠层、PCB布局布线、DFX/NPI、制造交付与ECO。日常操作分成 **6组入口**，完整流程展开为 **16个节点、G1–G6六道工程门禁**。
 
-作者：[Jack](https://github.com/jackwang988) · 版本 `2026.10.17-public.1` · [MIT](LICENSE) · [下载 ZIP](https://github.com/jackwang988/kicad-pcb-ai-workflow/archive/refs/heads/main.zip)
+作者：[Jack](https://github.com/jackwang988) · 版本 **R9.3** · [MIT](LICENSE)
 
-> **适合谁？**希望用 AI 辅助 KiCad 工作的硬件工程师、嵌入式开发者与电子爱好者。你仍需要提供设计需求、器件资料和可用的 KiCad 环境，并复核关键决定。它不是 KiCad 官方插件，也不是“一句话保证全自动画完任意板”的服务。
+👉 [下载 R9.3 Skill 安装包](https://github.com/jackwang988/kicad-pcb-ai-workflow/raw/refs/heads/main/dist/kicad-pcb-ai-workflow-R9.3.zip) · [SHA-256校验](dist/SHA256SUMS) · [完整流程](kicad-pcb-ai-workflow/references/full-workflow.md) · [安装与配置教程](kicad-pcb-ai-workflow/references/environment-onboarding.md) · [更新记录](RELEASE_NOTES.md)
 
-[完整流程](#完整流程十个阶段六个评审门禁) · [上手示例](#三个上手场景) · [安装](#安装与环境) · [脚本目录](docs/SCRIPTS.md) · [公开版清理记录](PRIVACY_REVIEW.md)
+适合希望用AI辅助KiCad开发的硬件工程师、嵌入式开发者与电子爱好者。你需要提供真实需求、器件资料、工程与制造条件；关键电气判断和生产放行仍由工程师、工厂及实际验证共同完成。
 
-## 它解决什么问题
+## 重点：对照原厂推荐电路进行设计与检查
 
-| 常见情况 | 这套工作流怎么处理 |
-|---|---|
-| AI 先画电路，事后才找手册 | 先核对具体型号、封装和推荐应用电路，记录偏离项 |
-| 排版或分页后，原理图看起来正常却断了网 | 导出前后网表，区分严格比较与引脚连通拓扑比较 |
-| DRC 总数没变，就被说成“没有新增问题” | 同时核查违规类型、对象、位置和严重度 |
-| 自动布线或改铜皮后，不知道怎么退回去 | 原工程保留，转换写入新输出，再用 KiCad 验证 |
-| 只给结果截图，没有交付证据 | 每阶段记录文件、命令、工具版本、检查结果与未覆盖项 |
-| 把单块板子的参数套到所有设计 | 阻抗、线宽、孔径与叠层按实际器件、板厂和项目约束确定 |
+原理图评审会结合实际网络连接和图纸，逐项核对对应型号、封装及应用条件下的原厂资料：
 
-## 核心依据：对照原厂推荐电路检查
+- 电源域、推荐工作范围、去耦、反馈与上电顺序。
+- 复位、启动配置、使能、时钟和未使用引脚处理。
+- 接口电平、方向、偏置、终端、保护及外围器件。
+- 封装尺寸、引脚编号、极性、裸露焊盘及推荐land pattern。
+- 跨模块电平、供电、复位、时钟、启动及故障行为。
 
-原理图与封装阶段优先核对**原厂 datasheet 的推荐应用电路及对应章节**：
+每项结论应说明“依据哪份资料、哪一节、实际连接是什么、是否适用、如何修复和复验”。资料缺失或型号不清时列为待补证据，不能套用其他型号参数。
 
-- 电源域、推荐工作范围、去耦及上电顺序；
-- 复位、启动配置、使能、时钟与默认状态；
-- 接口电平、方向、偏置及外围器件；
-- 封装图、引脚编号、极性与推荐 land pattern。
+资料阶段先检查已有缓存，缺少时补齐原厂datasheet、设计指南及勘误。资料卡保留来源、版本、适用条件与原文定位；复用前检查当前版本并冻结项目依据，评审时仍须实际查看相关原文和图表。
 
-报告应说明“手册要求什么、设计实际采用什么、为什么存在差异”。缺少手册或型号不清时列待确认，不能把其他型号的参数当作依据。推荐电路的适用条件仍需工程师确认，不能简单照抄而忽略供电、负载、接口与工艺差异。
+## 原理图、PCB怎样衔接
 
-## 完整流程：十个阶段、六个评审门禁
-
-| 阶段 | 主要工作 | 阶段交付与评审 |
+| 设计要求 | 在原理图/项目阶段记录 | 到PCB后核对 |
 |---|---|---|
-| **0 · 需求与器件依据** | 冻结功能、结构、电源、成本和制造约束，整理器件手册 | 需求表、器件候选与资料缺口 |
-| **1 · 原理图** | 对照推荐应用电路，组织模块和跨页接口，建立网表与 ERC 基线 | **门禁① 原理图评审** |
-| **2 · 封装** | 核实引脚映射、极性、尺寸、推荐焊盘与庭院 | 封装检查记录 |
-| **3 · 叠层与规则** | 确定层数、参考平面、制造规则与实际阻抗约束 | **门禁② 封装/叠层评审** |
-| **4 · PCB 布局** | 固定结构件，安排功能区、关键回路及密集封装扇出 | **门禁③ 布局评审** |
-| **5 · 布线与覆铜** | 按关键网络及回流规划布线，核实 zone 和层对 | **门禁④ 布线评审** |
-| **6 · 验证** | 重新加载、重填、比较网表与 ERC/DRC，复核图纸 | 检查结果、差异和未覆盖项 |
-| **7 · 制造交付** | 导出并独立查看 Gerber、钻孔、BOM 与坐标等文件 | **门禁⑤ 制造交付评审** |
-| **8 · 回板调试** | 制定限流上电、测量和功能验证清单，记录实测 | **门禁⑥ 上电/调试计划** |
-| **9 · ECO 与归档** | 记录变更原因、前后版本、证据与回滚点 | 可追踪的工程与制造归档 |
+| 系统架构 | 架构首页、功能模块、分层方案、跨模块接口与完整引脚端点 | 实际层级、模块归属和网络是否符合契约 |
+| USB、MIPI等差分链路 | P/N、协议/PHY、端点、串联器件分段及目标规则 | 原生更新PCB后核对实际NetClass归属、规则覆盖和支持范围内的路径 |
+| 电源 | 持续/峰值电流、压降、铜厚、温升和批准的导体几何 | 实际线宽、过孔、颈缩、供电与返回路径；复杂电流分布另行评估 |
+| RF | 频率、功率、馈线参考地、匹配网络和天线净空 | 馈线参考平面和天线辐射区分别核对，避免把所有RF底层一律挖空 |
+| 备用方案 | 默认装配、DNP、0Ω、替代方案、互斥关系和有/无预留理由 | 焊盘与支线风险、实际BOM/CPL、所选装配变体 |
+| 布局 | 模块、锚点、局部电路、准确电源/地端子与来源 | 去耦/关键回路/时钟/RF/结构/装配/测试约束，再做视觉整理 |
 
-完整细则见 [十阶段流程](references/workflow.md) 与 [设计检查要点](references/design-checks.md)。门禁用于确认尚未授权的设计决定，不要求重复确认已经明确授权的范围。制造下单、发送生产资料与实际硬件操作不由本仓库自动执行。
+目标阻抗数值本身不能推出可靠线宽。W/S、参考平面和过孔方案需要真实叠层、器件要求及工程师或工厂批准。原理图到PCB的同步须由真实KiCad操作或已验证适配器完成，脚本不虚构后台同步与通用自动布线能力。
 
-## 公开版包含什么
+## 6组入口，16个节点
 
-- Skill 入口、十阶段工作流、检查清单和详细脚本索引。
-- **19 个 Python 文件**：16 个保留的通用脚本入口/模块（其中部分已重写），以及 3 个新增的诊断、保护与重填工具。
-- 可直接运行的合成网表示例及自动测试。
-- MIT 许可证、贡献指南、数据说明和默认忽略规则。
+| 操作组 | 完整节点 | 核心交付与门禁 |
+|---|---|---|
+| 环境 | 1 环境检测与工程保护 | 目标CLI/pcbnew、库及工程资源可用；首次验证与日常记录复用 |
+| 需求架构 | 2 需求与架构；3 器件资料；4 备用决策 | 量化要求、来源、电源树、接口及装配决策明确 |
+| 原理图 | 5 原理图与设计意图；6 原理图评审；7 封装 | 架构首页/接口契约/候选、ERC、AI与工程师确认 **G1**；封装核对 **G2** |
+| PCB | 8 叠层与规则；9 布局；10 布线覆铜；11 PCB评审 | 规则生效、布局 **G3**、最终保存状态、全部铜层及关键网络评审 **G4** |
+| 制造 | 12 DFX/NPI预检；13 制造候选；14 CAM/EQ与授权 | 阻断关闭后隔离导出；实际CAM/工厂EQ/装配确认及 **G5** 放行 |
+| 试产/ECO | 15 EVT/DVT/PVT；16 ECO与归档 | 真实功能/性能/环境等验收；变更影响复验与 **G6** 归档 |
 
-**与上传原包的区别：**原包有 44 个脚本。公开版排除了 28 个针对原工程或尚不满足分发条件的工具，包括固定坐标改网、按过孔尺寸删铜、批量清理布线、固定电源层分区等。原工程历史、私人路径、板卡默认文件名和实际评审案例也不公开。原包并未原样发布。
+机器检查、AI内容评审、工程师确认各有职责。ERC/DRC不能独立证明产品逻辑正确；AI需真实读图、网络和资料；工程师本人确认当前版本。修改工程、规则或资料后，受影响的评审证据需要重新确认。
 
-## 安装与环境
+完整输入、输出、执行者与失败回退见[系统流程](kicad-pcb-ai-workflow/references/full-workflow.md)。
 
-### 1. 下载整个目录
+## 安装：只安装Skill目录
+
+### 方法一：让Agent协助安装
+
+将下面这段话交给支持本地Skills、文件与命令执行的Agent：
+
+```text
+请帮我安装这个Skill：
+https://github.com/jackwang988/kicad-pcb-ai-workflow
+
+先阅读仓库README和kicad-pcb-ai-workflow/SKILL.md。
+实际Skill位于仓库的kicad-pcb-ai-workflow子目录，只安装这个目录。
+检查KiCad 10.0.7、kicad-cli及匹配的pcbnew Python绑定。
+告诉我实际检测结果、缺失依赖和下一步配置方法。
+按预览和--apply规则操作，在新的独立目录验证工程。
+```
+
+### 方法二：下载安装包
+
+下载上方ZIP，解压得到`kicad-pcb-ai-workflow/`，将该目录放入当前Agent支持的Skills目录并按宿主要求启用。保留`SKILL.md`、`scripts/`、`references/`、`assets/`的相对结构。
+
+升级时使用干净的新目录，避免与旧`scripts`合并。实际项目保持原位，按路径迁移项目配置并重建快照。环境与工程师确认记录不能直接当作另一台电脑或另一版工程的通过记录。
+
+也可克隆仓库，安装其中的同名子目录：
 
 ```bash
 git clone https://github.com/jackwang988/kicad-pcb-ai-workflow.git
-cd kicad-pcb-ai-workflow
+cd kicad-pcb-ai-workflow/kicad-pcb-ai-workflow
 ```
 
-也可以下载 ZIP 解压，建议把文件夹命名为 `kicad-pcb-ai-workflow`。
+## 配置与首次运行
 
-要作为本地 Codex Skill 使用，可将完整目录放到用户的 `~/.agents/skills/kicad-pcb-ai-workflow/`，或项目的 `.agents/skills/` 下。其他 AI 工具使用其支持的本地 Skills 目录；本次未对所有宿主做兼容性测试。参见 [官方 Skills 文档](https://learn.chatgpt.com/docs/build-skills)。
+必需环境是目标KiCad CLI、能导入同一安装对应`pcbnew`的Python，以及具备本地文件、命令和实际读图能力的Agent。核心Python脚本使用标准库；PDF文字资料提取需要`pdftotext`。独立ngspice、供应链数据及外部SI/PI/热/EMC工具按任务选用。
 
-### 2. 按任务选择运行环境
+不要用普通Python或Anaconda中的`pip install pcbnew`替代匹配的KiCad环境。CLI路径、解释器和库初始化方法见[详细配置教程](kicad-pcb-ai-workflow/references/environment-onboarding.md)。
 
-| 任务 | 环境要求 |
-|---|---|
-| 网表 XML 对比、输出路径保护 | Python 3.10+ 标准库 |
-| PDF 重排/重叠筛查、原理图路由候选 | PyMuPDF，部分工具还需 KiCad 导出的 PDF |
-| PCB 检查、渲染、BOM、重填覆铜 | **能导入 `pcbnew` 的 KiCad 9 Python 环境**；渲染另需 Pillow |
-| KiCad 加载、网表导出、ERC/DRC | 安装 KiCad 9，并配置 `kicad-cli` |
+下列命令在Skill目录执行，`python3`和路径都应替换为本机实际值：
 
 ```bash
-python -m pip install -r requirements.txt
-python scripts/doctor.py --require core
-python scripts/doctor.py --require pdf
+# 无需先填写项目配置，直接诊断环境
+python3 scripts/workflow.py run /path/project --task environment.doctor
+
+# 预览建立主配置；确认后在同一命令添加--apply
+python3 scripts/workflow.py init /path/project
+
+# Agent根据真实需求填写workflow.json，再预览生成新配置快照
+python3 scripts/workflow.py build /path/project --bundle control-r1
+# 确认后添加--apply；已有输出目录拒绝覆盖
+
+python3 scripts/workflow.py status /path/project --bundle control-r1
 ```
 
-PCB 工具要在能 `import pcbnew` 的解释器中运行，不是任意系统 Python。**不要执行 `pip install pcbnew`。**如果当前解释器缺少它，应选择 KiCad 安装提供或发行版配套的 Python；具体路径随平台与安装方式变化。
+公共路径、资料、规则策略和装配变体在主配置中填写一次，生成原工具需要的配置。生成配置表示声明已展开，不能当作工程检查通过。
 
-```bash
-# 用你选定的 KiCad Python 运行，下面的 python 是占位解释器名
-python -c "import pcbnew; print(pcbnew.Version())"
-python scripts/doctor.py --require pcb
-```
+首次完整环境验证须使用可在KiCad打开的合法非空工程，运行`environment.setup`；之后`environment.check`每次真实探测工具，环境记录有效时跳过重复配置。更换解释器、工具、核心文件或相关路径后重新验证。
 
-若 CLI 不在 PATH，可设置：
+## 开始一次原理图或PCB评审
 
-```bash
-# macOS / Linux：替换为你实际找到的可执行文件
-export KICAD_CLI='/path/to/kicad-cli'
-```
-
-```powershell
-# Windows PowerShell：替换为实际安装路径
-$env:KICAD_CLI = 'C:\path\to\kicad-cli.exe'
-```
-
-**IPC API 与 `pcbnew` 不相同。**这些离线板文件脚本不依赖“开启 IPC API”开关。KiCad 官方已标注 SWIG `pcbnew` 绑定在 9.0 起弃用，主要版本间不保证兼容；本项目以 9 为目标，不承诺未来版本无需修改。参见 [KiCad Python 说明](https://dev-docs.kicad.org/en/apis-and-binding/pcbnew/) 和 [KiCad 9 CLI](https://docs.kicad.org/9.0/en/cli/cli.html)。
-
-## 三个上手场景
-
-### 场景 A：先运行不需要 KiCad 的网表示例
-
-仓库附带的 XML 是人工编写的合成测试输入，不是来自客户或真实板卡。
-
-```bash
-# 同一份网表：应返回 0
-python scripts/diff_net.py examples/netlists/baseline.xml examples/netlists/baseline.xml
-
-# 只改网名：strict 模式应返回 1；拓扑模式应返回 0
-python scripts/diff_net.py examples/netlists/baseline.xml examples/netlists/renamed.xml
-python scripts/diff_net.py examples/netlists/baseline.xml examples/netlists/renamed.xml --topo
-
-# 连接改变：拓扑模式也应返回 1
-python scripts/diff_net.py examples/netlists/baseline.xml examples/netlists/changed.xml --topo
-```
-
-退出码 `0=等价、1=有差异、2=输入无效`。只改网名不代表任何电路变更都可忽略；拓扑比较也不检查元件数值和封装。
-
-### 场景 B：先检查自己的现有工程
-
-把副本放在仓库外的工作目录，向支持该 Skill 的 AI 助手提出：
+给Agent的任务可以这样写：
 
 ```text
-用 $kicad-pcb-ai-workflow 检查我提供的 KiCad 9 工程。
-先只读，不修改。确认运行环境与原厂手册是否齐全。
-原理图重点对照各器件推荐应用电路；PCB 检查布局与走线规则。
-每项结论附文件、位置、依据及实际命令。
-输出资料缺口、已检查项、疑点和未完成检查，不要把缺工具当作通过。
+请使用kicad-pcb-ai-workflow检查这个KiCad 10.0.7工程。
+先核对规格、器件型号、原厂手册和工程输入是否齐全。
+原理图按推荐电路、模块接口、电源/复位/时钟和启动逻辑逐项评审。
+PCB按实际叠层、原厂布局要求、全部铜层和关键网络逐项评审。
+每项结论给出实际观察、资料位置、风险等级、修复建议和验证方法。
+完成AI报告后交硬件工程师本人确认当前版本。
 ```
 
-PCB 几何筛查示例（用具备 `pcbnew` 的解释器）：
+准备原理图评审资料包：
 
 ```bash
-python scripts/zcheck.py /path/to/copy/board.kicad_pcb
-python scripts/net_verify.py --board /path/to/copy/board.kicad_pcb SIGNAL_A
+python3 scripts/workflow.py run /path/project --bundle control-r1 \
+  --task schematic.prepare --output-dir /path/new-sch-review
 ```
 
-这些是几何/连接启发式工具，不能代替 KiCad DRC、规则求解和人工评审。更多参数见 [脚本目录](docs/SCRIPTS.md)。
+AI实际阅读资料包、源图纸和原文，输出逐项报告；工程师本人确认后执行`schematic.gate`。PCB独立使用`pcb.prepare`和`pcb.gate`，布局同时保留布线前与最终复核。详细字段和命令见[静态AI评审](kicad-pcb-ai-workflow/references/static-ai-review.md)与[统一入口](kicad-pcb-ai-workflow/references/universal-workflow.md)。
 
-### 场景 C：从需求开始做一块板
+## 制造前如何放行
 
-```text
-用 $kicad-pcb-ai-workflow 帮我制定并执行 KiCad 9 设计流程。
-我会提供需求、器件手册和结构条件。
-先整理需求与待定项，对照原厂推荐应用电路设计原理图。
-说明每阶段输入、产物、验证命令与回滚点。
-在未授权的关键设计决定前停下；不要承诺一次自动布通或直接下单。
-```
+风险分为 **阻断级 / 高风险 / 中风险 / 优化建议**，每项包含位置、描述、适用依据与可落地修复建议。阻断项或必需证据未补齐时，受控路径禁止生产候选导出。
 
-这段是任务模板，不是已完成的设计案例。层数、供电、器件与板厂规则必须由实际需求决定。
+设计预检通过后，从冻结工程向新目录导出Gerber、钻孔、BOM、CPL和图纸。成功状态为`EXPORTED_NOT_RELEASED`；后续仍需独立CAM、目标工厂EQ、装配变体和授权核对，再由`npi_release`复验发布。
 
-## 转换与覆铜工具的使用方式
+工程写入默认预览，只有明确`--apply`才写入新候选；只读评审可向指定的新报告目录输出。`prototype`模式用于原型诊断，不能授予生产导出或发布权限。
 
-实验性拆页/标签转换要求 `--apply` 且写到新输出。先生成副本，转换后必须重新用 KiCad 加载、导出网表并跑 ERC；这些转换未在本次环境做完整 KiCad 实测。
+## 环境接通与验证状态
+
+**维护者已确认本机KiCad CLI和pcbnew基础调用接通（2026-10-20）。** 使用者仍需在自己的电脑执行doctor和首次环境验证，确认版本、解释器、库、读图与工程资源。
+
+当前仓库的286项软件自动化检查全部通过，覆盖输入/来源、配置、网络、路径、布局、证据失效、受控导出与发布，以及独立ZIP运行和核心库存完整性。安装包含64文件、31个有效工具和18份通用模板。
 
 ```bash
-# 路由候选：只作用于原理图 label→wire，不是通用 PCB 自动布线器
-python scripts/route_v2.py copy.kicad_sch routed.kicad_sch --pdf copy.pdf --apply
-
-# 重填已有 zone：默认仅说明计划；--apply 才写入新文件
-python scripts/refill_zones.py copy.kicad_pcb filled.kicad_pcb
-python scripts/refill_zones.py copy.kicad_pcb filled.kicad_pcb --apply
+# 在仓库根目录执行；环境软件测试不要求伪装成已安装KiCad
+python3 -B -m unittest discover -s development/tests -v
 ```
 
-输出已存在时会拒绝，不覆盖原文件。重填工具不创建电源分区，不证明重填后的设计符合制造或电气要求。
+基础工具接通、软件回归和真实产品验收分别记录。真实项目仍需完成原生同步、规则命中、布局布线、覆铜/DRC、AI/本人确认、CAM/工厂EQ和样机测试。静态线宽检查不是阻抗场求解，二维图不是完整3D干涉或热分析；未覆盖项按实际任务补证据。
 
-## 一份阶段报告应该说明什么
-
-以下是报告结构模板，非真实工程检查结果：
-
-| 字段 | 记录内容 |
-|---|---|
-| 任务与版本 | 处理范围、输入文件与版本/哈希、工具版本 |
-| 修改依据 | 对应原厂手册版本、推荐电路章节、项目规则 |
-| 变更清单 | 预期电气变化与非电气整理分别列出 |
-| 验证记录 | 命令、退出码、报告文件及人工复核结果 |
-| 待确认项 | 缺失资料、工具限制、未验证模块及下一步 |
-| 回滚点 | 原文件、副本、新输出及可恢复版本 |
-| 门禁决定 | 已授权范围、尚待确认的设计或交付动作 |
-
-## 验证状态与能力边界
-
-本仓库提供语法检查、标准库网表测试、PDF 合成输入测试和输出保护测试。本次发布环境**没有 KiCad CLI / pcbnew**，未执行真实 PCB 的加载、修改、拆页、覆铜、DRC 或制造导出端到端测试。
-
-- 默认阈值不能当作阻抗、时序、装配或板厂能力证明。
-- 正则原理图解析及几何连接检测存在格式与算法限制。
-- 没有未经证实的“一次成功率”“自动布通率”或节省时间承诺。
-- 实际硬件、EMC/ESD、热、信号完整性与上电需要对应工具、设备及人工验证。
-
-```bash
-python -m unittest discover -s tests -v
-```
-
-## 数据与贡献
-
-用户工程、PDF、生产文件和报告默认由 `.gitignore` 排除，已跟踪文件仍须自行审查。脚本没有自动上传逻辑；云端 AI 的资料处理取决于平台和用户设置。
-
-欢迎提交可公开的合成案例和版本兼容性验证。请勿上传公司/客户设计、原厂受限全文或个人凭据。
-
-[贡献指南](CONTRIBUTING.md) · [数据与安全](SECURITY.md) · [清理记录](PRIVACY_REVIEW.md) · [第三方说明](THIRD_PARTY_NOTICES.md) · [许可证](LICENSE)
+[能力范围](kicad-pcb-ai-workflow/references/capabilities.md) · [31个工具索引](docs/SCRIPTS.md) · [版本说明](RELEASE_NOTES.md) · [贡献指南](CONTRIBUTING.md) · [数据处理](SECURITY.md)

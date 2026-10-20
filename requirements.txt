@@ -1,3 +1,3 @@
-# Additional Python packages; pcbnew comes from KiCad, NOT pip.
-PyMuPDF>=1.24
-Pillow>=10
+# Core Python scripts and software tests use the standard library.
+# Install KiCad 10.0.7 and its matching pcbnew bindings through the target installation.
+# PDF source extraction may require the external pdftotext command.

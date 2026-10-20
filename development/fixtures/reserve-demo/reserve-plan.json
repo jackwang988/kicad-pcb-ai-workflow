@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "default_variant": "A",
+  "scope_reason": "TEST ONLY",
+  "decisions": [
+    {
+      "id": "source",
+      "block": "TEST SOURCE",
+      "uncertainty": "TEST choice",
+      "decision": "reserve",
+      "required": false,
+      "reason": "TEST",
+      "verification_plan": "TEST verify both modes",
+      "context": "low_speed",
+      "role": "selection_link",
+      "refs": [
+        "R1",
+        "R2"
+      ],
+      "nets": [
+        "A",
+        "B",
+        "C"
+      ],
+      "source": {
+        "file": "source.md",
+        "sha256": "4a381b17e029cfcb9afb943318929aecea0854b681e50a4e5260b0dbb368129f",
+        "locator": "TEST §1"
+      },
+      "cost": {
+        "area_mm2": 2,
+        "material_delta": 0.1,
+        "currency": "TEST",
+        "assembly_risk": "TEST",
+        "signal_risk": "TEST",
+        "benefit_reason": "TEST"
+      },
+      "safety_evidence": [],
+      "zero_ohm": {
+        "allowed": true,
+        "reason": "TEST",
+        "evidence": []
+      },
+      "layout_review": {},
+      "production": {
+        "action": "pending",
+        "reason": "TEST ONLY",
+        "evidence": []
+      }
+    }
+  ],
+  "variants": [
+    {
+      "name": "A",
+      "parts": {
+        "R1": {
+          "fitted": true,
+          "value": "0R",
+          "mpn": "TEST0"
+        },
+        "R2": {
+          "fitted": true,
+          "value": "0R",
+          "mpn": "TEST0"
+        }
+      }
+    },
+    {
+      "name": "B",
+      "parts": {
+        "R1": {
+          "fitted": false,
+          "value": "0R",
+          "mpn": "TEST0"
+        },
+        "R2": {
+          "fitted": true,
+          "value": "0R",
+          "mpn": "TEST0"
+        }
+      }
+    }
+  ],
+  "groups": [
+    {
+      "id": "pick-one",
+      "reason": "TEST mutually exclusive",
+      "members": [
+        "R1",
+        "R2"
+      ],
+      "min_fitted": 1,
+      "max_fitted": 1
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "status": "OPEN",
+  "factory": null,
+  "reviewer": null,
+  "date": null,
+  "open_items": [
+    "待工厂评审"
+  ],
+  "source_basis_sha256": {},
+  "output_sha256": {}
+}

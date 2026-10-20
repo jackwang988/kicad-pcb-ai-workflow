@@ -1,10 +1,10 @@
 # 第三方组件
 
-本项目的 MIT 许可证仅覆盖作者有权授权的原创工作流、代码与文档。KiCad、PyMuPDF 和 Pillow 独立适用各自许可，未随本仓库打包。原厂资料由使用者自行获取和核实，不随本公开版分发。
+MIT许可覆盖本仓库有权授权的原创代码和文档。KiCad、ngspice及资料提取工具适用各自许可，本仓库不附带其二进制程序或原厂手册全文。
 
-- KiCad Python API：https://dev-docs.kicad.org/en/apis-and-binding/pcbnew/
-- KiCad 9 CLI：https://docs.kicad.org/9.0/en/cli/cli.html
-- PyMuPDF：https://pymupdf.readthedocs.io/en/latest/about.html
-- Pillow：https://pillow.readthedocs.io/
+- [KiCad 10 CLI](https://docs.kicad.org/10.0/en/cli/cli.html)
+- [KiCad PCB Python API说明](https://dev-docs.kicad.org/en/apis-and-binding/pcbnew/)
+- [KiCad Python API参考](https://docs.kicad.org/doxygen-python-10.0/namespaces.html)
+- [ngspice](https://ngspice.sourceforge.io/)
 
-PyMuPDF 许可与分发要求需按其具体版本及使用方式核实，MIT 不替代第三方许可。
+核心Python工具使用标准库。PDF文本提取、外部模型、供应链接口与仿真工具由使用者按实际任务配置，其许可不因本仓库MIT许可而改变。
