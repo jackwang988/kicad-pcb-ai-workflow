@@ -6,6 +6,7 @@ snapshots in a NEW project sidecar directory. No cache substitutes for a gate.
 """
 import argparse
 import copy
+from datetime import date
 import json
 import shutil
 import sys
@@ -58,6 +59,166 @@ METHODS = {
 }
 
 
+GROUP_ORDER = tuple(GROUPS)
+CONFIRMATION_MODES = ('dialogue', 'formal_engineering')
+APPROVAL_FOLDER = 'stage-approvals'
+
+
+def confirmation_mode(configs):
+    mode = configs['flow'].get('confirmation_mode', 'dialogue')
+    if mode not in CONFIRMATION_MODES:
+        raise ValueError('Unknown confirmation mode')
+    return mode
+
+
+def _approval_area(root, bundle, group):
+    if group not in GROUPS:
+        raise ValueError('Unknown workflow group')
+    return local(root, Path(bundle) / APPROVAL_FOLDER / group)
+
+
+def _latest_packet(root, bundle, group):
+    area = _approval_area(root, bundle, group)
+    versions = sorted((p for p in area.glob('r*') if p.is_dir()
+                       and p.name[1:].isdigit()), key=lambda p: int(p.name[1:])) if area.is_dir() else []
+    if not versions:
+        raise ValueError('Stage engineer review pending for ' + group)
+    return versions[-1] / 'packet.json'
+
+
+def _stage_inputs(root, name, bundle, group, evidence):
+    """Freeze existing stage files, configuration, and explicitly supplied outputs.
+
+    No uncreated later-stage files are needed, and no approval can be its own evidence.
+    """
+    root = Path(root).resolve()
+    configs = load_bundle(root, name, bundle)
+    stage = GROUP_ORDER.index(group)
+    tracked = {master_path(root, name), local(root, Path(bundle) / 'flow.json')}
+    if stage >= 2:
+        tracked.add(local(root, Path(bundle) / 'static.json'))
+    if stage >= 3:
+        tracked.add(local(root, Path(bundle) / 'npi.json'))
+    suffixes = ('.kicad_sch', '.kicad_sym', '.kicad_pro', '.kicad_pcb', '.kicad_dru', '.kicad_mod')
+    if stage >= 2:
+        # Schematic stage binds schematic and library files. PCB stage adds board/pro config.
+        stage_suffixes = suffixes[:2] if stage == 2 else suffixes
+        tracked.update(p for p in root.rglob('*') if p.is_file() and p.suffix in stage_suffixes)
+    outputs = set()
+    if not isinstance(evidence, list) or not evidence:
+        raise ValueError('At least one actual stage output evidence is required')
+    approvals = local(root, Path(bundle) / APPROVAL_FOLDER)
+    for item in evidence:
+        item_path = local(root, item)
+        if item_path == approvals or approvals in item_path.parents:
+            raise ValueError('Stage approval cannot reference approval files as evidence')
+        if item_path.is_dir():
+            outputs.update(p for p in item_path.rglob('*') if p.is_file())
+        else:
+            outputs.add(item_path)
+    if not outputs:
+        raise ValueError('Stage evidence set is empty')
+    tracked.update(outputs)
+    digest = {}
+    for item in sorted(tracked):
+        # resolve also rejects traversal and symlink escape; explicit symlinks disallowed.
+        if item.is_symlink() or not item.is_file() or not item.stat().st_size:
+            raise ValueError('Missing, symlinked or empty stage evidence: ' + str(item))
+        if not item.resolve().is_relative_to(root):
+            raise ValueError('Stage evidence escapes project root')
+        if approvals in item.parents or item == approvals:
+            raise ValueError('Approval artifacts cannot be review evidence')
+        digest[item.relative_to(root).as_posix()] = sha256(item)
+    return digest
+
+
+def validate_stage(root, name, bundle, group, visited=()):
+    if group in visited:
+        raise ValueError('Cyclic approval chain')
+    packet_path = _latest_packet(root, bundle, group)
+    packet = read(packet_path)
+    if (packet.get('schema_version') != 1 or packet.get('group') != group
+            or packet.get('bundle') != bundle or packet.get('kind') != 'human_review'):
+        raise ValueError('Invalid stage packet or automatic approval')
+    actual = _stage_inputs(root, name, bundle, group, packet.get('evidence', []))
+    if actual != packet.get('files_sha256'):
+        raise ValueError('Stage evidence changed; new engineering review required')
+    approval_path = packet_path.parent / 'approval.json'
+    if not approval_path.is_file():
+        raise ValueError('Engineering review has not been confirmed')
+    confirmation = read(approval_path)
+    review_path = local(root, confirmation.get('engineer_review', ''))
+    if not review_path.is_file() or sha256(review_path) != confirmation.get('engineer_sha256'):
+        raise ValueError('Engineer record missing or altered')
+    review = read(review_path)
+    if (review.get('role') != 'hardware_engineer' or review.get('decision') != 'approve'
+            or review.get('group') != group or review.get('packet_sha256') != sha256(packet_path)
+            or not isinstance(review.get('name'), str) or not review['name'].strip()
+            or not isinstance(review.get('reason'), str) or not review['reason'].strip()):
+        raise ValueError('Engineer record is not an explicit valid approval')
+    date.fromisoformat(review['date'])
+    index = GROUP_ORDER.index(group)
+    if index:
+        previous = GROUP_ORDER[index - 1]
+        validate_stage(root, name, bundle, previous, visited + (group,))
+        if packet.get('previous_packet_sha256') != sha256(_latest_packet(root, bundle, previous)):
+            raise ValueError('Previous stage confirmation changed')
+    return {'status': 'ENGINEER_APPROVED_CURRENT', 'group': group, 'packet': str(packet_path),
+            'production_authorized': False}
+
+
+def stage_prepare(root, name, bundle, group, evidence):
+    cfg = load_bundle(root, name, bundle)
+    if confirmation_mode(cfg) != 'formal_engineering':
+        raise ValueError('Stage packet is only used in formal_engineering mode')
+    index = GROUP_ORDER.index(group)
+    previous_digest = None
+    if index:
+        previous = GROUP_ORDER[index - 1]
+        validate_stage(root, name, bundle, previous)
+        previous_digest = sha256(_latest_packet(root, bundle, previous))
+    paths = _stage_inputs(root, name, bundle, group, evidence)
+    area = _approval_area(root, bundle, group)
+    area.mkdir(parents=True, exist_ok=True)
+    numbers = [int(p.name[1:]) for p in area.glob('r*') if p.is_dir() and p.name[1:].isdigit()]
+    dest = area / ('r' + str(max(numbers, default=0) + 1))
+    dest.mkdir(exist_ok=False)
+    packet = {'schema_version': 1, 'kind': 'human_review', 'group': group,
+              'bundle': bundle, 'evidence': evidence, 'files_sha256': paths,
+              'previous_packet_sha256': previous_digest}
+    packet_path = dest / 'packet.json'
+    packet_path.write_text(encoded(packet), encoding='utf-8')
+    return {'status': 'ENGINEER_REVIEW_PENDING', 'group': group,
+            'packet_sha256': sha256(packet_path), 'packet': str(packet_path),
+            'production_authorized': False}
+
+
+def stage_confirm(root, name, bundle, group, engineer_review):
+    cfg = load_bundle(root, name, bundle)
+    if confirmation_mode(cfg) != 'formal_engineering':
+        raise ValueError('Formal stage approval must be explicitly configured')
+    packet_path = _latest_packet(root, bundle, group)
+    if (packet_path.parent / 'approval.json').exists():
+        raise ValueError('Review already confirmed; create a fresh packet for changes')
+    review_path = local(root, engineer_review)
+    if not review_path.is_file() or not review_path.stat().st_size:
+        raise ValueError('Existing engineer review JSON required')
+    rec = read(review_path)
+    if (rec.get('role') != 'hardware_engineer' or rec.get('decision') != 'approve'
+            or rec.get('group') != group or rec.get('packet_sha256') != sha256(packet_path)
+            or not str(rec.get('name') or '').strip() or not str(rec.get('reason') or '').strip()):
+        raise ValueError('Engineer review is incomplete or not bound to this packet')
+    date.fromisoformat(rec['date'])
+    approval = packet_path.parent / 'approval.json'
+    approval.write_text(encoded({'engineer_review': review_path.relative_to(root).as_posix(),
+                                 'engineer_sha256': sha256(review_path)}), encoding='utf-8')
+    try:
+        return validate_stage(root, name, bundle, group)
+    except Exception:
+        approval.unlink()
+        raise
+
+
 def read(path):
     return finite_tree(json.loads(Path(path).read_text(encoding='utf-8-sig')))
 
@@ -75,6 +236,7 @@ def template():
     review = read(ROOT / 'assets/static-review.template.json')
     npi = read(ROOT / 'assets/review-config.template.json')
     contract = flow.template()
+    contract['confirmation_mode'] = 'dialogue'
     shared = {'inputs': npi['inputs'], 'documents': review['documents'], 'variant': None,
               'design_intent': npi['design_intent'], 'engineering_profile': npi['engineering_profile']}
     for key in ('device_knowledge', 'reserve_review', 'placement_review', 'schematic_style', 'system_integration'):
@@ -138,6 +300,7 @@ def render(master, bundle_rel):
     configs = expand(master['configs'], master, bundle_rel)
     c, s, n = (configs[k] for k in ('flow', 'static', 'npi'))
     shared = expand(master['shared'], master, bundle_rel)
+    confirmation_mode({'flow': c})
     if set(c.get('stages', {})) != set(flow.STAGES):
         raise ValueError('All 16 workflow nodes must remain')
     if c.get('schema_version') != 1 or s.get('schema_version') != 1:
@@ -255,11 +418,22 @@ def status(root, name, bundle):
     cfg = load_bundle(root, name, bundle)
     contract = (Path(bundle) / 'flow.json').as_posix()
     report = flow.check(root, contract)
+    mode = confirmation_mode(cfg)
+    groups = []
+    for group, nodes in GROUPS.items():
+        if mode == 'dialogue':
+            approval_status = 'DIALOGUE_CHECKPOINT'
+        else:
+            try:
+                approval_status = validate_stage(root, name, bundle, group)['status']
+            except (ValueError, KeyError, OSError):
+                approval_status = 'ENGINEER_REVIEW_PENDING'
+        groups.append({'group': group, 'nodes': list(nodes),
+                       'tasks': [t for t in TASKS if t.startswith(group + '.')],
+                       'gate_status': approval_status})
     return {'status': 'NEEDS_INPUT' if report['findings'] else 'DECLARED_INPUTS_READY_NOT_APPROVED',
             'scope': 'navigation_only', 'production_authorized': False,
-            'groups': [{'group': group, 'nodes': list(nodes),
-                        'tasks': [t for t in TASKS if t.startswith(group + '.')],
-                        'gate_status': 'NOT_EVALUATED_BY_NAVIGATION'} for group, nodes in GROUPS.items()],
+            'confirmation_mode': mode, 'groups': groups,
             'unfilled_config_fields': pending(cfg), 'findings': report['findings'],
             'note': 'Future missing files are pending work, not permission to skip gates. Feature N/A never disables a gate.'}
 
@@ -278,6 +452,9 @@ def command(root, name, bundle, task, options):
         raise ValueError('This task needs --bundle; build a configuration snapshot first')
     cfg = load_bundle(root, name, bundle)
     inputs = cfg['flow']['inputs']
+    group = task.split('.')[0]
+    if confirmation_mode(cfg) == 'formal_engineering' and GROUP_ORDER.index(group):
+        validate_stage(root, name, bundle, GROUP_ORDER[GROUP_ORDER.index(group) - 1])
 
     def required(key):
         value = options.get(key)
@@ -345,10 +522,10 @@ def command(root, name, bundle, task, options):
 
 
 def summary(report):
-    lines = ['工作流待办（仅导航；不表示任何门禁已通过）']
+    lines = ['工作流待办（阶段确认仅控制协作节奏，不替代工程门禁）']
     labels = ('环境', '需求/架构/资料', '原理图/封装', 'PCB规则/布局/布线', 'DFX/NPI/制造', '试产/ECO')
     for group, label in zip(report['groups'], labels):
-        lines.append(f"- {label} [{group['group']}]: " + ', '.join(group['tasks']))
+        lines.append(f"- {label} [{group['group']}] {group['gate_status']}: " + ', '.join(group['tasks']))
     lines.append(f"项目契约缺项：{len(report['findings'])}；配置未填字段：{len(report['unfilled_config_fields'])}（含可能合法留空的可选项）。")
     for item in report['findings'][:8]:
         lines.append(f"  {item['location']}: {item['description']}")
@@ -360,7 +537,7 @@ def summary(report):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest='cmd', required=True)
-    for cmd in ('init', 'build', 'status', 'plan', 'run'):
+    for cmd in ('init', 'build', 'status', 'plan', 'run', 'stage-prepare', 'stage-confirm', 'stage-check'):
         a = sub.add_parser(cmd)
         a.add_argument('project')
         a.add_argument('--config', default='workflow.json')
@@ -371,6 +548,12 @@ def main():
             a.add_argument('--apply', action='store_true')
         else:
             a.add_argument('--bundle', required=cmd == 'status')
+        if cmd in ('stage-prepare', 'stage-confirm', 'stage-check'):
+            a.add_argument('--group', choices=GROUP_ORDER, required=True)
+        if cmd == 'stage-prepare':
+            a.add_argument('--evidence', action='append', required=True)
+        if cmd == 'stage-confirm':
+            a.add_argument('--engineer-review', required=True)
         if cmd == 'status':
             a.add_argument('--format', choices=('text', 'json'), default='text')
         if cmd in ('plan', 'run'):
@@ -397,6 +580,16 @@ def main():
             r = compile_bundle(root, a.config, a.bundle, a.apply)
         elif a.cmd == 'status':
             r = status(root, a.config, a.bundle)
+        elif a.cmd in ('stage-prepare', 'stage-confirm', 'stage-check'):
+            if not a.bundle:
+                raise ValueError('Stage action requires --bundle')
+            load_bundle(root, a.config, a.bundle)
+            if a.cmd == 'stage-prepare':
+                r = stage_prepare(root, a.config, a.bundle, a.group, a.evidence)
+            elif a.cmd == 'stage-confirm':
+                r = stage_confirm(root, a.config, a.bundle, a.group, a.engineer_review)
+            else:
+                r = validate_stage(root, a.config, a.bundle, a.group)
         else:
             tool, args = command(root, a.config, a.bundle, a.task, vars(a))
             if a.cmd == 'run':
@@ -412,7 +605,7 @@ def main():
             print(summary(r))
         else:
             print(encoded(r), end='')
-        return 2 if r['status'] in ('BLOCKED', 'NEEDS_INPUT') else 0
+        return 2 if r['status'] in ('BLOCKED', 'NEEDS_INPUT', 'ENGINEER_REVIEW_PENDING') else 0
     except Exception as e:
         from schematic_io import blocking
         print(encoded({'status': 'BLOCKED', 'production_authorized': False,
