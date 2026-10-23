@@ -5,7 +5,7 @@ description: KiCad10.0.7电子设计通用流程与项目化规则工具链。�
 
 # KiCad工程流程 · R9.3
 
-先读[统一入口与公共配置](references/universal-workflow.md)，按环境、需求架构、原理图、PCB、制造、试产/ECO六组推进；需要细节时读取[完整16节点流程](references/full-workflow.md)。16个节点与G1–G6均保留。通用的是阶段、数据接口与验收方法；器件、电流、叠层、阻抗、工厂能力和适用标准必须按实际项目提供。工具退出0只代表声明范围，不表示电路合格或可以生产。
+先读[统一入口与公共配置](references/universal-workflow.md)及[双模式阶段确认](references/stage-approvals.md)，按环境、需求架构、原理图、PCB、制造、试产/ECO六组推进；需要细节时读取[完整16节点流程](references/full-workflow.md)。16个节点与G1–G6均保留。通用的是阶段、数据接口与验收方法；器件、电流、叠层、阻抗、工厂能力和适用标准必须按实际项目提供。工具退出0只代表声明范围，不表示电路合格或可以生产。
 
 运行包可独立安装，不需要历史归档或开发包。升级时安装到干净的新目录，勿合并旧scripts；已有工程保持原位，迁移其主配置引用并重建快照。先列出实际项目对旧脚本的外部调用，再决定如何迁移，不能复制旧签核或他人环境记录。
 
@@ -26,7 +26,7 @@ description: KiCad10.0.7电子设计通用流程与项目化规则工具链。�
 - 原厂资料：[device-knowledge.md](references/device-knowledge.md)。按完整MPN/封装查缓存或原厂；实际阅读原文、图、勘误，核对卡后冻结资料包。脚本不代做语义判断。
 - 备用方案：[reserve-options.md](references/reserve-options.md)。按风险决定有/无预留及DNP/0Ω/变体；不默认全板加器件。
 - 原理图：[系统架构与跨模块接口门禁](references/system-integration.md)。先完成系统架构首页、模块清单、跨模块接口契约和系统验收条件，再按架构分层设计。`system_integration.py`强制核对所有元件模块归属、层级页、接口网络和实际端点；模块电平、供电预算、时序和功能行为仍由有来源的静态任务/AI/工程师或外部验证完成。用`schematic_candidate.py`接收Agent已设计的精确文件草稿并调用原生XML/PDF/ERC，核对独立预期元件及网络；这是候选写入/验收适配器，不是自然语言电路生成器。
-- 图面：[schematic-style.md](references/schematic-style.md) 与 [拓扑驱动 AI 原理图设计规则](references/schematic-ai-layout-rules.md)。AI依据架构提出分页与页内流向，硬件工程师确认；系统架构图必须绑定首页并逐页评审。按功能/连接/可读性选择分页；纸张只按项目要求检查，不再使用88器件或固定页数的通用硬门槛。
+- 图面：[schematic-style.md](references/schematic-style.md)、[拓扑驱动 AI 原理图规则](references/schematic-ai-layout-rules.md) 与 [三遍绘制/跨页面原型验证](references/schematic-cross-archetype.md)。AI依据架构提出分页与页内流向，硬件工程师确认；系统架构图必须绑定首页并逐页评审。按功能/连接/可读性选择分页；纸张只按项目要求检查，不再使用88器件或固定页数的通用硬门槛。
 - 原理图/PCB评审：[static-ai-review.md](references/static-ai-review.md)。实际读图、网络、原厂资料与全部铜层；输出AI报告，再由工程师本人确认当前版本。不得由Agent签工程师批准。
 - 叠层及差分/电源/RF：[design-intent.md](references/design-intent.md)。先取得真实工艺、工作电流和温升等依据，再编译规则；原生同步PCB后检查实际归属与生效。同步需实际GUI或已验证适配器，禁止虚构CLI。
 - 布局：[placement-quality.md](references/placement-quality.md)。模块/准确引脚/局部电路→pre_route→真实布线覆铜→视觉整理和final复验。不自动调用旧固定坐标放置器。布局、布线执行由原生工具/实际适配器和工程师负责，缺执行能力就说明并停止该节点。
