@@ -30,6 +30,7 @@ description: KiCad10.0.7电子设计通用流程与项目化规则工具链。�
 - 原理图/PCB评审：[static-ai-review.md](references/static-ai-review.md)。实际读图、网络、原厂资料与全部铜层；输出AI报告，再由工程师本人确认当前版本。不得由Agent签工程师批准。
 - 叠层及差分/电源/RF：[design-intent.md](references/design-intent.md)。先取得真实工艺、工作电流和温升等依据，再编译规则；原生同步PCB后检查实际归属与生效。同步需实际GUI或已验证适配器，禁止虚构CLI。
 - 布局：[placement-quality.md](references/placement-quality.md)。模块/准确引脚/局部电路→pre_route→真实布线覆铜→视觉整理和final复验。不自动调用旧固定坐标放置器。布局、布线执行由原生工具/实际适配器和工程师负责，缺执行能力就说明并停止该节点。
+- 可选自动布线（实验性）：[Freerouting v2.5.0 CLI 适配器](references/freerouting-adapter.md)。仅在用户显式指定本地合规 JAR、已有 KiCad 导出 DSN 并授权 `--apply` 时从 DSN 生成独立 SES 候选；未配置时保持 KiCad 人工布线。该独立工具尚未加入统一 tool-manifest，不自动完成 KiCad 回导、DRC 或放行。
 - DFX/NPI：[dfx-npi.md](references/dfx-npi.md)。新R9项目必须在NPI配置绑定workflow_contract、schematic_style和system_integration，静态配置启用相应强制门禁。旧R8配置仍可诊断，不能据此宣称已执行R9全部控制。
 - 制造：冻结副本refill/save/reload后，使用`manufacturing_export.py`预览；仅--apply且当前原生设计门禁通过才向新隔离目录导出Gerber/钻孔/CPL/BOM/装配PDF。输出EXPORTED_NOT_RELEASED，不接触任意jobset、不上传工厂。后续build_manifest、实际CAM/工厂EQ和npi_release.py重新验收。
 - 样机/ECO：按需求计划进行真实功能/性能/环境/安全及适用认证验证，变更后失效相关证据并重新审查。动态EMC/眼图/热不假称静态已证明。
