@@ -22,6 +22,52 @@ def audit(root,top,policy_file):
         src=q.get('source',{});f=local(root,src['file'])
         if not src.get('locator') or sha256(f)!=src.get('sha256'):raise ValueError('Explicit page constraints need current source and locator')
         inputs[str(f)]=sha256(f)
+    archetype_contract = q.get('prototype_validation')
+    if archetype_contract is not None:
+        if not isinstance(archetype_contract, dict) or archetype_contract.get('required') is not True:
+            raise ValueError('prototype_validation must explicitly request required=true')
+        cases = archetype_contract.get('cases')
+        if not isinstance(cases, list):
+            raise ValueError('prototype_validation.cases must be a list')
+        allowed = {'power_conversion','mcu_soc','multi_pin_interface','bus_storage',
+                   'analog_audio','discrete_io','hierarchy_overview','debug'}
+        declared_types = set()
+        declared_pages = set()
+        for case in cases:
+            if not isinstance(case,dict) or case.get('archetype') not in allowed:
+                risk('STYLE.PROTOTYPE_KIND',str(case),'未知或缺失页面原型','选择已定义的页面原型并提供真实证据。')
+                continue
+            name = case.get('page')
+            kind = case['archetype']
+            if not isinstance(name,str) or name not in trees or name in declared_pages:
+                risk('STYLE.PROTOTYPE_PAGE',str(name),'原型验证页面不可达、缺失或重复','使用当前工程中不同的真实页面。')
+                continue
+            declared_pages.add(name)
+            declared_types.add(kind)
+            evidence = case.get('evidence')
+            if not isinstance(evidence,dict) or not evidence.get('locator'):
+                risk('STYLE.PROTOTYPE_EVIDENCE',name,'缺少实际审图证据位置','补充证据文件、当前哈希与具体定位。')
+                continue
+            try:
+                file = local(root,evidence['file'])
+                if file.is_symlink() or not file.is_file() or not file.stat().st_size:
+                    raise ValueError('Missing evidence file')
+                if sha256(file) != evidence.get('sha256'):
+                    raise ValueError('Evidence has changed')
+                inputs[str(file)] = sha256(file)
+            except (KeyError,ValueError,OSError) as exc:
+                risk('STYLE.PROTOTYPE_EVIDENCE',name,str(exc),'使用真实当前工程图面/PDF/人工审核证据，重新记录哈希。')
+        if len(declared_pages) < 2 or len(declared_types) < 2:
+            risk('STYLE.PROTOTYPE_DIVERSITY','prototype_validation',
+                 '布局策略推广前至少需要两种不同页面原型的独立验证证据',
+                 '选择两种原型并记录整页、200%局部、网表与ERC人工复核。')
+        if 'power_conversion' in declared_types and not ({'mcu_soc','multi_pin_interface'} & declared_types):
+            risk('STYLE.PROTOTYPE_GENERALIZE','prototype_validation',
+                 '电源页方案推广前未包含MCU或多引脚接口页',
+                 '增加MCU/多引脚接口代表页验证；不要复用固定坐标模板。')
+        checks.append({'prototype_validation': 'declared_evidence_only',
+                       'archetypes': sorted(declared_types), 'pages': sorted(declared_pages),
+                       'scope': 'evidence identity and archetype diversity, not automatic visual proof'})
     for name,tree in trees.items():
         inputs[str(local(root,name))]=sha256(local(root,name));paper=child(tree,'paper',[])
         expected=declared.get(name,{})
@@ -49,7 +95,7 @@ def audit(root,top,policy_file):
                     if not any(segment_distance(xy(pin),a,b)<1e-6 for a,b in segments):risk('STYLE.SHEET_WIRE',name+':'+str(pin[1]),'明确要求实体互联的层次引脚未接到可识别导线','显式接线；总线入口和复杂接口需另用原生网表验证。')
         checks.append({'page':name,'paper':paper[1:],'symbol_instances':len(electrical),'scope':'declared page constraints and immediate sheet mapping only'})
     return {'status':'BLOCKED' if findings else 'DECLARED_STRUCTURE_CHECKS_COMPLETE','scope':'schematic_structure_only','production_authorized':False,'findings':findings,'checks':checks,'inputs_sha256':inputs,
-            'manual_remaining':['Actual readability, clusters, text overlap, power symbol scope, NC correctness and device recommendations','Native ERC/XML and complete AI/engineer review; this is not electrical approval']}
+            'manual_remaining':['Actual readability, clusters, text overlap, power symbol scope, NC correctness and device recommendations', 'Prototype evidence identity does not prove its visual or ERC content; AI and engineer must review','Native ERC/XML and complete AI/engineer review; this is not electrical approval']}
 
 def validate_binding(root,config):
     entry=config['schematic_style'];q=json.loads(local(Path(root).resolve(),entry['policy']).read_text(encoding='utf-8-sig'))
