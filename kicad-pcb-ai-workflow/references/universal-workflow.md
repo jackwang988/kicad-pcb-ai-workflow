@@ -130,7 +130,7 @@ schematic_candidate.py是通用文件写入和原生核对接口，不是电路�
 
 ## 3. 图面、布局和布线
 
-结构及系统接口检查已接入原理图资料包与gate，见schematic-style.md和system-integration.md。PCB模块、局部引脚、回流锚点与视觉复验见placement-quality.md。布局和布线执行依真实原生编辑/实际适配器，当前没有通用自动放置器或高速自动布线引擎；不能用旧42×42/固定网络脚本补位。缺执行器时交付当前阶段产物和明确人工操作，不继续宣称已完成。
+结构及系统接口检查已接入原理图资料包与gate，见schematic-style.md、schematic-ai-layout-rules.md 和 system-integration.md；Agent 在生成与评审阶段应用拓扑优先规则，未实现的几何检测不得虚报机器 PASS。PCB模块、局部引脚、回流锚点与视觉复验见placement-quality.md。布局和布线执行依真实原生编辑/实际适配器，当前没有通用自动放置器或高速自动布线引擎；不能用旧42×42/固定网络脚本补位。缺执行器时交付当前阶段产物和明确人工操作，不继续宣称已完成。
 
 ## 4. 受控制造导出
 
