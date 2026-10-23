@@ -135,7 +135,7 @@ class PackageTests(unittest.TestCase):
             self.assertFalse(any('/fixtures/' in n or '/validation/' in n or 'original-script-sha256' in n for n in names))
             z.extractall(unpack)
         core = unpack/'kicad-pcb-ai-workflow'
-        self.assertEqual(build_release.validate(core)['runtime_tools'], 31)
+        self.assertEqual(build_release.validate(core)['runtime_tools'], len(RUNTIME_TOOLS))
         project = self.base/'new-project'
         project.mkdir()
         p = subprocess.run([sys.executable, '-B', str(core/'scripts/workflow.py'), 'run', str(project), '--task', 'environment.doctor'], cwd=project, capture_output=True, text=True)
