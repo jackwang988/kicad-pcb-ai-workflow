@@ -116,8 +116,8 @@ def _stage_inputs(root, name, bundle, group, evidence):
             outputs.update(p for p in item_path.rglob('*') if p.is_file())
         else:
             outputs.add(item_path)
-    if not outputs:
-        raise ValueError('Stage evidence set is empty')
+    if not outputs or outputs.issubset(tracked):
+        raise ValueError('Stage needs independent actual outputs, not only configuration files')
     tracked.update(outputs)
     digest = {}
     for item in sorted(tracked):
