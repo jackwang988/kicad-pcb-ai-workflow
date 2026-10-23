@@ -2,7 +2,7 @@
 
 适用范围：**已布局的 KiCad PCB → 用户在 KiCad PCB Editor 导出 Specctra DSN → Freerouting CLI 产生 SES → 用户在 KiCad PCB Editor 导入 SES → 原生 DRC/逐层审查**。
 
-不随 Skill 捆绑 Java 或 Freerouting，也不添加必需安装依赖。未安装/未识别 v2.5.0 时输出 `MANUAL_ROUTING_FALLBACK`，继续原有 KiCad 人工交互布线。适配器是**独立可选命令**，目前**未注册为既有 tool-manifest 的强制任务**，不能声称已进入 R9 的统一工作流门禁。
+不随 Skill 捆绑 Java 或 Freerouting，也不添加必需安装依赖。未安装/未识别 v2.5.0 时输出 `MANUAL_ROUTING_FALLBACK`，继续原有 KiCad 人工交互布线。适配器是**独立可选命令**，现已登记进运行时工具白名单，但**未作为强制执行任务**，不能声称已进入 R9 的统一工作流门禁。
 
 官方对应版本资料：
 - https://github.com/freerouting/freerouting/tree/v2.5.0/docs
@@ -36,4 +36,4 @@ python3 scripts/freerouting_adapter.py --dsn /path/board.dsn --jar /path/freerou
 
 ## 集成状态
 
-本分支增加**实验性工具脚本 + 文档 + 单元测试**；不修改统一工具清单、既有 31 个工具的哈希/门禁约定和稳定版安装包。实际环境通过验证后，再考虑在工具清单注册新适配器并更新测试、索引、打包和版本号。
+本分支增加**实验性工具脚本 + 文档 + 单元测试**，并将脚本及 SHA-256 登记进运行时工具清单，不改变原有强制路由路径。仍需真实 KiCad/Freerouting 端到端验收，旧 ZIP 安装包尚未重建。
