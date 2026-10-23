@@ -12,9 +12,9 @@
 
 如果从某个已通过的代表页提取“通用布局策略”，在宣称可推广之前，至少用另一类页面验证；电源转换页成功后，必须选择 MCU/SoC 或多引脚接口页额外验证。严禁仅凭 POWER 页单一结果把坐标/流向模板推广到其他页面。
 
-真实工程页面的可选结构证据门禁可在 \`schematic-style.template.json\` 的项目派生策略加入 \`prototype_validation\`。下面是**示例结构，不得使用示例哈希作为真实验收**：
+真实工程页面的可选结构证据门禁可在 `schematic-style.template.json` 的项目派生策略加入 `prototype_validation`。下面是**示例结构，不得使用示例哈希作为真实验收**：
 
-\`\`\`json
+```json
 {
   "schema_version": 1,
   "pages": {},
@@ -36,9 +36,9 @@
     ]
   }
 }
-\`\`\`
+```
 
-允许原型：\`power_conversion\`、\`mcu_soc\`、\`multi_pin_interface\`、\`bus_storage\`、\`analog_audio\`、\`discrete_io\`、\`hierarchy_overview\`、\`debug\`。
+允许原型：`power_conversion`、`mcu_soc`、`multi_pin_interface`、`bus_storage`、`analog_audio`、`discrete_io`、`hierarchy_overview`、`debug`。
 
 脚本检查：页面路径必须可达且互不重复、不同页面原型不少于 2 类、电源页必须搭配 MCU 或多引脚接口页、证据文件必须存在且哈希匹配。输出仅为 **声明证据身份检查**，**不自动识别原型、不证明图面合格、不替代 ERC/网表和审核**。
 
