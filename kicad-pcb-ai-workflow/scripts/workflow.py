@@ -430,7 +430,8 @@ def status(root, name, bundle):
                 approval_status = 'ENGINEER_REVIEW_PENDING'
         groups.append({'group': group, 'nodes': list(nodes),
                        'tasks': [t for t in TASKS if t.startswith(group + '.')],
-                       'gate_status': approval_status})
+                       'gate_status': 'NOT_EVALUATED_BY_NAVIGATION',
+                       'confirmation_status': approval_status})
     return {'status': 'NEEDS_INPUT' if report['findings'] else 'DECLARED_INPUTS_READY_NOT_APPROVED',
             'scope': 'navigation_only', 'production_authorized': False,
             'confirmation_mode': mode, 'groups': groups,
@@ -525,7 +526,7 @@ def summary(report):
     lines = ['工作流待办（阶段确认仅控制协作节奏，不替代工程门禁）']
     labels = ('环境', '需求/架构/资料', '原理图/封装', 'PCB规则/布局/布线', 'DFX/NPI/制造', '试产/ECO')
     for group, label in zip(report['groups'], labels):
-        lines.append(f"- {label} [{group['group']}] {group['gate_status']}: " + ', '.join(group['tasks']))
+        lines.append(f"- {label} [{group['group']}] {group['confirmation_status']}: " + ', '.join(group['tasks']))
     lines.append(f"项目契约缺项：{len(report['findings'])}；配置未填字段：{len(report['unfilled_config_fields'])}（含可能合法留空的可选项）。")
     for item in report['findings'][:8]:
         lines.append(f"  {item['location']}: {item['description']}")
