@@ -21,7 +21,7 @@ npi_common npi_geometry npi_release pad_audit production_contract spice_precheck
 validate_frozen_candidate design_intent design_intent_audit static_review
 static_review_gate device_knowledge environment_start reserve_review placement_review
 schematic_io schematic_style schematic_candidate project_flow manufacturing_export
-system_integration workflow'''.split())
+system_integration workflow freerouting_adapter'''.split())
 
 def sha256(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
