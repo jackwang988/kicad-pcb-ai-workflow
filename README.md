@@ -52,6 +52,26 @@
 
 完整输入、输出、执行者与失败回退见[系统流程](kicad-pcb-ai-workflow/references/full-workflow.md)。
 
+## 仓库目录说明：请认准 Skill 安装目录
+
+> **实际 Skill 安装目录：[`kicad-pcb-ai-workflow/`](kicad-pcb-ai-workflow/)**（仓库内部子目录，包含 `SKILL.md`、`scripts/`、`references/`、`assets/`）。
+>
+> GitHub 仓库根目录也叫 `kicad-pcb-ai-workflow`，用于存放 README、开发测试、发布包等；**不要把整个仓库根目录当作一个 Skill 安装**。两个目录同名是预期的项目组织方式，并非重复安装。
+
+```text
+kicad-pcb-ai-workflow/             # GitHub 仓库根目录（开发、文档、发布）
+├── README.md
+├── development/                  # 开发与测试
+├── dist/                         # 发布安装包
+└── kicad-pcb-ai-workflow/        # ★ Skill 安装目录：只安装这一层
+    ├── SKILL.md                  # Skill 入口
+    ├── scripts/
+    ├── references/
+    └── assets/
+```
+
+分享仓库首页链接仍然可以；让 Agent 安装时请明确指定上述子目录。仅提供仓库首页 URL 是否能自动安装，取决于 Agent/安装器是否支持发现子目录下的 `SKILL.md`。仓库目录名保持不变。
+
 ## 安装：只安装Skill目录
 
 ### 方法一：让Agent协助安装
