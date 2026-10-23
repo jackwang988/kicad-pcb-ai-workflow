@@ -131,7 +131,7 @@
     },
     {
       "file": "scripts/npi_common.py",
-      "sha256": "1182a6cb6c3280d9efe1027e8377844573ff51136e792ef28e0a89b0fd4e68cb",
+      "sha256": "a587c17d2439eed1280e5f4ccad7ede4bd51cab40c663ef12e9fc4835858e5ef",
       "version": "2026.10-R9.3",
       "command": "Python module imported by mass_production_review.py",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -423,6 +423,19 @@
         "2": "BLOCKED/pending required inputs"
       },
       "validation_scope": "Software integration/counterexample tests; full real KiCad product acceptance pending"
+    },
+    {
+      "file": "scripts/freerouting_adapter.py",
+      "sha256": "dc8a9ba1ec2a4c3cf8f4c6b468bd5339a5e5b30c7940bb0fa2be5d58213d6d76",
+      "version": "2026.10-experimental-v2.5.0",
+      "command": "python3 scripts/freerouting_adapter.py --help",
+      "input": "User-approved v2.5.0 JAR, KiCad-exported DSN, new result directory",
+      "output": "SES and JSON; KiCad import and engineering approval required",
+      "exit_codes": {
+        "0": "preview/manual fallback/SES candidate only",
+        "2": "blocked or failure"
+      },
+      "validation_scope": "Software tests only; actual KiCad10/Freerouting integration pending"
     }
   ]
 }
