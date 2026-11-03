@@ -10,7 +10,29 @@ import subprocess
 import os
 from pathlib import Path
 
-TARGET_VERSION = '10.0.7'
+TARGET_VERSION = '10.0.7'  # Recommended and previously validated baseline, not a universal hard lock.
+def kicad10_patch_version(value):
+    """Recognize stable 10.0.x build identity; this is eligibility, NOT native approval."""
+    if value is None:
+        return None
+    raw = str(value).strip()
+    m = re.search(r'(?<![0-9.])(10\.0\.\d+)(?![0-9.])', raw)
+    if not m or re.search(r'(?:^|[-_+ ])(?:rc|dev|nightly|alpha|beta|testing)(?:\b|\d)', raw[m.end():], re.I):
+        return None
+    return m.group(1)
+
+def cli_compatible(env):
+    # Fallback permits existing test fixtures to exercise the historical baseline contract.
+    return bool(env['cli_compatible']) if 'cli_compatible' in env else bool(env.get('cli_exact_target'))
+
+def pcbnew_compatible(env):
+    return bool(env['pcbnew_compatible']) if 'pcbnew_compatible' in env else bool(env.get('pcbnew_exact_target'))
+
+def pair_compatible(env):
+    if 'version_pair_compatible' in env:
+        return bool(env['version_pair_compatible'])
+    return cli_compatible(env) and pcbnew_compatible(env)
+
 LEVELS = ['阻断级', '高风险', '中风险', '优化建议']
 
 # Release contract: removing a required checker from a manifest cannot disable
@@ -128,6 +150,27 @@ def environment(cli=None):
         result['pcbnew_exact_target'] = bool(re.search(r'(?<![\d.])'+re.escape(TARGET_VERSION)+r'(?![\w.\-])',result['pcbnew_version']))
     except (ImportError, AttributeError, RuntimeError) as e:
         result['pcbnew_error'] = str(e)
+    normalized = kicad10_patch_version(result.get('pcbnew_version'))
+    result['pcbnew_normalized_version'] = normalized
+    # A patch version is only a candidate. Every native operation and production
+    # gate still performs its actual checks and fails closed on unsupported behavior.
+    cli_observed = (result.get('cli_version_source') == 'stdout' and
+                    result.get('cli_probe', {}).get('returncode') == 0 and
+                    result.get('cli_probe', {}).get('stdout', '').strip() == result.get('cli_version'))
+    resource_observed = (result.get('cli_version_source') == 'windows_executable_version_resource'
+                         and result.get('cli_probe', {}).get('returncode') == 0
+                         and not result.get('cli_probe', {}).get('stderr', '').strip()
+                         and result.get('cli_version_resource', {}).get('product_version') == result.get('cli_version'))
+    result['cli_compatible'] = bool(kicad10_patch_version(result.get('cli_version')) and
+                                    (cli_observed or resource_observed))
+    result['pcbnew_compatible'] = bool(normalized)
+    result['version_pair_compatible'] = (result['cli_compatible'] and result['pcbnew_compatible']
+                                         and result['cli_version'] == normalized)
+    result['compatibility_tier'] = ('RECOMMENDED_BASELINE' if result['version_pair_compatible'] and
+                                    result['cli_version'] == TARGET_VERSION else
+                                    'PATCH_CANDIDATE_NATIVE_SMOKE_REQUIRED' if result['version_pair_compatible'] else
+                                    'OFFLINE_ONLY_OR_UNVERIFIED')
+    result['kicad9_native_status'] = 'UNVERIFIED_NOT_ENABLED'
     return result
 
 def parse_sexpr(text):
