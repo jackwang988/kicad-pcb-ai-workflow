@@ -62,9 +62,41 @@ class PatchCompatibilityTests(unittest.TestCase):
         with patch.dict(n.os.environ, {}, clear=True):
             self.assertTrue(n.patch_native_ready(e))
 
-    def test_future_major_minor_remains_unverified(self):
-        for version in ('10.1.0', '11.0.0'):
-            self.assertFalse(n.pair_compatible(self.probe(version, version)))
+    def test_future_10_minor_is_candidate_not_automatically_production_ready(self):
+        e = self.probe('10.1.0', '10.1.0')
+        self.assertTrue(n.pair_compatible(e))
+        self.assertEqual(e['compatibility_tier'], 'PATCH_CANDIDATE_NATIVE_SMOKE_REQUIRED')
+        with patch.dict(n.os.environ, {}, clear=True):
+            self.assertFalse(n.patch_native_ready(e))
+
+    def test_kicad_11_cli_is_detected_but_pcbnew_stays_blocked(self):
+        e = self.probe('11.0.0', '11.0.0')
+        self.assertTrue(n.cli_compatible(e))
+        self.assertFalse(n.pcbnew_compatible(e))
+        self.assertFalse(n.pair_compatible(e))
+        self.assertEqual(e['compatibility_tier'], 'FUTURE_CLI_CANDIDATE_SMOKE_REQUIRED')
+        self.assertEqual(e['capabilities']['pcb_native'], 'IPC_ADAPTER_REQUIRED')
+        self.assertEqual(e['capabilities']['manufacturing'], 'BLOCKED')
+        with patch.dict(n.os.environ, {}, clear=True):
+            self.assertFalse(n.cli_native_ready(e))
+        with patch.dict(n.os.environ, {'KICAD_CLI_STARTUP_STATE': '/trusted/cli-only/startup-state.json'}):
+            with patch('environment_start.check', return_value={'status': 'ENVIRONMENT_CLI_READY'}):
+                self.assertTrue(n.cli_native_ready(e))
+            with patch('environment_start.check', return_value={'status': 'ENVIRONMENT_READY'}):
+                self.assertFalse(n.cli_native_ready(e))
+
+    def test_future_major_without_pcbnew_is_cli_only_not_installation_failure(self):
+        with patch.object(n, 'run', return_value={'returncode': 0, 'stdout': '11.0.0\\n', 'stderr': ''}), \\
+             patch.dict(sys.modules, {'pcbnew': None}):
+            e = n.environment('/trusted/kicad-cli')
+        self.assertTrue(n.cli_compatible(e))
+        self.assertFalse(n.pair_compatible(e))
+
+    def test_future_major_development_build_is_not_silently_enabled(self):
+        self.assertIsNone(n.stable_kicad_version('11.0.0-rc1'))
+        self.assertIsNone(n.stable_kicad_version('11.0.0-dev'))
+        e = self.probe('11.0.0-rc1', '11.0.0-rc1')
+        self.assertFalse(n.cli_compatible(e))
 
     def test_release_candidate_not_treated_as_stable_patch(self):
         self.assertIsNone(n.kicad10_patch_version('10.0.8-rc1'))
@@ -96,6 +128,15 @@ class NativeReportProvenanceTests(unittest.TestCase):
     def test_wrong_patch_report_is_rejected(self):
         with self.assertRaises(ValueError):
             extract('erc', self.report('10.0.7'), 'demo.kicad_sch', expected_version='10.0.8')
+
+    def test_future_major_cli_report_is_parsed_only_if_schema_and_version_match(self):
+        self.assertEqual(extract('erc', self.report('11.0.0'), 'demo.kicad_sch', expected_version='11.0.0'), [])
+        with self.assertRaises(ValueError):
+            extract('erc', self.report('11.0.0'), 'demo.kicad_sch', expected_version='10.0.8')
+        r = self.report('11.0.0')
+        r['$schema'] = 'https://schemas.kicad.org/erc.v2.json'
+        with self.assertRaises(ValueError):
+            extract('erc', r, 'demo.kicad_sch', expected_version='11.0.0')
 
     def test_kicad9_report_not_accepted_as_kicad10(self):
         with self.assertRaises(ValueError):
