@@ -1,16 +1,18 @@
 """Fail-closed validation of the KiCad ERC/DRC JSON subset used by this gate.
 
-Pinned 10.0.7 runtime/schema integration remains a required native test.
+The report version must match the actually invoked KiCad CLI; missing or unknown schemas fail closed.
 Missing fields or unknown types are never interpreted as zero violations.
 """
 from pathlib import Path
-from npi_common import TARGET_VERSION,finite_tree
+from npi_common import TARGET_VERSION,finite_tree,kicad10_patch_version
 
-def extract(kind,data,input_path,*,allow_ignored=False):
+def extract(kind,data,input_path,*,allow_ignored=False,expected_version=None):
     finite_tree(data)
     if not isinstance(data,dict):raise ValueError('Native report root must be an object')
     if data.get('$schema')!='https://schemas.kicad.org/'+kind+'.v1.json':raise ValueError('Unknown report schema')
-    if data.get('kicad_version')!=TARGET_VERSION or data.get('coordinate_units')!='mm':raise ValueError('Wrong report version/units')
+    expected = TARGET_VERSION if expected_version is None else expected_version
+    if not kicad10_patch_version(expected) or data.get('kicad_version')!=expected or data.get('coordinate_units')!='mm':
+        raise ValueError('Wrong report version/units')
     if not isinstance(data.get('source'),str) or Path(data['source']).name!=Path(input_path).name:raise ValueError('Report source does not match input')
     severities=data.get('included_severities')
     if not isinstance(severities,list) or set(severities)!={'error','warning','exclusion'}:raise ValueError('Report severity coverage incomplete')
