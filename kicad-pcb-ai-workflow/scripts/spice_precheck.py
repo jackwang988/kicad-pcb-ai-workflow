@@ -7,7 +7,7 @@ import argparse
 import json
 import shutil
 from pathlib import Path
-from npi_common import TARGET_VERSION, environment, run
+from npi_common import TARGET_VERSION, environment, run, cli_compatible
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -21,7 +21,7 @@ def main():
     command+=[str(a.schematic)]
     if not a.apply:
         print(json.dumps({'preview':True,'command':command,'ngspice_requested':a.run_ngspice},ensure_ascii=False)); return 0
-    if not env.get('cli_exact_target'): p.error('需要KiCad 10.0.7 CLI')
+    if not cli_compatible(env): p.error('需要稳定版KiCad 10.0.x CLI')
     if a.run_ngspice and not shutil.which('ngspice'): p.error('没有外部ngspice可执行文件')
     a.output_dir.mkdir(parents=True,exist_ok=False)
     result=run(command); print(json.dumps(result,ensure_ascii=False))
