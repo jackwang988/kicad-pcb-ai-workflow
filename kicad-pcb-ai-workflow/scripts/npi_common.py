@@ -171,6 +171,14 @@ def environment(cli=None):
                                     'PATCH_CANDIDATE_NATIVE_SMOKE_REQUIRED' if result['version_pair_compatible'] else
                                     'OFFLINE_ONLY_OR_UNVERIFIED')
     result['kicad9_native_status'] = 'UNVERIFIED_NOT_ENABLED'
+    # These states express feature eligibility, not a completed engineering review.
+    result['capabilities'] = {
+        'offline_requirements_and_document_review': 'AVAILABLE_WITH_REQUIRED_INPUTS',
+        'offline_static_preview': 'AVAILABLE_WITH_REQUIRED_INPUTS_NOT_NATIVE_EVIDENCE',
+        'schematic_cli': 'NATIVE_SMOKE_REQUIRED' if result['cli_compatible'] else 'UNVERIFIED_OR_UNAVAILABLE',
+        'pcb_native': 'NATIVE_SMOKE_REQUIRED' if result['version_pair_compatible'] else 'UNVERIFIED_OR_UNAVAILABLE',
+        'manufacturing': 'FULL_PROJECT_GATES_REQUIRED' if result['version_pair_compatible'] else 'BLOCKED',
+    }
     return result
 
 def parse_sexpr(text):
