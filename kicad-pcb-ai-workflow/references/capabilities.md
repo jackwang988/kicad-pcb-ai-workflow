@@ -20,7 +20,9 @@
 - **KiCad 10.0.7**：推荐/历史验收基线，保留现有真实工程门禁。
 - **其他稳定 KiCad 10.0.x（例如10.0.8）**：版本一致仅代表候选资格。先运行 doctor，再在合法非空项目上运行 `environment_start.py setup --apply` 获得 `startup-state.json`；在执行制造预审、覆铜冻结和 PCB 原生签核的 Agent 环境中设置 `KICAD_PATCH_STARTUP_STATE` 为该状态文件绝对路径。程序会重新检查有效期、工具/脚本哈希和存储的真实烟雾结果。仅有版本字符串不能通过生产门禁。
 - **KiCad 9.x**：现阶段只开放不依赖原生 KiCad 的需求分析、资料检查、静态预览（不能产生原生证据或制造授权）。9.x CLI/pcbnew 及制造输出在取得实际原生测试证据前始终 UNVERIFIED / BLOCKED。
-- **KiCad 10.1、11.x、候选版或混合 CLI/pcbnew**：不自动批准；需要独立兼容性评审。
+- **KiCad 10.x 新稳定版**：同版本 CLI/pcbnew 可进入完整原生烟雾验证，之后仍须当前项目工程门禁。10.0 系列外的制造契约需验证后才可开放。
+- **KiCad 11+ 稳定版**：CLI 可独立识别并以 `--cli-only` 验证 PDF/XML/ERC/DRC；仅匹配报告模式及真实命令通过的 CLI-only 工作允许进入原理图签核。旧 SWIG `pcbnew` 不再被假定存在，PCB 原生读写、覆铜和制造暂保持 BLOCKED，需要新的 IPC/`kicad-python` 适配器及真实测试。
+- **KiCad RC/nightly/dev、混合 CLI/pcbnew**：不自动批准；必须独立评估。
 - 当前 GitHub Actions 的 Python 模拟测试不等于 KiCad 9/10 原生互操作验收。
 
 核心库存强制验证清单内全部31个工具的存在、唯一性、文件哈希和工具合同，拒绝额外混入的项目Python脚本。独立历史归档是否安装不影响该门禁。升级核心版本后，旧配置快照与环境记录须按各自版本/哈希规则重新确认。
