@@ -2,7 +2,7 @@
 
 **从器件原厂手册的推荐电路出发，让 AI 按工程流程设计与评审，用 KiCad 检查、版本证据和工程师确认推进每一步。**
 
-这是一套以 **KiCad 10.0.7 为推荐/历史验收基线**、对 **KiCad 10.0.x 稳定补丁版本实施能力检测与真实工程复验** 的电子设计 Skill，覆盖需求、系统架构、器件资料、原理图、封装、叠层、PCB布局布线、DFX/NPI、制造交付与ECO。日常操作分成 **6组入口**，完整流程展开为 **16个节点、G1–G6六道工程门禁**。
+这是一套以 **KiCad 10.0.7 为推荐/历史验收基线**、对 **KiCad 10.x 稳定版本实施能力检测与真实工程复验**，并为 KiCad 11 及后续稳定版本提供 **CLI-only 候选兼容通道** 的电子设计 Skill，覆盖需求、系统架构、器件资料、原理图、封装、叠层、PCB布局布线、DFX/NPI、制造交付与ECO。日常操作分成 **6组入口**，完整流程展开为 **16个节点、G1–G6六道工程门禁**。
 
 作者：[Jack](https://github.com/jackwang988) · 版本 **R9.3** · [MIT](LICENSE)
 
@@ -101,6 +101,15 @@ https://github.com/jackwang988/kicad-pcb-ai-workflow
 git clone https://github.com/jackwang988/kicad-pcb-ai-workflow.git
 cd kicad-pcb-ai-workflow/kicad-pcb-ai-workflow
 ```
+
+## 更新版本的兼容策略
+
+- **KiCad 10.0.7**：推荐基线，并非版本上限。
+- **后续稳定 KiCad 10.x**：CLI 和 `pcbnew` 匹配时，允许直接进入真实工程兼容性验证，不因版本号较新而立即拒绝；未通过原生验证和 G1–G6 工程门禁不得制造放行。
+- **KiCad 11 及未来稳定版**：即使没有旧的 `pcbnew` Python SWIG 绑定，Doctor 仍可识别可用的 CLI，并使用 `environment.setup --cli-only --apply` 在工程副本上验证 PDF/XML/ERC/DRC 等能力。设置 `KICAD_CLI_STARTUP_STATE` 后可继续使用经验证的 CLI-only 原理图功能。PCB 原生编辑、覆铜、保存及制造放行必须等待已验证的 IPC 适配器，不因新版版本号更高而假定通过。
+- **KiCad 9**：保留离线非原生能力；其 CLI/API 兼容性尚未完成原生验收。
+
+官方已宣布旧 `pcbnew` SWIG 接口会在 KiCad 11 移除。未来完整 PCB 自动化计划使用 IPC API/`kicad-python`，不是修改版本号可以解决的问题。
 
 ## 配置与首次运行
 
