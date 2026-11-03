@@ -445,6 +445,8 @@ def command(root, name, bundle, task, options):
         raise ValueError('Unknown task')
     if options.get('apply') and task not in WRITING:
         raise ValueError('--apply is only valid for explicit candidate/setup writes')
+    if options.get('cli_only') and task != 'environment.setup':
+        raise ValueError('--cli-only only applies to environment.setup')
     if task == 'environment.doctor' and not bundle:
         flow.registry()
         args = ['--kicad-cli', options['kicad_cli']] if options.get('kicad_cli') else []
@@ -482,6 +484,8 @@ def command(root, name, bundle, task, options):
         args = ['setup', '--project', str(root), '--schematic', input_file('schematic'),
                 '--board', input_file('board'), '--project-file', input_file('project'),
                 '--report-dir', required('output_dir')]
+        if options.get('cli_only'):
+            args.append('--cli-only')
     elif task in ('architecture.check', 'lifecycle.check'):
         args += ['--contract', str(Path(bundle) / 'flow.json')]
         args.insert(0, 'check')
@@ -563,6 +567,7 @@ def main():
                 a.add_argument('--' + key)
             a.add_argument('--mode', choices=('prototype', 'mass_production'), default='mass_production')
             a.add_argument('--apply', action='store_true')
+            a.add_argument('--cli-only', action='store_true', help='CLI-only environment smoke; no pcbnew or manufacturing approval')
     a = p.parse_args()
     try:
         root = Path(a.project).resolve()
