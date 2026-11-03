@@ -8,7 +8,7 @@ import argparse
 import json
 import shutil
 from pathlib import Path
-from npi_common import environment,sha256,write_json
+from npi_common import environment, pair_compatible,sha256,write_json
 
 def freeze(project,board_relative,destination,apply=False):
     project=Path(project).resolve();dest=Path(destination).resolve();board=(project/board_relative).resolve()
@@ -17,7 +17,7 @@ def freeze(project,board_relative,destination,apply=False):
     if any(x.is_symlink() for x in project.rglob('*')):raise ValueError('Symlinks in project are not accepted')
     if not apply:return {'status':'PREVIEW','source_sha256':sha256(board),'destination':str(dest),'operations':['copy','refill','save','reload']}
     env=environment()
-    if not env.get('pcbnew_exact_target'):raise ValueError('KiCad 10.0.7 pcbnew required')
+    if not pair_compatible(env):raise ValueError('Matching KiCad 10.0.x CLI/pcbnew required for native refill/save/reload')
     import pcbnew
     before=sha256(board)
     shutil.copytree(project,dest,ignore=shutil.ignore_patterns('.git','__pycache__'))
