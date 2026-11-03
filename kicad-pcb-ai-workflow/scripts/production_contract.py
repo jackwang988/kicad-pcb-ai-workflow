@@ -6,7 +6,7 @@ of an engineer/factory, nor a complete Gerber/CAM interpreter.
 from pathlib import Path
 import re
 import datetime as dt
-from npi_common import TARGET_VERSION
+from npi_common import TARGET_VERSION,kicad10_patch_version
 
 CAM_CHECKS={'all_copper_layers','mask_silk_paste','outline_cutouts','drills_slots_plating_spans',
             'units_origin_mirror','assembly_variant_polarity','fabrication_requirements'}
@@ -29,7 +29,7 @@ def generating_operation(command, tool, config, produced):
     as current filesystem locations. Hash checks are performed by the caller.
     """
     argv=command['argv']
-    if tool['name']!='kicad-cli' or tool['version']!=TARGET_VERSION:
+    if tool['name']!='kicad-cli' or kicad10_patch_version(tool['version'])!=tool['version']:
         raise ValueError('Generating tool requires a supported KiCad export contract')
     operations={('pcb','export','gerbers'):({'gerber','paste'},'board',True),
                 ('pcb','export','drill'):({'drill'},'board',True),
@@ -77,7 +77,7 @@ def records(build,config,profile):
         if not isinstance(tool,dict) or not all(tool.get(k) for k in ('id','name','version','executable_sha256')):raise ValueError('Incomplete tool record')
         if not re.fullmatch('[0-9a-f]{64}',tool['executable_sha256']) or tool['id'] in registry:raise ValueError('Invalid tool hash/identity')
         registry[tool['id']]=tool
-    if not any(t['name']=='kicad-cli' and t['version']==TARGET_VERSION for t in tools):raise ValueError('Required KiCad CLI version not recorded')
+    if not any(t['name']=='kicad-cli' and kicad10_patch_version(t['version'])==t['version'] for t in tools):raise ValueError('Required KiCad CLI version not recorded')
     log_names={r.get('file') for r in logs if isinstance(r,dict)};covered=set()
     for command in commands:
         if not isinstance(command,dict) or command.get('tool_id') not in registry:raise ValueError('Unknown command tool')
