@@ -390,7 +390,7 @@ def evaluate(project, config_path, mode='mass_production', phase='pre_export', c
         r.evidence.append({'external_query_list':[{'reference':row.get(fields.get('ref','Reference')),
                               'mpn':row.get(fields.get('mpn','MPN')),'lifecycle':'not_queried','derating':'manual_required'} for row in rows]})
     counts={level:sum(f['level']==level for f in r.findings) for level in LEVELS}
-    return {'schema_version':1,'recommended_kicad':TARGET_VERSION,'tested_runtime_kicad':env.get('cli_version'),'created_at':dt.datetime.now(dt.timezone.utc).isoformat(),
+    return {'schema_version':1,'target_kicad':TARGET_VERSION,'recommended_kicad':TARGET_VERSION,'tested_runtime_kicad':env.get('cli_version'),'created_at':dt.datetime.now(dt.timezone.utc).isoformat(),
             'project':str(project),'mode':mode,'phase':phase,'static_preview':static_preview,'environment':env,
             'counts':counts,'blocked':counts['阻断级']>0,
             'release_allowed':mode=='mass_production' and phase=='release' and not static_preview and counts['阻断级']==0,
