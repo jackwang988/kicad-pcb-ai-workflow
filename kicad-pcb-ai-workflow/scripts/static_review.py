@@ -13,7 +13,7 @@ import re
 import shutil
 from pathlib import Path
 from npi_common import (sha256, finite_tree, parse_sexpr, children, child, value,
-                        load_board, distance, environment, run, LEVELS, cli_compatible, pcbnew_compatible)
+                        load_board, distance, environment, run, LEVELS, cli_compatible, pair_compatible)
 from netlist_guard import read_netlist
 from design_intent import local, digest
 from link_audit import primitives, audit_path
@@ -263,7 +263,7 @@ def prepare(root,config_file,stage,output,cli=None):
             else:native_ready=False;issues.append('Schematic view export failed')
         else:native_ready=False;issues.append('Compatible KiCad 10.0.x CLI unavailable')
         if stage=='pcb':
-            board_path=local(root,inp['board']);native_board=bool(pcbnew_compatible(env))
+            board_path=local(root,inp['board']);native_board=bool(pair_compatible(env))
             b,edges=primitives(board_path,native_board);facts['board']=b
             tree=parse_sexpr(board_path.read_text());widths={value(t,'uuid'):float(value(t,'width')) for tag in ('segment','arc') for t in children(tree,tag)}
             for e in edges:
