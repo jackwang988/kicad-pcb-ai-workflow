@@ -2,7 +2,7 @@
 
 **从器件原厂手册的推荐电路出发，让 AI 按工程流程设计与评审，用 KiCad 检查、版本证据和工程师确认推进每一步。**
 
-这是一套面向 **KiCad 10.0.7** 的电子设计 Skill，覆盖需求、系统架构、器件资料、原理图、封装、叠层、PCB布局布线、DFX/NPI、制造交付与ECO。日常操作分成 **6组入口**，完整流程展开为 **16个节点、G1–G6六道工程门禁**。
+这是一套以 **KiCad 10.0.7 为推荐/历史验收基线**、对 **KiCad 10.0.x 稳定补丁版本实施能力检测与真实工程复验** 的电子设计 Skill，覆盖需求、系统架构、器件资料、原理图、封装、叠层、PCB布局布线、DFX/NPI、制造交付与ECO。日常操作分成 **6组入口**，完整流程展开为 **16个节点、G1–G6六道工程门禁**。
 
 作者：[Jack](https://github.com/jackwang988) · 版本 **R9.3** · [MIT](LICENSE)
 
@@ -84,7 +84,7 @@ https://github.com/jackwang988/kicad-pcb-ai-workflow
 
 先阅读仓库README和kicad-pcb-ai-workflow/SKILL.md。
 实际Skill位于仓库的kicad-pcb-ai-workflow子目录，只安装这个目录。
-检查KiCad 10.0.7、kicad-cli及匹配的pcbnew Python绑定。
+检查本机KiCad版本、kicad-cli及匹配的pcbnew Python绑定；10.0.7是推荐基线，其他10.0.x稳定补丁版本必须通过真实环境setup。KiCad 9仅开放脱离原生KiCad的分析与静态预览，不授予制造放行。
 告诉我实际检测结果、缺失依赖和下一步配置方法。
 按预览和--apply规则操作，在新的独立目录验证工程。
 ```
@@ -133,7 +133,7 @@ python3 scripts/workflow.py status /path/project --bundle control-r1
 给Agent的任务可以这样写：
 
 ```text
-请使用kicad-pcb-ai-workflow检查这个KiCad 10.0.7工程。
+请使用kicad-pcb-ai-workflow检查这个KiCad 10.0.x工程；先检查实际补丁版本与原生兼容证据。
 先核对规格、器件型号、原厂手册和工程输入是否齐全。
 原理图按推荐电路、模块接口、电源/复位/时钟和启动逻辑逐项评审。
 PCB按实际叠层、原厂布局要求、全部铜层和关键网络逐项评审。
