@@ -9,7 +9,7 @@ import argparse
 from schematic_io import blocking
 import json
 from pathlib import Path
-from npi_common import environment,run,sha256,finite_tree,cli_compatible
+from npi_common import environment,run,sha256,finite_tree,cli_compatible,cli_native_ready
 from engineering_gate import local
 from schematic_io import parse,sheets,hashes
 from netlist_guard import read_netlist
@@ -62,7 +62,7 @@ def materialize(draft_file,destination,apply=False,cli=None):
     record={'status':'PREVIEW','scope':'schematic_candidate_only','production_authorized':False,'draft_sha256':sha256(draft_file),'basis_sha256':sha256(basis_file),'files':sorted(files),'destination':str(dest),'remaining':['native export/ERC and exact expected circuit comparison','AI visual/device/application review','hardware engineer confirmation']}
     if not apply:return record
     env=environment(cli)
-    if not cli_compatible(env):raise ValueError('Stable KiCad10.0.x CLI required before candidate writing')
+    if not cli_native_ready(env, cli):raise ValueError('Stable KiCad CLI required; future majors need current CLI-only setup evidence before candidate writing')
     before=sha256(draft_file);dest.mkdir(parents=True,exist_ok=False)
     try:
         for name,text in files.items():p=local(dest,name);p.parent.mkdir(parents=True,exist_ok=True);p.write_text(text,encoding='utf-8')
