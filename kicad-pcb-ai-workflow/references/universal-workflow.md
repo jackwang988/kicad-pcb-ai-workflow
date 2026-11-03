@@ -134,6 +134,10 @@ schematic_candidate.py是通用文件写入和原生核对接口，不是电路�
 
 结构及系统接口检查已接入原理图资料包与gate，见schematic-style.md、schematic-ai-layout-rules.md 和 system-integration.md；Agent 在生成与评审阶段应用拓扑优先规则，未实现的几何检测不得虚报机器 PASS。PCB模块、局部引脚、回流锚点与视觉复验见placement-quality.md。布局和布线执行依真实原生编辑/实际适配器，当前没有通用自动放置器或高速自动布线引擎；不能用旧42×42/固定网络脚本补位。缺执行器时交付当前阶段产物和明确人工操作，不继续宣称已完成。
 
+### 未来大版本的有限 CLI 兼容
+
+KiCad 11+ 若无旧SWIG `pcbnew`，可在首次环境任务附加 `--cli-only` 创建CLI证据；其结果 `ENVIRONMENT_CLI_READY` 不可用于PCB原生签核/制造。原理图CLI-only签核仍须实际XML/PDF/ERC来源、版本匹配、工程师确认和当前 `KICAD_CLI_STARTUP_STATE` 证据。完整PCB流程待IPC适配后再开放。
+
 ## 4. 受控制造导出
 
 在独立冻结工程内完成refill/save/reload和当前原生设计门禁，从assets/review-config.template.json建立NPI配置；所有null未决字段和空需求清单必须按实际工程补齐，不能套用测试或其他项目的工艺阈值。静态模板不再预设U1/FB等测试位号网络。NPI配置加delivery_export（模板assets/delivery-export.template.json）及workflow_contract、schematic_style、system_integration；原理图静态配置必须绑定system-integration.template.json并覆盖全部接口来源。delivery_export填：schema_version=1、origin=absolute或drill、variant与config.variants唯一项相同、实际gerber_layers/assembly_layers、BOM字段、互不包含的相对输出目录/文件。保留BOM完整身份字段，按Reference分组，不按value+footprint合并不同物料。每变体一个独立候选，不能以一个包混装。
