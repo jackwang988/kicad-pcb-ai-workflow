@@ -10,7 +10,7 @@ import datetime as dt
 import re
 import csv
 from pathlib import Path
-from npi_common import sha256,parse_sexpr,children,child,value,finite_tree,runtime_inventory
+from npi_common import sha256,parse_sexpr,children,child,value,finite_tree,runtime_inventory,pair_compatible
 from netlist_guard import compare
 
 CATEGORIES=('requirements','schematic','footprints','stackup','signal_integrity','power_integrity',
@@ -275,7 +275,7 @@ def inspect_production(r,project,config,profile,candidate):
         review_name=str(Path(build['final_state_validation']['file']).parent/final['full_review_file'])
         review_file=evidence({'file':review_name,'sha256':final['full_review_sha256']},candidate,r)
         full=json.loads(review_file.read_text())
-        if full.get('blocked') is not False or full.get('counts',{}).get('阻断级')!=0 or not full.get('environment',{}).get('cli_exact_target') or not full.get('environment',{}).get('pcbnew_exact_target'):
+        if full.get('blocked') is not False or full.get('counts',{}).get('阻断级')!=0 or not pair_compatible(full.get('environment',{})):
             raise ValueError('完整最终检查报告并未在目标原生环境通过')
         for file,digest in r.inputs.items():
             if Path(file).is_relative_to(project) and file not in late and full.get('inputs_sha256',{}).get(file)!=digest:
