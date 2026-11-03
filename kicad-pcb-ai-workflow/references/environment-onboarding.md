@@ -101,6 +101,26 @@ check只读，不安装/配置/写报告；每次真实探测当前CLI和绑定�
 
 状态记录是本地复用依据，不是防伪签名，也不能穷尽全部DLL/操作系统/外部库变化。新电脑、新执行环境、异常或重大系统/工具变化应主动重验。新项目不能跳过自己的库、需求、规则、原厂资料和制造检查；生产前仍运行最终全量门禁。
 
+## 面向未来版本：CLI-only 原生兼容性验证
+
+当 KiCad 11 或更高稳定版无法导入旧 `pcbnew` 时，不能直接认定整个 Skill 不可用。可先使用 CLI-only 功能：
+
+```powershell
+# $PYK 为可运行 Skill 的 Python；CLI-only 不需要旧 pcbnew
+& $PYK scripts/doctor.py --kicad-cli $CLI
+
+# 首次仅预览；确认路径后追加 --apply
+& $PYK scripts/environment_start.py setup --project 'D:\Projects\demo' --schematic 'demo.kicad_sch' --board 'demo.kicad_pcb' --project-file 'demo.kicad_pro' --report-dir 'D:\KiCad-Checks\future-cli-r1' --kicad-cli $CLI --cli-only
+
+# 使用 --apply 实际验证后，绑定当前 Agent 会话的真实状态文件：
+$env:KICAD_CLI_STARTUP_STATE = 'D:\KiCad-Checks\future-cli-r1\startup-state.json'
+& $PYK scripts/environment_start.py check --state $env:KICAD_CLI_STARTUP_STATE --kicad-cli $CLI
+```
+
+CLI-only setup仍要求真实非空工程，验证 PDF/XML、ERC/DRC JSON 真实输出但不执行 `pcbnew.LoadBoard`。成功状态 `ENVIRONMENT_CLI_READY` 不等于完整环境通过；PCB 规则、生效网络类、覆铜保存和生产放行仍需经过验证的 IPC 适配器。若新版CLI命令或JSON结构变化，该项应被明确标记为不可用，而非让整个离线Skill失效。
+
+工作流入口也可使用 `workflow.py ... --task environment.setup --cli-only`；遵守预览与 `--apply` 规则。
+
 ## 5. Linux/macOS与Agent连接
 
 命令结构相同，把$PYK替换为能导入目标pcbnew的Python路径，$CLI替换为实际kicad-cli路径。先执行：
