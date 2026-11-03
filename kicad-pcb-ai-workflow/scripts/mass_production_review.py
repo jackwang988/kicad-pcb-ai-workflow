@@ -17,7 +17,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from npi_common import (TARGET_VERSION, LEVELS, environment, run, sha256, load_board,
                         parse_sexpr, child, children, value, xy, distance,
-                        segment_distance, polygon_area, write_json, cli_compatible, pcbnew_compatible, pair_compatible)
+                        segment_distance, polygon_area, write_json, cli_compatible, pcbnew_compatible, pair_compatible, patch_native_ready)
 
 MANUAL = [
  ('NPI.CAM','npi','候选Gerber/CPL/BOM/装配内容与批准工程一致性审图','企业制造交付规范、PCB厂CAM/贴片厂装配要求','逐层检查极性/板框/孔位/CPL原点旋转/变体装配与版本；文件非空不能替代审图。'),
@@ -336,6 +336,8 @@ def evaluate(project, config_path, mode='mass_production', phase='pre_export', c
     config=finite_tree(json.loads(config_path.read_text(encoding='utf-8')))
     r=Review(config,mode,phase); r.project=project; r.inputs[str(config_path)]=sha256(config_path)
     env=environment(cli)
+    if mode=='mass_production' and pair_compatible(env) and not patch_native_ready(env, cli):
+        r.risk('ENV.PATCH.SMOKE','layout','阻断级','非基线KiCad 10.0.x缺少当前有效的原生setup验证记录',fix='运行environment_start.py setup --apply后，设置KICAD_PATCH_STARTUP_STATE为startup-state.json，并执行check复验。',method='原生环境证明')
     paths={k:safe_input(project,config.get('inputs',{}).get(k)) for k in ('schematic','board','bom','project')}
     for p in paths.values():
         if p and p.is_file(): r.inputs[str(p)]=sha256(p)
