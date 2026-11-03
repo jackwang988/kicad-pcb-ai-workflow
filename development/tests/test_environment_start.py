@@ -12,7 +12,7 @@ class StartupTests(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.root=pathlib.Path(self.tmp.name);self.project=self.root/'source';self.project.mkdir();self.out=self.root/'report'
         for n in ('demo.kicad_sch','demo.kicad_pcb','demo.kicad_pro'):(self.project/n).write_text('TEST ONLY')
-        self.sig={'TEST':'TEST_ONLY'};self.env={'cli_exact_target':True,'pcbnew_exact_target':True,'kicad_cli':'TEST_CLI'}
+        self.sig={'TEST':'TEST_ONLY'};self.env={'cli_exact_target':True,'pcbnew_exact_target':True,'kicad_cli':'TEST_CLI','cli_version':'10.0.7'}
         self.probe=patch.object(e,'signature',return_value=(self.sig,self.env));self.probe.start();self.addCleanup(self.probe.stop)
     def tearDown(self):self.tmp.cleanup()
     def setup(self,apply=False):return e.setup(self.project,'demo.kicad_sch','demo.kicad_pcb','demo.kicad_pro',self.out,apply=apply)
