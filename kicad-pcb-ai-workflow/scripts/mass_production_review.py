@@ -17,7 +17,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from npi_common import (TARGET_VERSION, LEVELS, environment, run, sha256, load_board,
                         parse_sexpr, child, children, value, xy, distance,
-                        segment_distance, polygon_area, write_json)
+                        segment_distance, polygon_area, write_json, cli_compatible, pcbnew_compatible, pair_compatible)
 
 MANUAL = [
  ('NPI.CAM','npi','候选Gerber/CPL/BOM/装配内容与批准工程一致性审图','企业制造交付规范、PCB厂CAM/贴片厂装配要求','逐层检查极性/板框/孔位/CPL原点旋转/变体装配与版本；文件非空不能替代审图。'),
@@ -110,9 +110,9 @@ def bom_checks(r, path):
     return rows
 
 def native_checks(r, env, sch, pcb):
-    if not env.get('cli_exact_target'):
-        r.risk('ENV.CLI','schematic','阻断级',f'需要KiCad {TARGET_VERSION} CLI，检测值={env["cli_version"]}',
-               standard='KiCad 10.0.7官方CLI文档',fix='用--kicad-cli指定10.0.7可执行文件，实际运行version核对。',method='KiCad CLI')
+    if not cli_compatible(env):
+        r.risk('ENV.CLI','schematic','阻断级',f'需要匹配的KiCad 10.0.x 稳定版 CLI，检测值={env["cli_version"]}',
+               standard='KiCad 10.0 CLI文档及当前版本真实命令验证',fix='用--kicad-cli指定KiCad 10.0.x稳定版，核对实际版本与命令。',method='KiCad CLI')
         return
     # ERC does not support --variant in the official 10.0.7 CLI.
     with tempfile.TemporaryDirectory(prefix='kicad-npi-native-') as d:
@@ -131,7 +131,7 @@ def native_checks(r, env, sch, pcb):
             except (ValueError,OSError):
                 r.risk('NATIVE.'+kind.upper(),'routing','阻断级','原生JSON报告不可解析',method='KiCad CLI'); continue
             from native_report import extract
-            try:groups=extract(kind,data,input_path)
+            try:groups=extract(kind,data,input_path,expected_version=env['cli_version'])
             except (ValueError,TypeError,KeyError) as e:
                 r.risk('NATIVE.SCHEMA','routing','阻断级','原生JSON不完整或结构不受支持：'+str(e),method='KiCad CLI');continue
             r.evidence.append({'kind':kind,'report':data})
@@ -346,9 +346,9 @@ def evaluate(project, config_path, mode='mass_production', phase='pre_export', c
         rows=bom_checks(r,paths['bom'])
         if paths['schematic']: schematic_structure(r,paths['schematic'],project)
         native_checks(r,env,paths['schematic'],paths['board'])
-        if not env.get('pcbnew_exact_target'):
-            r.risk('ENV.PCBNEW','layout','阻断级','未验证KiCad 10.0.7 pcbnew绑定；静态预览不能用于生产放行',
-                   fix='用能导入10.0.7 pcbnew的Python运行；不要pip安装同名第三方包。',method='环境自检')
+        if not pair_compatible(env):
+            r.risk('ENV.PCBNEW','layout','阻断级','未验证匹配的KiCad 10.0.x CLI/pcbnew；静态预览不能用于生产放行',
+                   fix='使用与CLI同一KiCad 10.0.x构建的pcbnew Python；不要pip安装同名第三方包。',method='环境自检')
         board=None
         if paths['board'] and paths['board'].is_file():
             try:
@@ -390,7 +390,7 @@ def evaluate(project, config_path, mode='mass_production', phase='pre_export', c
         r.evidence.append({'external_query_list':[{'reference':row.get(fields.get('ref','Reference')),
                               'mpn':row.get(fields.get('mpn','MPN')),'lifecycle':'not_queried','derating':'manual_required'} for row in rows]})
     counts={level:sum(f['level']==level for f in r.findings) for level in LEVELS}
-    return {'schema_version':1,'target_kicad':TARGET_VERSION,'created_at':dt.datetime.now(dt.timezone.utc).isoformat(),
+    return {'schema_version':1,'recommended_kicad':TARGET_VERSION,'tested_runtime_kicad':env.get('cli_version'),'created_at':dt.datetime.now(dt.timezone.utc).isoformat(),
             'project':str(project),'mode':mode,'phase':phase,'static_preview':static_preview,'environment':env,
             'counts':counts,'blocked':counts['阻断级']>0,
             'release_allowed':mode=='mass_production' and phase=='release' and not static_preview and counts['阻断级']==0,
@@ -404,7 +404,7 @@ def write_report(report, output):
     if output.exists() and any(output.iterdir()): raise ValueError('报告目录必须为空，防止覆盖已有证据')
     output.mkdir(parents=True,exist_ok=True)
     write_json(output/'npi-report.json',report)
-    lines=['# DFX/NPI量产评审报告','',f'目标：KiCad {TARGET_VERSION}',f'模式：{report["mode"]}；阶段：{report["phase"]}',
+    lines=['# DFX/NPI量产评审报告','',f'推荐基线：KiCad {TARGET_VERSION}，实际运行版本：{report.get("tested_runtime_kicad")}',f'模式：{report["mode"]}；阶段：{report["phase"]}',
            f'生产放行：{"允许" if report["release_allowed"] else "禁止"}',
            '', '## 风险汇总','', '| 等级 | 数量 |','|---|---:|']
     lines += [f'| {k} | {v} |' for k,v in report['counts'].items()]
