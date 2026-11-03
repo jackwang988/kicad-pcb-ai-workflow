@@ -8,7 +8,7 @@ import argparse
 import datetime as dt
 import json
 from pathlib import Path
-from npi_common import sha256,LEVELS,finite_tree,cli_compatible,pair_compatible
+from npi_common import sha256,LEVELS,finite_tree,cli_compatible,pair_compatible,patch_native_ready
 from design_intent import local,digest
 from static_review import validate_config,current_record,evaluate_rule,DYNAMIC
 from netlist_guard import read_netlist
@@ -87,7 +87,7 @@ def validate(root,packet_dir,ai_file=None,engineer_file=None):
         if packet.get('demonstration_only'):risk('STATIC.DEMO','TEST演示资料不得用于真实工程签核')
         if packet.get('native_ready') is not True or packet.get('preparation_issues'):risk('STATIC.INPUTS','原生来源/视图/数据覆盖尚未验证：'+str(packet.get('preparation_issues')))
         provenance=packet.get('native_provenance',{});env=provenance.get('environment',{})
-        if provenance.get('xml_origin')!='native_export' or not cli_compatible(env) or (stage=='pcb' and not pair_compatible(env)):
+        if provenance.get('xml_origin')!='native_export' or not cli_compatible(env) or (stage=='pcb' and (not pair_compatible(env) or not patch_native_ready(env, env.get('kicad_cli')))):
             risk('STATIC.PROVENANCE','缺少目标版本原生导出来源；导入XML仅可作预评审')
         if provenance.get('xml_sha256')!=sha256(local(folder,'netlist.xml')):raise ValueError('XML origin hash mismatch')
         facts=json.loads(local(folder,packet['facts_file']).read_text())
