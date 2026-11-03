@@ -10,7 +10,7 @@ import json
 import shutil
 from pathlib import Path
 from engineering_gate import local
-from npi_common import environment,sha256,run,finite_tree,load_board,pair_compatible
+from npi_common import environment,sha256,run,finite_tree,load_board,pair_compatible,patch_native_ready
 from mass_production_review import evaluate
 
 def commands(root,cfg,out,exe):
@@ -52,6 +52,7 @@ def export(root,config_file,destination,apply=False,cli=None):
     if not apply:return result
     if not cfg.get('workflow_contract') or not cfg.get('schematic_style',{}).get('policy'):raise ValueError('R9 export requires project workflow contract and schematic style policy; legacy config is diagnostic only')
     if not pair_compatible(env):raise ValueError('Matching stable KiCad 10.0.x CLI and pcbnew required; native manufacturing gates must also pass')
+    if not patch_native_ready(env, cli):raise ValueError('Non-baseline KiCad patch requires current environment.setup --apply state in KICAD_PATCH_STARTUP_STATE')
     report=evaluate(root,config_file,'mass_production','pre_export',cli,False,None)
     if report['blocked']:return {**result,'status':'BLOCKED','reason':'Current pre-export gates failed','findings':report['findings'],'commands_executed':[]}
     board=local(root,cfg['inputs']['board']);freeze=local(root,'freeze-log.json')
