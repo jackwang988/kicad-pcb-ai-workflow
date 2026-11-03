@@ -13,7 +13,7 @@ import platform
 import shutil
 import sys
 from pathlib import Path
-from npi_common import environment,run,sha256,runtime_inventory,pair_compatible
+from npi_common import environment,run,sha256,runtime_inventory,pair_compatible,cli_compatible
 from design_intent import local,digest
 from netlist_guard import read_netlist
 
@@ -44,13 +44,13 @@ def signature(cli=None):
             'configuration_sha256':digest({k:os.getenv(k) for k in ('PATH','PYTHONPATH','PYTHONHOME','KICAD_CONFIG_HOME','KICAD10_SYMBOL_DIR','KICAD10_FOOTPRINT_DIR')}),
             'files_sha256':files,'cli_version':env.get('cli_version'),'pcbnew_version':env.get('pcbnew_version')},env
 
-def setup(project,schematic,board,project_file,output,cli=None,apply=False):
+def setup(project,schematic,board,project_file,output,cli=None,apply=False,cli_only=False):
     project=Path(project).resolve();out=Path(output).resolve();sig,env=signature(cli)
     plan={'status':'PREVIEW','production_authorized':False,'environment':env,
           'project':str(project),'report_dir':str(out),'inputs':{'schematic':schematic,'board':board,'project_file':project_file},
-          'plan':['Copy project into NEW report directory','Export schematic PDF/XML and PCB PDF','Run ERC/DRC and load board via pcbnew','Persist environment-only startup evidence']}
-    if not pair_compatible(env):
-        return {**plan,'status':'BLOCKED','reason':'Required target CLI/pcbnew unavailable; configure the selected Python/CLI first'}
+          'plan':['Copy project into NEW report directory','Export schematic PDF/XML and PCB PDF','Run ERC/DRC and '+('skip pcbnew (CLI-only)' if cli_only else 'load board via pcbnew'),'Persist environment-only startup evidence'],'requested_scope':'environment_cli_only' if cli_only else 'environment_only'
+    if not (cli_compatible(env) if cli_only else pair_compatible(env)):
+        return {**plan,'status':'BLOCKED','reason':'Required stable CLI or matching KiCad 10.x CLI/pcbnew unavailable for the requested scope'}
     if out.exists() or out==project or out.is_relative_to(project) or project.is_relative_to(out):raise ValueError('Use a NEW report directory outside project')
     if len({Path(n).stem for n in (schematic,board,project_file)})!=1:raise ValueError('Smoke project top schematic/PCB/project basenames must match')
     before=inventory(project)
@@ -81,11 +81,13 @@ def setup(project,schematic,board,project_file,output,cli=None,apply=False):
             # Production calls keep extract's default fail-closed ignored policy.
             design_issues[kind]=len(extract(kind,report,str(src),allow_ignored=True,expected_version=env['cli_version']))
             design_ignored[kind]=report.get('ignored_checks',[])
-        module=importlib.import_module('pcbnew');loaded=module.LoadBoard(str(pcb))
-        if loaded is None:raise ValueError('pcbnew.LoadBoard failed')
+        if not cli_only:
+            module=importlib.import_module('pcbnew');loaded=module.LoadBoard(str(pcb))
+            if loaded is None:raise ValueError('pcbnew.LoadBoard failed')
         if inventory(project)!=before:raise ValueError('Original project changed during smoke test')
         artifacts={str(p.relative_to(out)):sha256(p) for p in out.rglob('*') if p.is_file()}
-        state={'schema_version':1,'scope':'environment_only','status':'ENVIRONMENT_READY',
+        state={'schema_version':1,'scope':'environment_cli_only' if cli_only else 'environment_only',
+               'status':'ENVIRONMENT_CLI_READY' if cli_only else 'ENVIRONMENT_READY','native_pcbnew_verified':not cli_only,
                'checked_at':dt.datetime.now(dt.timezone.utc).isoformat(),'signature':sig,
                'source_project':str(project),'source_sha256':before,'artifacts_sha256':artifacts,
                'design_issue_counts':design_issues,'design_ignored_checks':design_ignored,
@@ -102,11 +104,15 @@ def check(state_file,cli=None,max_age_days=7):
     if not isinstance(max_age_days,int) or not 0<=max_age_days<=365:raise ValueError('max-age-days must be 0..365')
     sig,env=signature(cli)
     result={'status':'FULL_SETUP_REQUIRED','scope':'environment_only','production_authorized':False,'environment':env}
-    if not pair_compatible(env):return {**result,'status':'BLOCKED','reason':'Current required tools/version unavailable'}
+    if not cli_compatible(env):return {**result,'status':'BLOCKED','reason':'Current CLI unavailable or unstable'}
     p=Path(state_file).resolve()
     if not p.is_file():return {**result,'reason':'No successful first-run record'}
     s=json.loads(p.read_text())
-    if s.get('schema_version')!=1 or s.get('scope')!='environment_only' or s.get('status')!='ENVIRONMENT_READY' or s.get('signature')!=sig:return {**result,'reason':'Tool/interpreter/script signature changed or invalid state'}
+    cli_only=s.get('scope')=='environment_cli_only'
+    expected_status='ENVIRONMENT_CLI_READY' if cli_only else 'ENVIRONMENT_READY'
+    if not cli_only and not pair_compatible(env):return {**result,'status':'BLOCKED','reason':'Full native setup requires matching KiCad 10.x CLI/pcbnew'}
+    if s.get('schema_version')!=1 or s.get('scope') not in ('environment_only','environment_cli_only') or s.get('status')!=expected_status or s.get('signature')!=sig or s.get('native_pcbnew_verified') is not (not cli_only):
+        return {**result,'reason':'Tool/interpreter/script signature changed or invalid state'}
     checked=dt.datetime.fromisoformat(s['checked_at'])
     if checked.tzinfo is None:raise ValueError('Startup timestamp requires timezone')
     age=(dt.datetime.now(dt.timezone.utc)-checked).total_seconds()
@@ -116,16 +122,16 @@ def check(state_file,cli=None,max_age_days=7):
         file=local(p.parent,n)
         if not file.is_file() or sha256(file)!=h:return {**result,'reason':'Stored smoke evidence missing/changed'}
     if not s.get('artifacts_sha256'):return {**result,'reason':'No smoke evidence inventory'}
-    return {**result,'status':'ENVIRONMENT_READY','next':'Proceed to current project inputs; no reinstall needed. Current project/GUI/AI/production checks still required.'}
+    return {**result,'status':expected_status,'next':'Only the validated CLI operations are available; PCB native API and production gates remain blocked.' if cli_only else 'Proceed to current project inputs; no reinstall needed. Current project/GUI/AI/production checks still required.'}
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);sub=p.add_subparsers(dest='cmd',required=True)
-    a=sub.add_parser('setup');a.add_argument('--project',required=True);a.add_argument('--schematic',required=True);a.add_argument('--board',required=True);a.add_argument('--project-file',required=True);a.add_argument('--report-dir',required=True);a.add_argument('--apply',action='store_true');a.add_argument('--kicad-cli')
+    a=sub.add_parser('setup');a.add_argument('--project',required=True);a.add_argument('--schematic',required=True);a.add_argument('--board',required=True);a.add_argument('--project-file',required=True);a.add_argument('--report-dir',required=True);a.add_argument('--apply',action='store_true');a.add_argument('--cli-only',action='store_true');a.add_argument('--kicad-cli')
     a=sub.add_parser('check');a.add_argument('--state',required=True);a.add_argument('--kicad-cli');a.add_argument('--max-age-days',type=int,default=7)
     a=p.parse_args()
     try:
-        if a.cmd=='setup':r=setup(a.project,a.schematic,a.board,a.project_file,a.report_dir,a.kicad_cli,a.apply)
+        if a.cmd=='setup':r=setup(a.project,a.schematic,a.board,a.project_file,a.report_dir,a.kicad_cli,a.apply,a.cli_only)
         else:r=check(a.state,a.kicad_cli,a.max_age_days)
-        print(json.dumps(r,ensure_ascii=False,indent=2));return 0 if r['status'] in ('PREVIEW','ENVIRONMENT_READY') else 2
+        print(json.dumps(r,ensure_ascii=False,indent=2));return 0 if r['status'] in ('PREVIEW','ENVIRONMENT_READY','ENVIRONMENT_CLI_READY') else 2
     except Exception as e:print(json.dumps({'status':'BLOCKED','scope':'environment_only','reason':str(e),'production_authorized':False},ensure_ascii=False));return 2
 if __name__=='__main__':raise SystemExit(main())
