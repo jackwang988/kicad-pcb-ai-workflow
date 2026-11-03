@@ -46,6 +46,22 @@ class PatchCompatibilityTests(unittest.TestCase):
         self.assertEqual(e['compatibility_tier'], 'OFFLINE_ONLY_OR_UNVERIFIED')
         self.assertEqual(e['kicad9_native_status'], 'UNVERIFIED_NOT_ENABLED')
 
+    def test_patch_requires_current_native_setup_record(self):
+        e = self.probe('10.0.8', '10.0.8')
+        with patch.dict(n.os.environ, {}, clear=True):
+            self.assertFalse(n.patch_native_ready(e))
+        with patch.dict(n.os.environ, {'KICAD_PATCH_STARTUP_STATE': '/trusted/setup/startup-state.json'}):
+            with patch('environment_start.check', return_value={'status': 'ENVIRONMENT_READY'}) as check:
+                self.assertTrue(n.patch_native_ready(e))
+                self.assertEqual(check.call_args.kwargs['cli'], '/trusted/kicad-cli')
+            with patch('environment_start.check', return_value={'status': 'FULL_SETUP_REQUIRED'}):
+                self.assertFalse(n.patch_native_ready(e))
+
+    def test_baseline_patch_does_not_require_new_environment_setting(self):
+        e = self.probe('10.0.7', '10.0.7')
+        with patch.dict(n.os.environ, {}, clear=True):
+            self.assertTrue(n.patch_native_ready(e))
+
     def test_future_major_minor_remains_unverified(self):
         for version in ('10.1.0', '11.0.0'):
             self.assertFalse(n.pair_compatible(self.probe(version, version)))
