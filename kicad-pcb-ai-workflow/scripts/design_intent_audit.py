@@ -13,12 +13,12 @@ from pathlib import Path
 from design_intent import (compile_intent, local, digest, layout_digest, approval,
                            positive, native_profile)
 from npi_common import (environment, run, sha256, parse_sexpr, children, child,
-                        value, xy, distance, TARGET_VERSION, pair_compatible)
+                        value, xy, distance, TARGET_VERSION, pair_compatible, patch_native_ready)
 from link_audit import arc_length
 
 def native_effective(root, intent):
     import pcbnew
-    if not pair_compatible(environment()):raise ValueError('Matching KiCad 10.0.x CLI/pcbnew required for native effective-rule audit')
+    if not patch_native_ready(environment()):raise ValueError('Matching KiCad 10.0.x CLI/pcbnew and current patch setup evidence required for native effective-rule audit')
     with tempfile.TemporaryDirectory(prefix='kicad-intent-native-') as temp:
         base=Path(temp);pro=local(root,intent['project_file']);board=local(root,intent['board_file'])
         for f in (pro,board,pro.with_suffix('.kicad_dru')):
