@@ -303,7 +303,7 @@
         "2": "BLOCKED or FULL_SETUP_REQUIRED"
       },
       "validation_scope": "Software contract tests only; newer KiCad CLI-only/IPC native integration remains unverified",
-      "sha256": "576c41c5c8a89c3d925343c59fb7a1acf1a048fc29f4f33accd02cd22879c52e"
+      "sha256": "f8ce9157653318d235fbdaa6c85f205531e6fa6e8f93b14b339c8c2d4100357e"
     },
     {
       "file": "scripts/reserve_review.py",
