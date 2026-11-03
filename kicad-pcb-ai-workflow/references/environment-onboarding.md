@@ -70,7 +70,16 @@ required_ok=true且退出0只证明版本/安装组合符合候选要求；未�
 
 执行内容：复制项目→导出原理图PDF/XML→导出顶底铜层PCB PDF→ERC/DRC JSON及parity→pcbnew.LoadBoard→核对原工程未改变。输出仅在新报告目录，不导出Gerber/BOM。工程依赖绝对路径的外部库不会被自动打包，仍需人工核对。
 
-成功为ENVIRONMENT_READY和startup-state.json；失败为BLOCKED，已开始的运行保留failed-setup.json/命令日志，不产生成功记录。报告目录已存在会拒绝覆盖，修复后用setup-r2等新目录。
+成功为ENVIRONMENT_READY和startup-state.json；失败为BLOCKED
+
+对非10.0.7的稳定 KiCad 10.0.x，完成首次setup后，还需在同一Agent执行环境中保存当前状态文件绝对路径；正式 PCB 规则审计、冻结及制造预审将主动复查其有效性：
+
+```powershell
+$env:KICAD_PATCH_STARTUP_STATE = 'D:\KiCad-Checks\setup-r1\startup-state.json'
+& $PYK scripts/environment_start.py check --state $env:KICAD_PATCH_STARTUP_STATE --kicad-cli $CLI
+```
+
+缺少或过期的状态文件会阻断非基线补丁版的工程签核和制造候选；不修改历史记录、不降级生产门禁。，已开始的运行保留failed-setup.json/命令日志，不产生成功记录。报告目录已存在会拒绝覆盖，修复后用setup-r2等新目录。
 
 ERC/DRC有违规但命令及已支持JSON解析正常时，记录design_issue_counts，仍可能ENVIRONMENT_READY；这是工具可运行，绝非设计通过。JSON模式未识别或命令失败会阻断，需查原始日志，不能修改报告伪造通过。
 
