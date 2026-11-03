@@ -181,6 +181,23 @@ def environment(cli=None):
     }
     return result
 
+def patch_native_ready(env, cli=None):
+    """Non-baseline KiCad patches require a CURRENT, genuine setup --apply record.
+    This is an additional environment gate, never a production authorization.
+    """
+    if not pair_compatible(env):
+        return False
+    if env.get('cli_version', TARGET_VERSION) == TARGET_VERSION:
+        return True  # Preserve established baseline workflow; project gates still run.
+    state = os.getenv('KICAD_PATCH_STARTUP_STATE')
+    if not state:
+        return False
+    try:
+        from environment_start import check
+        return check(state, cli=cli or env.get('kicad_cli'))['status'] == 'ENVIRONMENT_READY'
+    except (ValueError, OSError, KeyError, TypeError):
+        return False
+
 def parse_sexpr(text):
     """Parse lists and quoted strings; do not evaluate code or change any bytes."""
     tokens = re.findall(r'"(?:\\.|[^"\\])*"|[()]|[^\s()]+', text)
