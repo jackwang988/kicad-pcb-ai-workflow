@@ -13,7 +13,7 @@ class PatchCompatibilityTests(unittest.TestCase):
     def probe(self, cli_version, pcb_version):
         pcb = MagicMock()
         pcb.GetBuildVersion.return_value = pcb_version
-        with patch.object(n, 'run', return_value={'returncode': 0, 'stdout': cli_version + '\\n', 'stderr': ''}), \
+        with patch.object(n, 'run', return_value={'returncode': 0, 'stdout': cli_version + '\n', 'stderr': ''}), \
              patch.dict(sys.modules, {'pcbnew': pcb}):
             return n.environment('/trusted/kicad-cli')
 
