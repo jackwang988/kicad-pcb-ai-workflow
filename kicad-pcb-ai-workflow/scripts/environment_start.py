@@ -48,7 +48,7 @@ def setup(project,schematic,board,project_file,output,cli=None,apply=False,cli_o
     project=Path(project).resolve();out=Path(output).resolve();sig,env=signature(cli)
     plan={'status':'PREVIEW','production_authorized':False,'environment':env,
           'project':str(project),'report_dir':str(out),'inputs':{'schematic':schematic,'board':board,'project_file':project_file},
-          'plan':['Copy project into NEW report directory','Export schematic PDF/XML and PCB PDF','Run ERC/DRC and '+('skip pcbnew (CLI-only)' if cli_only else 'load board via pcbnew'),'Persist environment-only startup evidence'],'requested_scope':'environment_cli_only' if cli_only else 'environment_only'
+          'plan':['Copy project into NEW report directory','Export schematic PDF/XML and PCB PDF','Run ERC/DRC and '+('skip pcbnew (CLI-only)' if cli_only else 'load board via pcbnew'),'Persist environment-only startup evidence'],'requested_scope':'environment_cli_only' if cli_only else 'environment_only'}
     if not (cli_compatible(env) if cli_only else pair_compatible(env)):
         return {**plan,'status':'BLOCKED','reason':'Required stable CLI or matching KiCad 10.x CLI/pcbnew unavailable for the requested scope'}
     if out.exists() or out==project or out.is_relative_to(project) or project.is_relative_to(out):raise ValueError('Use a NEW report directory outside project')
