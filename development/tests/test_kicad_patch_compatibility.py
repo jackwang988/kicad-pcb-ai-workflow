@@ -86,7 +86,7 @@ class PatchCompatibilityTests(unittest.TestCase):
                 self.assertFalse(n.cli_native_ready(e))
 
     def test_future_major_without_pcbnew_is_cli_only_not_installation_failure(self):
-        with patch.object(n, 'run', return_value={'returncode': 0, 'stdout': '11.0.0\\n', 'stderr': ''}), \\
+        with patch.object(n, 'run', return_value={'returncode': 0, 'stdout': '11.0.0\n', 'stderr': ''}), \
              patch.dict(sys.modules, {'pcbnew': None}):
             e = n.environment('/trusted/kicad-cli')
         self.assertTrue(n.cli_compatible(e))
