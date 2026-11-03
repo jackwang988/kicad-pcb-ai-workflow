@@ -13,7 +13,7 @@ import platform
 import shutil
 import sys
 from pathlib import Path
-from npi_common import environment,run,sha256,runtime_inventory
+from npi_common import environment,run,sha256,runtime_inventory,pair_compatible
 from design_intent import local,digest
 from netlist_guard import read_netlist
 
@@ -49,7 +49,7 @@ def setup(project,schematic,board,project_file,output,cli=None,apply=False):
     plan={'status':'PREVIEW','production_authorized':False,'environment':env,
           'project':str(project),'report_dir':str(out),'inputs':{'schematic':schematic,'board':board,'project_file':project_file},
           'plan':['Copy project into NEW report directory','Export schematic PDF/XML and PCB PDF','Run ERC/DRC and load board via pcbnew','Persist environment-only startup evidence']}
-    if not env.get('cli_exact_target') or not env.get('pcbnew_exact_target'):
+    if not pair_compatible(env):
         return {**plan,'status':'BLOCKED','reason':'Required target CLI/pcbnew unavailable; configure the selected Python/CLI first'}
     if out.exists() or out==project or out.is_relative_to(project) or project.is_relative_to(out):raise ValueError('Use a NEW report directory outside project')
     if len({Path(n).stem for n in (schematic,board,project_file)})!=1:raise ValueError('Smoke project top schematic/PCB/project basenames must match')
@@ -79,7 +79,7 @@ def setup(project,schematic,board,project_file,output,cli=None,apply=False):
             report=json.loads(target.read_text())
             # Startup validates tool/report compatibility, not project acceptance.
             # Production calls keep extract's default fail-closed ignored policy.
-            design_issues[kind]=len(extract(kind,report,str(src),allow_ignored=True))
+            design_issues[kind]=len(extract(kind,report,str(src),allow_ignored=True,expected_version=env['cli_version']))
             design_ignored[kind]=report.get('ignored_checks',[])
         module=importlib.import_module('pcbnew');loaded=module.LoadBoard(str(pcb))
         if loaded is None:raise ValueError('pcbnew.LoadBoard failed')
@@ -90,6 +90,7 @@ def setup(project,schematic,board,project_file,output,cli=None,apply=False):
                'source_project':str(project),'source_sha256':before,'artifacts_sha256':artifacts,
                'design_issue_counts':design_issues,'design_ignored_checks':design_ignored,
                'design_checks_complete':False,'commands':commands,'production_authorized':False,
+                'compatibility_tier':env.get('compatibility_tier'),'verified_native_patch':env.get('cli_version'),
                'manual_checks_remaining':['Agent can actually read PDF/figures','GUI symbol/footprint libraries and external dependencies','Project-specific rules and production checks']}
         (out/'startup-state.json').write_text(json.dumps(state,ensure_ascii=False,indent=2)+'\n')
         return state
@@ -101,7 +102,7 @@ def check(state_file,cli=None,max_age_days=7):
     if not isinstance(max_age_days,int) or not 0<=max_age_days<=365:raise ValueError('max-age-days must be 0..365')
     sig,env=signature(cli)
     result={'status':'FULL_SETUP_REQUIRED','scope':'environment_only','production_authorized':False,'environment':env}
-    if not env.get('cli_exact_target') or not env.get('pcbnew_exact_target'):return {**result,'status':'BLOCKED','reason':'Current required tools/version unavailable'}
+    if not pair_compatible(env):return {**result,'status':'BLOCKED','reason':'Current required tools/version unavailable'}
     p=Path(state_file).resolve()
     if not p.is_file():return {**result,'reason':'No successful first-run record'}
     s=json.loads(p.read_text())
