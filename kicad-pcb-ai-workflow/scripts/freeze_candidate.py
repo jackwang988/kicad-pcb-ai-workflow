@@ -8,7 +8,7 @@ import argparse
 import json
 import shutil
 from pathlib import Path
-from npi_common import environment, pair_compatible,sha256,write_json
+from npi_common import environment, pair_compatible, patch_native_ready,sha256,write_json
 
 def freeze(project,board_relative,destination,apply=False):
     project=Path(project).resolve();dest=Path(destination).resolve();board=(project/board_relative).resolve()
@@ -18,6 +18,7 @@ def freeze(project,board_relative,destination,apply=False):
     if not apply:return {'status':'PREVIEW','source_sha256':sha256(board),'destination':str(dest),'operations':['copy','refill','save','reload']}
     env=environment()
     if not pair_compatible(env):raise ValueError('Matching KiCad 10.0.x CLI/pcbnew required for native refill/save/reload')
+    if not patch_native_ready(env):raise ValueError('Non-baseline KiCad patch requires a current setup --apply state')
     import pcbnew
     before=sha256(board)
     shutil.copytree(project,dest,ignore=shutil.ignore_patterns('.git','__pycache__'))
