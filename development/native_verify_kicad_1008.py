@@ -110,7 +110,7 @@ def validate(temp):
     # A zero-zone PCB would produce a misleading green "fill" result.  Add an
     # actual copper zone on the disposable in-memory board and verify the fill.
     if not list(loaded.Zones()):
-        net = loaded.GetNetsByName().get("+3V3")
+        net = {str(k): value for k, value in loaded.GetNetsByName().items()}.get("+3V3")
         if net is None:
             raise RuntimeError("Fixture has no +3V3 net to anchor copper zone")
         zone = pcbnew.ZONE(loaded)
