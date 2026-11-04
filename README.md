@@ -1,12 +1,12 @@
-# KiCad PCB AI 工作流 · R9.3
+# KiCad PCB AI 工作流 · R9.4
 
 **从器件原厂手册的推荐电路出发，让 AI 按工程流程设计与评审，用 KiCad 检查、版本证据和工程师确认推进每一步。**
 
 这是一套以 **KiCad 10.0.7 为推荐/历史验收基线**、对 **KiCad 10.x 稳定版本实施能力检测与真实工程复验**，并为 KiCad 11 及后续稳定版本提供 **CLI-only 候选兼容通道** 的电子设计 Skill，覆盖需求、系统架构、器件资料、原理图、封装、叠层、PCB布局布线、DFX/NPI、制造交付与ECO。日常操作分成 **6组入口**，完整流程展开为 **16个节点、G1–G6六道工程门禁**。
 
-作者：[Jack](https://github.com/jackwang988) · 版本 **R9.3** · [MIT](LICENSE)
+作者：[Jack](https://github.com/jackwang988) · 版本 **R9.4** · [MIT](LICENSE)
 
-👉 [下载 R9.3 Skill 安装包](https://github.com/jackwang988/kicad-pcb-ai-workflow/raw/refs/heads/main/dist/kicad-pcb-ai-workflow-R9.3.zip) · [SHA-256校验](dist/SHA256SUMS) · [完整流程](kicad-pcb-ai-workflow/references/full-workflow.md) · [安装与配置教程](kicad-pcb-ai-workflow/references/environment-onboarding.md) · [更新记录](RELEASE_NOTES.md)
+👉 [下载 R9.4 Skill 安装包](https://github.com/jackwang988/kicad-pcb-ai-workflow/raw/refs/heads/main/dist/kicad-pcb-ai-workflow-R9.4.zip) · [SHA-256校验](dist/SHA256SUMS) · [完整流程](kicad-pcb-ai-workflow/references/full-workflow.md) · [安装与配置教程](kicad-pcb-ai-workflow/references/environment-onboarding.md) · [更新记录](RELEASE_NOTES.md)
 
 适合希望用AI辅助KiCad开发的硬件工程师、嵌入式开发者与电子爱好者。你需要提供真实需求、器件资料、工程与制造条件；关键电气判断和生产放行仍由工程师、工厂及实际验证共同完成。
 
@@ -102,6 +102,12 @@ git clone https://github.com/jackwang988/kicad-pcb-ai-workflow.git
 cd kicad-pcb-ai-workflow/kicad-pcb-ai-workflow
 ```
 
+## KiCad 10.0.8 原生运行证据
+
+R9.4 使用 GitHub Actions Ubuntu 24.04 + KiCad 官方 10.0 stable PPA 安装了真实 **KiCad 10.0.8**，在隔离工程副本上实际验证 CLI/pcbnew 版本、原理图 PDF/XML、ERC/DRC JSON、PCB 原生加载与几何解析、真实铜皮区域填充和保存重载，以及 Gerber、Excellon、CPL、BOM 和装配 PDF 命令与输出存在性。验证流程见 [原生测试](.github/workflows/native-kicad-10.0.8.yml)及 [自动化运行记录](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/41748194225)。
+
+这是受控示例工程上的**真实工具链兼容测试**，不替代任何产品项目的原厂电路对照、实际电气/版图评审、CAM、工程师签核或工厂投产放行。非基线版本仍需在其实际安装环境运行 `environment_start.py setup --apply`，制造门禁不得绕过。
+
 ## 更新版本的兼容策略
 
 - **KiCad 10.0.7**：推荐基线，并非版本上限。
@@ -171,7 +177,7 @@ AI实际阅读资料包、源图纸和原文，输出逐项报告；工程师本
 
 **维护者已确认本机KiCad CLI和pcbnew基础调用接通（2026-10-20）。** 使用者仍需在自己的电脑执行doctor和首次环境验证，确认版本、解释器、库、读图与工程资源。
 
-当前仓库的286项软件自动化检查全部通过，覆盖输入/来源、配置、网络、路径、布局、证据失效、受控导出与发布，以及独立ZIP运行和核心库存完整性。安装包含64文件、31个有效工具和18份通用模板。
+R9.4 包含319项 Python 软件契约回归测试，覆盖输入/来源、配置、网络、路径、布局、证据失效、受控制造导出、项目副本隔离及核心运行工具SHA-256完整性；正式安装包体积与文件数以本版构建和SHA256SUMS为准。
 
 ```bash
 # 在仓库根目录执行；环境软件测试不要求伪装成已安装KiCad
