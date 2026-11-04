@@ -390,7 +390,7 @@
       "input": "Explicit project contracts; no inferred circuit/process values",
       "output": "Declared-scope reports or independent candidate; never implicit engineering approval",
       "validation_scope": "Python regression coverage; KiCad 10.0.x native smoke and KiCad 9 native compatibility are NOT yet verified",
-      "sha256": "f39670f92560d3e20198a087d118b28b9e98a711d255375c518f3915ffa15a18",
+      "sha256": "743cc3d18c306b7e1c894a02646e0aefe8c1170349d12a5cab44a73c4acfd5c9",
       "exit_codes": {
         "0": "Declared scope complete/preview; never automatic approval",
         "2": "BLOCKED; do not advance or manufacture"
