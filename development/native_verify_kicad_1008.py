@@ -92,7 +92,9 @@ def validate(temp):
         "status": "ENVIRONMENT_READY",
         "generated_outputs": hashed_tree(state_dir)}
     original = hashed_tree(src)
-    board_path = src / (name + ".kicad_pcb")
+    staged = temp / "native-project-snapshot"
+    shutil.copytree(src, staged)
+    board_path = staged / (name + ".kicad_pcb")
     loaded = pcbnew.LoadBoard(str(board_path))
     if loaded is None:
         raise RuntimeError("Actual pcbnew.LoadBoard returned None")
@@ -130,7 +132,7 @@ def validate(temp):
     output = temp / "manufacturing-cli-only"
     output.mkdir()
     native_outputs = []
-    for cmd in commands(src, cfg, output, cli):
+    for cmd in commands(staged, cfg, output, cli):
         target = Path(cmd[cmd.index("--output") + 1])
         target.parent.mkdir(parents=True, exist_ok=True)
         execute(cmd)
