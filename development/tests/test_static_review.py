@@ -89,7 +89,7 @@ class StaticReviewTests(unittest.TestCase):
         self.build();ai=self.ai();data=json.loads(ai.read_text());task=next(t for t in self.cfg['stages']['schematic']['tasks'] if t['category']=='system_integration');row=next(r for r in data['items'] if r['task_id']==task['id']);row['observations']=[o for o in row['observations'] if 'view' not in o];write_json(ai,data)
         self.assertEqual(validate(self.root,self.out,ai,self.engineer(ai))['status'],'BLOCKED')
     def build(self,native=True,stage='schematic'):
-        env={'cli_exact_target':native,'pcbnew_exact_target':False,'kicad_cli':'/TEST/kicad-cli'}
+        env={'cli_exact_target':native,'pcbnew_exact_target':False,'kicad_cli':'/TEST/kicad-cli','cli_version':'10.0.7'}
         with patch('static_review.environment',return_value=env),patch('static_review.run',side_effect=fake_native(self.root)):
             return prepare(self.root,self.root/'review-config.json',stage,self.out)
     def ai(self):

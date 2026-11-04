@@ -13,7 +13,7 @@ import re
 import shutil
 from pathlib import Path
 from npi_common import (sha256, finite_tree, parse_sexpr, children, child, value,
-                        load_board, distance, environment, run, LEVELS)
+                        load_board, distance, environment, run, LEVELS, cli_compatible, pair_compatible)
 from netlist_guard import read_netlist
 from design_intent import local, digest
 from link_audit import primitives, audit_path
@@ -211,7 +211,7 @@ def prepare(root,config_file,stage,output,cli=None):
                 target.write_text(source.read_text(encoding='utf-8-sig'))
             if not target.read_text().strip():raise ValueError('Source has no extracted text; provide verified text plus original figures')
             documents.append({**doc,'snapshot_file':(Path('inputs')/doc['file']).as_posix(),'text_file':target.relative_to(out).as_posix(),'text_sha256':sha256(target)})
-        env=environment(cli);native=bool(env.get('cli_exact_target'));issues=[];commands=[];view_records=[];xml=out/'netlist.xml'
+        env=environment(cli);native=cli_compatible(env);issues=[];commands=[];view_records=[];xml=out/'netlist.xml'
         def invoke(argv,target):
             r=run(argv);commands.append(r)
             return r['returncode']==0 and target.is_file() and target.stat().st_size>0
@@ -255,15 +255,15 @@ def prepare(root,config_file,stage,output,cli=None):
             view_records.append({'kind':'system_architecture_overview','file':overview_copy.relative_to(out).as_posix()})
             write_json(out/'system-integration.json',system_result)
         native_ready=native
-        if env.get('cli_exact_target'):
+        if cli_compatible(env):
             pdf=views/'schematic.pdf'
             argv=[env['kicad_cli'],'sch','export','pdf','--output',str(pdf)]
             if spec.get('variant'):argv+=['--variant',spec['variant']]
             if invoke(argv+[str(local(root,inp['schematic']))],pdf):view_records.append({'kind':'schematic','file':pdf.relative_to(out).as_posix()})
             else:native_ready=False;issues.append('Schematic view export failed')
-        else:native_ready=False;issues.append('KiCad10.0.7 CLI unavailable')
+        else:native_ready=False;issues.append('Compatible KiCad 10.0.x CLI unavailable')
         if stage=='pcb':
-            board_path=local(root,inp['board']);native_board=bool(env.get('pcbnew_exact_target'))
+            board_path=local(root,inp['board']);native_board=bool(pair_compatible(env))
             b,edges=primitives(board_path,native_board);facts['board']=b
             tree=parse_sexpr(board_path.read_text());widths={value(t,'uuid'):float(value(t,'width')) for tag in ('segment','arc') for t in children(tree,tag)}
             for e in edges:
@@ -271,13 +271,13 @@ def prepare(root,config_file,stage,output,cli=None):
             facts['edges']=edges
             if not native_board:native_ready=False;issues.append('PCB geometry only statically parsed; native pcbnew unavailable')
             for layer in b['copper_layers']:
-                if not env.get('cli_exact_target'):continue
+                if not cli_compatible(env):continue
                 target=views/(layer.replace('.','_')+'.svg')
                 argv=[env['kicad_cli'],'pcb','export','svg','--layers',layer+',Edge.Cuts','--mode-single','--check-zones','--output',str(target)]
                 if spec.get('variant'):argv+=['--variant',spec['variant']]
                 if invoke(argv+[str(board_path)],target):view_records.append({'kind':'copper_layer','layer':layer,'file':target.relative_to(out).as_posix()})
                 else:native_ready=False;issues.append('Layer view export failed: '+layer)
-        if env.get('cli_exact_target'):
+        if cli_compatible(env):
             kind='erc' if stage=='schematic' else 'drc';target=out/(kind+'.json');sub='sch' if kind=='erc' else 'pcb'
             argv=[env['kicad_cli'],sub,kind,'--format','json','--units','mm','--severity-all','--exit-code-violations','--output',str(target)]
             if kind=='drc':argv+=['--schematic-parity']
@@ -285,7 +285,7 @@ def prepare(root,config_file,stage,output,cli=None):
             ok=invoke(argv,target)
             try:
                 from native_report import extract
-                violations=extract(kind,json.loads(target.read_text()),argv[-1])
+                violations=extract(kind,json.loads(target.read_text()),argv[-1],expected_version=env['cli_version'])
                 if not ok or violations:native_ready=False;issues.append(kind.upper()+' has violations or command failure; resolve native report')
             except Exception as e:native_ready=False;issues.append('Native report unsupported/invalid: '+str(e))
         if not set(spec['critical_nets']).issubset(graph['nets']):issues.append('Declared critical nets missing from XML')

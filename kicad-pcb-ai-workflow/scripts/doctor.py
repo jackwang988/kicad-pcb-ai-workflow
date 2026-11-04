@@ -5,7 +5,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from npi_common import TARGET_VERSION, environment
+from npi_common import TARGET_VERSION, environment, pair_compatible, cli_compatible
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -17,7 +17,8 @@ def main():
     result['supply_chain']={'configured': bool(config and config.is_file()),
                             'environment_configured': bool(os.getenv('KICAD_SUPPLY_CHAIN_CONFIG')),
                             'queried':False}
-    result['required_ok']=bool(result.get('cli_exact_target') and result.get('pcbnew_exact_target'))
+    result['required_ok']=bool(pair_compatible(result) or cli_compatible(result))
+    result['verification_scope']='Version/CLI candidate only, not complete PCB environment approval. Run environment.setup --apply on real project; use --cli-only for future majors without pcbnew. No manufacturing authorization.'
     result['python']=sys.version.split()[0]
     result['optional_note']='ngspice/供应链配置仅检测存在性；不联网、不输出密钥、不自动仿真。'
     print(json.dumps(result,ensure_ascii=False,indent=2))

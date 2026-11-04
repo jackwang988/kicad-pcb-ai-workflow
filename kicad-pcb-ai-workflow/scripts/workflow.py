@@ -124,11 +124,12 @@ def _stage_inputs(root, name, bundle, group, evidence):
         # resolve also rejects traversal and symlink escape; explicit symlinks disallowed.
         if item.is_symlink() or not item.is_file() or not item.stat().st_size:
             raise ValueError('Missing, symlinked or empty stage evidence: ' + str(item))
-        if not item.resolve().is_relative_to(root):
+        resolved = item.resolve()
+        if not resolved.is_relative_to(root):
             raise ValueError('Stage evidence escapes project root')
         if approvals in item.parents or item == approvals:
             raise ValueError('Approval artifacts cannot be review evidence')
-        digest[item.relative_to(root).as_posix()] = sha256(item)
+        digest[resolved.relative_to(root).as_posix()] = sha256(resolved)
     return digest
 
 
@@ -445,6 +446,8 @@ def command(root, name, bundle, task, options):
         raise ValueError('Unknown task')
     if options.get('apply') and task not in WRITING:
         raise ValueError('--apply is only valid for explicit candidate/setup writes')
+    if options.get('cli_only') and task != 'environment.setup':
+        raise ValueError('--cli-only only applies to environment.setup')
     if task == 'environment.doctor' and not bundle:
         flow.registry()
         args = ['--kicad-cli', options['kicad_cli']] if options.get('kicad_cli') else []
@@ -482,6 +485,8 @@ def command(root, name, bundle, task, options):
         args = ['setup', '--project', str(root), '--schematic', input_file('schematic'),
                 '--board', input_file('board'), '--project-file', input_file('project'),
                 '--report-dir', required('output_dir')]
+        if options.get('cli_only'):
+            args.append('--cli-only')
     elif task in ('architecture.check', 'lifecycle.check'):
         args += ['--contract', str(Path(bundle) / 'flow.json')]
         args.insert(0, 'check')
@@ -563,6 +568,7 @@ def main():
                 a.add_argument('--' + key)
             a.add_argument('--mode', choices=('prototype', 'mass_production'), default='mass_production')
             a.add_argument('--apply', action='store_true')
+            a.add_argument('--cli-only', action='store_true', help='CLI-only environment smoke; no pcbnew or manufacturing approval')
     a = p.parse_args()
     try:
         root = Path(a.project).resolve()

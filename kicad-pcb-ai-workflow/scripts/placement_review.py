@@ -10,7 +10,7 @@ import html
 import json
 import math
 from pathlib import Path
-from npi_common import sha256,finite_tree,parse_sexpr,children,child,value,xy,transform,distance,environment
+from npi_common import sha256,finite_tree,parse_sexpr,children,child,value,xy,transform,distance,environment, pair_compatible, patch_native_ready
 from design_intent import local,digest
 from link_audit import primitives
 from netlist_guard import read_netlist
@@ -305,7 +305,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('project');p.add_argument('--policy',required=True);p.add_argument('--netlist',required=True);p.add_argument('--board',required=True);p.add_argument('--phase',choices=['pre_route','final'],default='pre_route');p.add_argument('--static-preview',action='store_true');p.add_argument('--output-dir');a=p.parse_args()
     try:
         root=Path(a.project).resolve();board_file=local(root,a.board);xml=local(root,a.netlist)
-        if not a.static_preview and not environment().get('pcbnew_exact_target'):raise ValueError('Target KiCad10.0.7 pcbnew required; static-preview cannot prove native/production success')
+        if not a.static_preview and not patch_native_ready(environment()):raise ValueError('Matching KiCad10.0.x CLI/pcbnew and current patch setup evidence required; static-preview cannot prove native/production success')
         board,edges=primitives(board_file,not a.static_preview);result=audit(root,local(root,a.policy),read_netlist(xml),board,edges,board_file,a.phase);result['inputs_sha256'][str(xml)]=sha256(xml)
         if a.output_dir:write_artifacts(result,board,a.output_dir)
         print(json.dumps(result,ensure_ascii=False,indent=2));return 2 if result['status']=='BLOCKED' else 0

@@ -12,7 +12,7 @@ class StartupTests(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.root=pathlib.Path(self.tmp.name);self.project=self.root/'source';self.project.mkdir();self.out=self.root/'report'
         for n in ('demo.kicad_sch','demo.kicad_pcb','demo.kicad_pro'):(self.project/n).write_text('TEST ONLY')
-        self.sig={'TEST':'TEST_ONLY'};self.env={'cli_exact_target':True,'pcbnew_exact_target':True,'kicad_cli':'TEST_CLI'}
+        self.sig={'TEST':'TEST_ONLY'};self.env={'cli_exact_target':True,'pcbnew_exact_target':True,'kicad_cli':'TEST_CLI','cli_version':'10.0.7'}
         self.probe=patch.object(e,'signature',return_value=(self.sig,self.env));self.probe.start();self.addCleanup(self.probe.stop)
     def tearDown(self):self.tmp.cleanup()
     def setup(self,apply=False):return e.setup(self.project,'demo.kicad_sch','demo.kicad_pcb','demo.kicad_pro',self.out,apply=apply)
@@ -21,6 +21,37 @@ class StartupTests(unittest.TestCase):
     def ready(self):
         with patch.object(e,'run',side_effect=self.fake_run),patch.object(e,'read_netlist',return_value={'TEST':True}),patch('native_report.extract',return_value=[]),patch.object(e.importlib,'import_module',return_value=MagicMock()):
             return self.setup(True)
+    def test_future_cli_only_smoke_preserves_source_and_not_pcbnew(self):
+        self.env.update({'cli_exact_target':False,'pcbnew_exact_target':False,
+                         'cli_compatible':True,'version_pair_compatible':False,'cli_version':'11.0.0'})
+        before=e.inventory(self.project)
+        with patch.object(e,'run',side_effect=self.fake_run), \
+             patch.object(e,'read_netlist',return_value={'TEST':True}), \
+             patch('native_report.extract',return_value=[]), \
+             patch.object(e.importlib,'import_module',side_effect=AssertionError('pcbnew must not be loaded')):
+            r=e.setup(self.project,'demo.kicad_sch','demo.kicad_pcb','demo.kicad_pro',self.out,apply=True,cli_only=True)
+        self.assertEqual(r['status'],'ENVIRONMENT_CLI_READY')
+        self.assertEqual(r['scope'],'environment_cli_only')
+        self.assertFalse(r['native_pcbnew_verified'])
+        self.assertFalse(r['production_authorized'])
+        self.assertEqual(before,e.inventory(self.project))
+        self.assertEqual(e.check(self.out/'startup-state.json')['status'],'ENVIRONMENT_CLI_READY')
+        self.assertEqual(e.setup(self.project,'demo.kicad_sch','demo.kicad_pcb','demo.kicad_pro',self.root/'full',apply=False)['status'],'BLOCKED')
+
+    def test_cli_only_state_is_not_full_native_evidence(self):
+        self.env.update({'cli_exact_target':False,'pcbnew_exact_target':False,
+                         'cli_compatible':True,'version_pair_compatible':False,'cli_version':'11.0.0'})
+        with patch.object(e,'run',side_effect=self.fake_run), \
+             patch.object(e,'read_netlist',return_value={'TEST':True}), \
+             patch('native_report.extract',return_value=[]):
+            e.setup(self.project,'demo.kicad_sch','demo.kicad_pcb','demo.kicad_pro',self.out,apply=True,cli_only=True)
+        p=self.out/'startup-state.json'
+        state=json.loads(p.read_text())
+        state['scope']='environment_only'
+        state['status']='ENVIRONMENT_READY'
+        p.write_text(json.dumps(state))
+        self.assertEqual(e.check(p)['status'],'BLOCKED')
+
     def test_preview_no_write(self):
         self.assertEqual(self.setup()['status'],'PREVIEW');self.assertFalse(self.out.exists())
     def test_missing_tools_blocks_without_write(self):

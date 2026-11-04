@@ -9,7 +9,7 @@ import argparse
 from schematic_io import blocking
 import json
 from pathlib import Path
-from npi_common import environment,run,sha256,finite_tree
+from npi_common import environment,run,sha256,finite_tree,cli_compatible,cli_native_ready
 from engineering_gate import local
 from schematic_io import parse,sheets,hashes
 from netlist_guard import read_netlist
@@ -62,7 +62,7 @@ def materialize(draft_file,destination,apply=False,cli=None):
     record={'status':'PREVIEW','scope':'schematic_candidate_only','production_authorized':False,'draft_sha256':sha256(draft_file),'basis_sha256':sha256(basis_file),'files':sorted(files),'destination':str(dest),'remaining':['native export/ERC and exact expected circuit comparison','AI visual/device/application review','hardware engineer confirmation']}
     if not apply:return record
     env=environment(cli)
-    if not env.get('cli_exact_target'):raise ValueError('KiCad10.0.7 CLI required before candidate writing')
+    if not cli_native_ready(env, cli):raise ValueError('Stable KiCad CLI required; future majors need current CLI-only setup evidence before candidate writing')
     before=sha256(draft_file);dest.mkdir(parents=True,exist_ok=False)
     try:
         for name,text in files.items():p=local(dest,name);p.parent.mkdir(parents=True,exist_ok=True);p.write_text(text,encoding='utf-8')
@@ -71,7 +71,7 @@ def materialize(draft_file,destination,apply=False,cli=None):
         for argv,target,acceptable in [([env['kicad_cli'],'sch','export','netlist','--format','kicadxml','--output',str(xml),str(schematic)],xml,(0,)),([env['kicad_cli'],'sch','export','pdf','--output',str(pdf),str(schematic)],pdf,(0,)),([env['kicad_cli'],'sch','erc','--format','json','--units','mm','--severity-all','--exit-code-violations','--output',str(erc),str(schematic)],erc,(0,5))]:
             result=run(argv);commands.append(result)
             if result['returncode'] not in acceptable or not target.is_file() or not target.stat().st_size:raise ValueError('Native candidate operation failed: '+str(argv[1:4]))
-        expected_contract(q,read_netlist(xml));violations=extract('erc',json.loads(erc.read_text(encoding='utf-8-sig')),schematic)
+        expected_contract(q,read_netlist(xml));violations=extract('erc',json.loads(erc.read_text(encoding='utf-8-sig')),schematic,expected_version=env['cli_version'])
         if violations:raise ValueError('Native ERC has unresolved findings; candidate remains unapproved')
         if sha256(draft_file)!=before or sha256(basis_file)!=basis['sha256'] or hashes(dest,files)!=initial:raise ValueError('Draft/candidate changed during validation')
         record.update(status='NATIVE_CANDIDATE_CHECKED_NOT_APPROVED',environment=env,inputs_sha256=initial,pages=list(pages),evidence_sha256=hashes(dest,[str(p.relative_to(dest)) for p in (xml,pdf,erc)]))

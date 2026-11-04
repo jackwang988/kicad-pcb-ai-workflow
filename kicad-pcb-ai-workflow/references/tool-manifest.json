@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "package_kind": "universal_runtime",
-  "revision": "2026.10-R9.3",
+  "revision": "2026.11-R9.3-forward-compat-candidate",
   "active": [
     {
       "file": "scripts/assembly_guard.py",
@@ -33,7 +33,7 @@
     },
     {
       "file": "scripts/doctor.py",
-      "sha256": "6eb296f3a798fba081f2268243da78147c8993a3f8dd6a616e98da47916d7c4d",
+      "sha256": "e7dd279265622ba3d96141dcce5c15d6dbc59f3b4cbb6a32e22d4d56905241cc",
       "version": "2026.10-R2",
       "command": "python3 scripts/doctor.py --help",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -43,11 +43,11 @@
         "1": "comparison/path FAIL where supported",
         "2": "BLOCKED/input/tool failure"
       },
-      "validation_scope": "Local counterexamples and syntax only; native KiCad10.0.7 not run"
+      "validation_scope": "Software contract tests only; newer KiCad CLI-only/IPC native integration remains unverified"
     },
     {
       "file": "scripts/engineering_gate.py",
-      "sha256": "5692e8d563e73c3bf079032eb981087b5d575b29b97ec840d7b606422f4abf61",
+      "sha256": "ba7690966ed7a98aefc9e8435fa10ce05694a55b677c0889e34489287ffa4c49",
       "version": "2026.10-R9.3",
       "command": "Python module imported by mass_production_review.py",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -57,11 +57,11 @@
         "1": "comparison/path FAIL where supported",
         "2": "BLOCKED/input/tool failure"
       },
-      "validation_scope": "Standalone runtime inventory and fail-closed software contracts; native full-product acceptance remains project-specific."
+      "validation_scope": "Python regression coverage; KiCad 10.0.x native smoke and KiCad 9 native compatibility are NOT yet verified"
     },
     {
       "file": "scripts/freeze_candidate.py",
-      "sha256": "9dd592baecd83f6bccb865114763b6d852634daa0a044d444e8c514b9364c8e3",
+      "sha256": "e8a0746b80093146ea9ebc20dea11f5a1dc70e3f01a378a4a18004565c6e375b",
       "version": "2026.10-R2",
       "command": "python3 scripts/freeze_candidate.py --help",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -71,7 +71,7 @@
         "1": "comparison/path FAIL where supported",
         "2": "BLOCKED/input/tool failure"
       },
-      "validation_scope": "Local counterexamples and syntax only; native KiCad10.0.7 not run"
+      "validation_scope": "Python regression coverage; KiCad 10.0.x native smoke and KiCad 9 native compatibility are NOT yet verified"
     },
     {
       "file": "scripts/link_audit.py",
@@ -89,7 +89,7 @@
     },
     {
       "file": "scripts/mass_production_review.py",
-      "sha256": "e94e2bcad0c4181cbd6faa9ffcaf7e59c7f92e65efbd8bbc496cb375b0ffdeb3",
+      "sha256": "73f90673a6c974c9096f82ef8ad71c0f73541bd0032b8ec342e279a62088e85b",
       "version": "2026.10-R2",
       "command": "python3 scripts/mass_production_review.py --help",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -99,7 +99,7 @@
         "1": "comparison/path FAIL where supported",
         "2": "BLOCKED/input/tool failure"
       },
-      "validation_scope": "Local counterexamples and syntax only; native KiCad10.0.7 not run"
+      "validation_scope": "Python regression coverage; KiCad 10.0.x native smoke and KiCad 9 native compatibility are NOT yet verified"
     },
     {
       "file": "scripts/native_report.py",
@@ -112,8 +112,8 @@
         "1": "FAIL where supported",
         "2": "BLOCKED"
       },
-      "validation_scope": "Windows KiCad10.0.7 real StickHub startup smoke; environment-only. Production ignored-check policy unchanged; full product integration still pending.",
-      "sha256": "a105331a3dc6c77e575d217db0c4ff8a8304f6ce931ef4149d67637f66c049f8"
+      "validation_scope": "Software contract tests only; newer KiCad CLI-only/IPC native integration remains unverified",
+      "sha256": "aa8395fbf9373f3e2080754af8f9b7cfea318a4efd6d45a3658c57d6725a9004"
     },
     {
       "file": "scripts/netlist_guard.py",
@@ -131,7 +131,7 @@
     },
     {
       "file": "scripts/npi_common.py",
-      "sha256": "a587c17d2439eed1280e5f4ccad7ede4bd51cab40c663ef12e9fc4835858e5ef",
+      "sha256": "f096d7782c5ae89d4a8a36f0ce17c779dcd2a197486d8c867412fbf6dea3f7bd",
       "version": "2026.10-R9.3",
       "command": "Python module imported by mass_production_review.py",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -141,7 +141,7 @@
         "1": "comparison/path FAIL where supported",
         "2": "BLOCKED/input/tool failure"
       },
-      "validation_scope": "Standalone runtime inventory and fail-closed software contracts; native full-product acceptance remains project-specific."
+      "validation_scope": "Software contract tests only; newer KiCad CLI-only/IPC native integration remains unverified"
     },
     {
       "file": "scripts/npi_geometry.py",
@@ -196,12 +196,12 @@
         "1": "FAIL where supported",
         "2": "BLOCKED"
       },
-      "validation_scope": "Local counterexample tests only; native target environment pending",
-      "sha256": "081271d625b10bccf4b5971d7ab912a666824ed0859dba03077050012205bc87"
+      "validation_scope": "Python regression coverage; KiCad 10.0.x native smoke and KiCad 9 native compatibility are NOT yet verified",
+      "sha256": "c9679931bbba370da2612d98a2b428aa74a6eaad302fee65de0a2c4883b84445"
     },
     {
       "file": "scripts/spice_precheck.py",
-      "sha256": "740153f7f4cc1b74c68b231be13ef4e817070b0a0bd6ddc05df9e18fdf3ec5a4",
+      "sha256": "dcd30815edcdfda608091e01f095f369b870cc41cd45b3be5d91578a32ed3b3d",
       "version": "2026.10-R2",
       "command": "python3 scripts/spice_precheck.py --help",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -211,7 +211,7 @@
         "1": "comparison/path FAIL where supported",
         "2": "BLOCKED/input/tool failure"
       },
-      "validation_scope": "Local counterexamples and syntax only; native KiCad10.0.7 not run"
+      "validation_scope": "Software contract tests only; newer KiCad CLI-only/IPC native integration remains unverified"
     },
     {
       "file": "scripts/validate_frozen_candidate.py",
@@ -250,8 +250,8 @@
         "0": "Declared scope passed or preview only",
         "2": "BLOCKED"
       },
-      "validation_scope": "Local fixtures only; native10.0.7 integration pending",
-      "sha256": "91ef1fe4ac3ef741eb1a991b4c65e13390e31b2ed158f83674d568ac7cd40b60"
+      "validation_scope": "Python regression coverage; KiCad 10.0.x native smoke and KiCad 9 native compatibility are NOT yet verified",
+      "sha256": "a7ce7b0f0920939392ddfbc16844479ec3ee24f26793409af369a5a98e4000ff"
     },
     {
       "file": "scripts/static_review.py",
@@ -263,8 +263,8 @@
         "0": "Packet prepared or static review approved only",
         "2": "BLOCKED or pending"
       },
-      "validation_scope": "Local predicates, contract tests and synthetic Agent trial; native10.0.7 pending",
-      "sha256": "c68bfa8832722bb49669928b0f06339b75a8f42e3d6e7223d07a366da777b022"
+      "validation_scope": "Python regression coverage; KiCad 10.0.x native smoke and KiCad 9 native compatibility are NOT yet verified",
+      "sha256": "2e8be9e3050661c27b629bc5939383445d1172e90e9fb7d4526106c2ea6745ed"
     },
     {
       "file": "scripts/static_review_gate.py",
@@ -276,8 +276,8 @@
         "0": "Packet prepared or static review approved only",
         "2": "BLOCKED or pending"
       },
-      "validation_scope": "Local predicates, contract tests and synthetic Agent trial; native10.0.7 pending",
-      "sha256": "eccca6ea90cab519e4f0c3b8e76022bd8accda1aaae4448be23fb5ad0fa15076"
+      "validation_scope": "Software contract tests only; newer KiCad CLI-only/IPC native integration remains unverified",
+      "sha256": "f4d18b46d1441495a3331f24b3310f7f2a4bb889e526d31c517eafbb412f4cf0"
     },
     {
       "file": "scripts/device_knowledge.py",
@@ -290,7 +290,7 @@
         "2": "BLOCKED/input or network failure"
       },
       "validation_scope": "Local source/cache/card/bundle/integration tests; live official PDF transfer blocked by environment DNS",
-      "sha256": "d229795f4ced360a0d8fafb442222dcab3b1affaa310af2e657b8f2ae7fa6396"
+      "sha256": "f0c8835a8085e76195f0e35c231f8fa004d615d26350ca2e5bcdd6c2178c066a"
     },
     {
       "file": "scripts/environment_start.py",
@@ -302,8 +302,8 @@
         "0": "PREVIEW or ENVIRONMENT_READY only",
         "2": "BLOCKED or FULL_SETUP_REQUIRED"
       },
-      "validation_scope": "Standalone runtime inventory and fail-closed software contracts; native full-product acceptance remains project-specific.",
-      "sha256": "f2d01c3057713a16b98aeb13b53e4d17c81128ee38486b266912ed16eff906b0"
+      "validation_scope": "Software contract tests only; newer KiCad CLI-only/IPC native integration remains unverified",
+      "sha256": "f8ce9157653318d235fbdaa6c85f205531e6fa6e8f93b14b339c8c2d4100357e"
     },
     {
       "file": "scripts/reserve_review.py",
@@ -328,8 +328,8 @@
         "0": "Declared supported static scope checked only",
         "2": "BLOCKED/input/evidence failure"
       },
-      "validation_scope": "Local geometry/pin/snapshot/packet tests and synthetic Agent trial; native10.0.7 real product pending",
-      "sha256": "e98558323c819547dacf27a2caf446a4647b585282d4bc83d50204b3af505539"
+      "validation_scope": "Python regression coverage; KiCad 10.0.x native smoke and KiCad 9 native compatibility are NOT yet verified",
+      "sha256": "f8fd1927e3d9f78fe21e1446902510ac7d1f502d6e318bd9746343a8f00674e0"
     },
     {
       "file": "scripts/schematic_io.py",
@@ -363,8 +363,8 @@
       "command": "python3 scripts/schematic_candidate.py --help",
       "input": "Explicit project contracts; no inferred circuit/process values",
       "output": "Declared-scope reports or independent candidate; never implicit engineering approval",
-      "validation_scope": "Local counterexamples and TEST native doubles; real native end-to-end pending",
-      "sha256": "853801b9a888e89feb7900199866f968250814ad7801faa34d19cf1303754874",
+      "validation_scope": "Software contract tests only; newer KiCad CLI-only/IPC native integration remains unverified",
+      "sha256": "a880b25eb9ea394e284d4c75cac6171801a990c05f4da2c1fe3d04014ed0d5d6",
       "exit_codes": {
         "0": "Declared scope complete/preview; never automatic approval",
         "2": "BLOCKED; do not advance or manufacture"
@@ -389,8 +389,8 @@
       "command": "python3 scripts/manufacturing_export.py --help",
       "input": "Explicit project contracts; no inferred circuit/process values",
       "output": "Declared-scope reports or independent candidate; never implicit engineering approval",
-      "validation_scope": "Local counterexamples and TEST native doubles; real native end-to-end pending",
-      "sha256": "5ebd1191b23d27915ac9da57ab6dca990811a0bef7c2482c6ee15947ac9c27d7",
+      "validation_scope": "Python regression coverage; KiCad 10.0.x native smoke and KiCad 9 native compatibility are NOT yet verified",
+      "sha256": "743cc3d18c306b7e1c894a02646e0aefe8c1170349d12a5cab44a73c4acfd5c9",
       "exit_codes": {
         "0": "Declared scope complete/preview; never automatic approval",
         "2": "BLOCKED; do not advance or manufacture"
@@ -412,7 +412,7 @@
     },
     {
       "file": "scripts/workflow.py",
-      "sha256": "49616166111bdb2bbda5348610b2271ed3210c22f04586b18ea9362c55975ff9",
+      "sha256": "3410090fc8e76f40f09db68d922e67c5ebc8ce590b5a338854cbcd3faffb515e",
       "version": "2026.10-R9.2",
       "command": "python3 scripts/workflow.py --help",
       "input": "One shared master; immutable flow/static/npi bundles; explicit fixed task and typed arguments",
@@ -422,7 +422,7 @@
         "1": "Child comparison FAIL",
         "2": "BLOCKED/pending required inputs"
       },
-      "validation_scope": "Software integration/counterexample tests; full real KiCad product acceptance pending"
+      "validation_scope": "Software contract tests only; newer KiCad CLI-only/IPC native integration remains unverified"
     },
     {
       "file": "scripts/freerouting_adapter.py",

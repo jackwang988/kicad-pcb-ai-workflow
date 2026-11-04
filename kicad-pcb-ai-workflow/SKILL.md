@@ -1,6 +1,6 @@
 ---
 name: kicad-pcb-ai-workflow
-description: KiCad10.0.7电子设计通用流程与项目化规则工具链。用于需求追踪、原厂资料、原理图候选写入/原生核对、层次结构检查、差分/电源/RF意图、布局布线审计、AI/工程师评审及DFX/NPI制造门禁。适用新工程或已有工程；缺规格、执行适配器或证据时阻断，不承诺任意电路自动设计合格。
+description: KiCad电子设计通用流程与项目化规则工具链。推荐10.0.7，稳定10.x可按能力及原生测试使用；11+可走CLI-only验证，PCB原生操作需IPC适配器，制造仍须完整门禁。用于需求追踪、原厂资料、原理图候选写入/原生核对、层次结构检查、差分/电源/RF意图、布局布线审计、AI/工程师评审及DFX/NPI制造门禁。适用新工程或已有工程；缺规格、执行适配器或证据时阻断，不承诺任意电路自动设计合格。
 ---
 
 # KiCad工程流程 · R9.3
@@ -12,7 +12,7 @@ description: KiCad10.0.7电子设计通用流程与项目化规则工具链。�
 ## 入口与工程保护
 
 1. 新项目优先用`workflow.py init`预览单一workflow.json；显式`--apply`才新建。公共工程路径、资料、策略和装配变体只填shared一次，阶段要求填configs；build预览/--apply生成独立新配置快照，status显示六组待办。生成配置不表示检查通过。旧project_flow.py及全部专题命令保持兼容，新工程尚无PCB时保持待办，不创建空文件绕过。
-2. 先按[新手环境教程](references/environment-onboarding.md)运行doctor及首次原生setup；日常check只复用当前环境有效记录。环境记录只对实际验证过的电脑与工具版本有效，新工程仍需核对自身资源。
+2. 先按[新手环境教程](references/environment-onboarding.md)运行doctor及首次原生setup；非10.0.7补丁版只视为兼容候选，实际版本匹配且通过原生烟雾测试后才能获得该环境验证记录。KiCad 9仅支持非原生分析/静态诊断，原生设计和制造仍阻断；日常check只复用当前环境有效记录。环境记录只对实际验证过的电脑与工具版本有效，新工程仍需核对自身资源。
 3. 日常用`workflow.py plan/run --task GROUP.TASK`；专题操作按需读对应文档，使用`project_flow.py run TOOL -- ARGS`或当前tool-manifest中有CLI入口的工具。两层入口均校验有效工具哈希，无shell或自定义可执行文件。运行目录只允许清单内的31个工具；项目脚本和历史源码独立存放，不复制进scripts。
 4. 工程写入默认预览，仅显式`--apply`写独立新候选。只读报告按显式新output-dir写入，不覆盖原工程或旧报告。Agent生成的文件草稿先以精确文本方案呈现，只有用户已授权写入时才用候选写入接口落盘。
 5. 读取[有效工程规则](references/engineering-rules.md)。法规/安全、产品及原厂、批准工艺高于经验与美观；不为通过检查删除器件、规则或改变网络。
@@ -34,6 +34,10 @@ description: KiCad10.0.7电子设计通用流程与项目化规则工具链。�
 - DFX/NPI：[dfx-npi.md](references/dfx-npi.md)。新R9项目必须在NPI配置绑定workflow_contract、schematic_style和system_integration，静态配置启用相应强制门禁。旧R8配置仍可诊断，不能据此宣称已执行R9全部控制。
 - 制造：冻结副本refill/save/reload后，使用`manufacturing_export.py`预览；仅--apply且当前原生设计门禁通过才向新隔离目录导出Gerber/钻孔/CPL/BOM/装配PDF。输出EXPORTED_NOT_RELEASED，不接触任意jobset、不上传工厂。后续build_manifest、实际CAM/工厂EQ和npi_release.py重新验收。
 - 样机/ECO：按需求计划进行真实功能/性能/环境/安全及适用认证验证，变更后失效相关证据并重新审查。动态EMC/眼图/热不假称静态已证明。
+
+## 前向兼容边界
+
+KiCad 10.0.7是推荐基线而非版本上限。稳定 KiCad 10.x 同补丁 CLI/pcbnew 可做完整原生烟雾验证；未来稳定版如11.x，即使不再提供SWIG pcbnew，也可进行只读CLI-only环境验证（`environment.setup --cli-only --apply`），并在 `KICAD_CLI_STARTUP_STATE` 指向有效证据后进行兼容的原理图 CLI 工作。该状态不得替代PCB原生读写、覆铜、保存或生产放行；没有经过验证的IPC适配器时仅限CLI能力。不得通过更改版本字符串或伪造测试记录绕过门禁。
 
 ## 快速调用
 

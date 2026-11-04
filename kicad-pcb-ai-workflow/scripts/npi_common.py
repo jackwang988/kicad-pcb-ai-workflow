@@ -10,7 +10,64 @@ import subprocess
 import os
 from pathlib import Path
 
-TARGET_VERSION = '10.0.7'
+TARGET_VERSION = '10.0.7'  # Recommended and previously validated baseline, not a universal hard lock.
+def kicad10_patch_version(value):
+    """Recognize stable 10.0.x build identity; this is eligibility, NOT native approval."""
+    if value is None:
+        return None
+    raw = str(value).strip()
+    m = re.search(r'(?<![0-9.])(10\.0\.\d+)(?![0-9.])', raw)
+    if not m or re.search(r'(?:^|[-_+ ])(?:rc|dev|nightly|alpha|beta|testing)(?:\b|\d)', raw[m.end():], re.I):
+        return None
+    return m.group(1)
+
+def stable_kicad_version(value):
+    """Return stable KiCad version identity >=10 for CLI capability probing.
+    A newer major is a *candidate*, never proof of pcbnew/IPC compatibility.
+    """
+    if value is None:
+        return None
+    raw = str(value).strip()
+    match = re.search(r'(?<![0-9.])(\d+)\.(\d+)\.(\d+)(?![0-9.])', raw)
+    if not match or int(match.group(1)) < 10:
+        return None
+    # Development and pre-release binaries require explicit engineering evaluation.
+    if re.search(r'(?:rc\d*|alpha\d*|beta\d*|dev|nightly|testing|snapshot|dirty)', raw, re.I):
+        return None
+    return match.group(0)
+
+def cli_major_version(env):
+    version = stable_kicad_version(env.get('cli_version'))
+    return int(version.split('.')[0]) if version else None
+
+def cli_native_ready(env, cli=None):
+    """Future major releases need a current CLI-only smoke record before signed-off native review."""
+    if not cli_compatible(env):
+        return False
+    major = cli_major_version(env)
+    if major is None or major == 10:
+        return True  # Old software test fixtures + v10; native reports still validated on each operation.
+    state = os.getenv('KICAD_CLI_STARTUP_STATE')
+    if not state:
+        return False
+    try:
+        from environment_start import check
+        return check(state, cli=cli or env.get('kicad_cli'))['status'] == 'ENVIRONMENT_CLI_READY'
+    except (ValueError, OSError, KeyError, TypeError):
+        return False
+
+def cli_compatible(env):
+    # Fallback permits existing test fixtures to exercise the historical baseline contract.
+    return bool(env['cli_compatible']) if 'cli_compatible' in env else bool(env.get('cli_exact_target'))
+
+def pcbnew_compatible(env):
+    return bool(env['pcbnew_compatible']) if 'pcbnew_compatible' in env else bool(env.get('pcbnew_exact_target'))
+
+def pair_compatible(env):
+    if 'version_pair_compatible' in env:
+        return bool(env['version_pair_compatible'])
+    return cli_compatible(env) and pcbnew_compatible(env)
+
 LEVELS = ['阻断级', '高风险', '中风险', '优化建议']
 
 # Release contract: removing a required checker from a manifest cannot disable
@@ -128,7 +185,59 @@ def environment(cli=None):
         result['pcbnew_exact_target'] = bool(re.search(r'(?<![\d.])'+re.escape(TARGET_VERSION)+r'(?![\w.\-])',result['pcbnew_version']))
     except (ImportError, AttributeError, RuntimeError) as e:
         result['pcbnew_error'] = str(e)
+    normalized = stable_kicad_version(result.get('pcbnew_version'))
+    result['pcbnew_normalized_version'] = normalized
+    # A patch version is only a candidate. Every native operation and production
+    # gate still performs its actual checks and fails closed on unsupported behavior.
+    cli_observed = (result.get('cli_version_source') == 'stdout' and
+                    result.get('cli_probe', {}).get('returncode') == 0 and
+                    result.get('cli_probe', {}).get('stdout', '').strip() == result.get('cli_version'))
+    resource_observed = (result.get('cli_version_source') == 'windows_executable_version_resource'
+                         and result.get('cli_probe', {}).get('returncode') == 0
+                         and not result.get('cli_probe', {}).get('stderr', '').strip()
+                         and result.get('cli_version_resource', {}).get('product_version') == result.get('cli_version'))
+    result['cli_compatible'] = bool(stable_kicad_version(result.get('cli_version')) and
+                                    (cli_observed or resource_observed))
+    result['pcbnew_compatible'] = bool(normalized and int(normalized.split('.')[0]) == 10)
+    result['version_pair_compatible'] = (result['cli_compatible'] and result['pcbnew_compatible']
+                                         and result['cli_version'] == normalized)
+    result['compatibility_tier'] = ('RECOMMENDED_BASELINE' if result['version_pair_compatible'] and
+                                    result['cli_version'] == TARGET_VERSION else
+                                    'PATCH_CANDIDATE_NATIVE_SMOKE_REQUIRED' if result['version_pair_compatible'] else
+                                    'FUTURE_CLI_CANDIDATE_SMOKE_REQUIRED' if result['cli_compatible'] and
+                                    int(result['cli_version'].split('.')[0]) >= 11 else
+                                    'OFFLINE_ONLY_OR_UNVERIFIED')
+    result['kicad9_native_status'] = 'UNVERIFIED_NOT_ENABLED'
+    # These states express feature eligibility, not a completed engineering review.
+    result['capabilities'] = {
+        'offline_requirements_and_document_review': 'AVAILABLE_WITH_REQUIRED_INPUTS',
+        'offline_static_preview': 'AVAILABLE_WITH_REQUIRED_INPUTS_NOT_NATIVE_EVIDENCE',
+        'schematic_cli': ('CLI_ONLY_SMOKE_REQUIRED' if result['cli_compatible'] and
+                          int(result['cli_version'].split('.')[0]) >= 11 else
+                          'NATIVE_SMOKE_REQUIRED' if result['cli_compatible'] else 'UNVERIFIED_OR_UNAVAILABLE'),
+        'pcb_native': 'NATIVE_SMOKE_REQUIRED' if result['version_pair_compatible'] else
+                     'IPC_ADAPTER_REQUIRED' if result['cli_compatible'] and int(result['cli_version'].split('.')[0]) >= 11 else
+                     'UNVERIFIED_OR_UNAVAILABLE',
+        'manufacturing': 'FULL_PROJECT_GATES_REQUIRED' if result['version_pair_compatible'] else 'BLOCKED',
+    }
     return result
+
+def patch_native_ready(env, cli=None):
+    """Non-baseline KiCad patches require a CURRENT, genuine setup --apply record.
+    This is an additional environment gate, never a production authorization.
+    """
+    if not pair_compatible(env):
+        return False
+    if env.get('cli_version', TARGET_VERSION) == TARGET_VERSION:
+        return True  # Preserve established baseline workflow; project gates still run.
+    state = os.getenv('KICAD_PATCH_STARTUP_STATE')
+    if not state:
+        return False
+    try:
+        from environment_start import check
+        return check(state, cli=cli or env.get('kicad_cli'))['status'] == 'ENVIRONMENT_READY'
+    except (ValueError, OSError, KeyError, TypeError):
+        return False
 
 def parse_sexpr(text):
     """Parse lists and quoted strings; do not evaluate code or change any bytes."""

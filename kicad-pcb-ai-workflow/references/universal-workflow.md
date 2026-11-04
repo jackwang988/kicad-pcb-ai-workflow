@@ -126,7 +126,7 @@ schematic_candidate.py是通用文件写入和原生核对接口，不是电路�
 - design_basis：草稿目录内独立设计依据的file/sha256/locator。
 - expected.components：完整物料位号→明确value/footprint/fields（至少一项，字段内容非空）；expected.nets：全部精确网络名→[[位号,引脚字符串],...]，保留单引脚网，不重复端点。预期表应先由需求/推荐电路独立建立，不能从生成结果复制来证明自身。
 
-默认只验证草稿结构并预览，不写工程。--apply需精确10.0.7 CLI，写草稿目录之外的新独立候选，遍历层次，原生导出XML/PDF/ERC。比较实际元件库存、明确身份字段、全部网络/端点；任何原生违规或被忽略检查阻断。失败保留候选及candidate-result.json以便修复，不标批准；成功为NATIVE_CANDIDATE_CHECKED_NOT_APPROVED。预期名称与原生层次网络路径不同须先处理合理命名，不自动改网名掩盖。
+默认只验证草稿结构并预览，不写工程。--apply需当前KiCad 10.0.x稳定版CLI与对应原生验证；版本只是准入候选，写草稿目录之外的新独立候选，遍历层次，原生导出XML/PDF/ERC。比较实际元件库存、明确身份字段、全部网络/端点；任何原生违规或被忽略检查阻断。失败保留候选及candidate-result.json以便修复，不标批准；成功为NATIVE_CANDIDATE_CHECKED_NOT_APPROVED。预期名称与原生层次网络路径不同须先处理合理命名，不自动改网名掩盖。
 
 原理图到PCB同步：使用实际KiCad GUI更新或经过该工程验收的本地适配器；同步后按网表、封装映射、实际网络和design_intent_audit检查。没有通用CLI同步命令的实现，不虚构接口。
 
@@ -134,11 +134,15 @@ schematic_candidate.py是通用文件写入和原生核对接口，不是电路�
 
 结构及系统接口检查已接入原理图资料包与gate，见schematic-style.md、schematic-ai-layout-rules.md 和 system-integration.md；Agent 在生成与评审阶段应用拓扑优先规则，未实现的几何检测不得虚报机器 PASS。PCB模块、局部引脚、回流锚点与视觉复验见placement-quality.md。布局和布线执行依真实原生编辑/实际适配器，当前没有通用自动放置器或高速自动布线引擎；不能用旧42×42/固定网络脚本补位。缺执行器时交付当前阶段产物和明确人工操作，不继续宣称已完成。
 
+### 未来大版本的有限 CLI 兼容
+
+KiCad 11+ 若无旧SWIG `pcbnew`，可在首次环境任务附加 `--cli-only` 创建CLI证据；其结果 `ENVIRONMENT_CLI_READY` 不可用于PCB原生签核/制造。原理图CLI-only签核仍须实际XML/PDF/ERC来源、版本匹配、工程师确认和当前 `KICAD_CLI_STARTUP_STATE` 证据。完整PCB流程待IPC适配后再开放。
+
 ## 4. 受控制造导出
 
 在独立冻结工程内完成refill/save/reload和当前原生设计门禁，从assets/review-config.template.json建立NPI配置；所有null未决字段和空需求清单必须按实际工程补齐，不能套用测试或其他项目的工艺阈值。静态模板不再预设U1/FB等测试位号网络。NPI配置加delivery_export（模板assets/delivery-export.template.json）及workflow_contract、schematic_style、system_integration；原理图静态配置必须绑定system-integration.template.json并覆盖全部接口来源。delivery_export填：schema_version=1、origin=absolute或drill、variant与config.variants唯一项相同、实际gerber_layers/assembly_layers、BOM字段、互不包含的相对输出目录/文件。保留BOM完整身份字段，按Reference分组，不按value+footprint合并不同物料。每变体一个独立候选，不能以一个包混装。
 
-manufacturing_export默认预览固定类型CLI argv。--apply前必须有精确CLI/pcbnew、当前pre_export门禁通过与匹配freeze-log。导出实际所有铜层+阻焊+板框及项目明确层；钻孔Excellon mm/PTH与NPTH分离；CPL CSV mm双面排除DNP；BOM排除DNP并保留配置字段；装配PDF按指定层。钻孔、Gerber、CPL共用明确原点策略。指令根据官方10.0.7 CLI文档构建，不执行任意jobset/附加shell参数。
+manufacturing_export默认预览固定类型CLI argv。--apply前必须有版本匹配的KiCad 10.0.x CLI/pcbnew、真实原生验证记录和受控工程门禁、当前pre_export门禁通过与匹配freeze-log。导出实际所有铜层+阻焊+板框及项目明确层；钻孔Excellon mm/PTH与NPTH分离；CPL CSV mm双面排除DNP；BOM排除DNP并保留配置字段；装配PDF按指定层。钻孔、Gerber、CPL共用明确原点策略。指令根据官方10.0.7 CLI文档构建，不执行任意jobset/附加shell参数。
 
 成功后核对delivery_manifest精确文件完整、源/评审依赖未变。失败清除本次部分制造文件，仅保留失败记录。成功只是EXPORTED_NOT_RELEASED；export-result.json保留argv/返回码/输出和源哈希，不是工程师或工厂批准。build_manifest应按production_contract要求整理真实工具/每命令日志/来源与输出绑定；本工具不伪造CAM、EQ或生产授权。实际CAM及npi_release完成后才可能D2，不能自动授予D3。
 

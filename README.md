@@ -1,12 +1,12 @@
-# KiCad PCB AI 工作流 · R9.3
+# KiCad PCB AI 工作流 · R9.4
 
 **从器件原厂手册的推荐电路出发，让 AI 按工程流程设计与评审，用 KiCad 检查、版本证据和工程师确认推进每一步。**
 
-这是一套面向 **KiCad 10.0.7** 的电子设计 Skill，覆盖需求、系统架构、器件资料、原理图、封装、叠层、PCB布局布线、DFX/NPI、制造交付与ECO。日常操作分成 **6组入口**，完整流程展开为 **16个节点、G1–G6六道工程门禁**。
+这是一套以 **KiCad 10.0.7 为推荐/历史验收基线**、对 **KiCad 10.x 稳定版本实施能力检测与真实工程复验**，并为 KiCad 11 及后续稳定版本提供 **CLI-only 候选兼容通道** 的电子设计 Skill，覆盖需求、系统架构、器件资料、原理图、封装、叠层、PCB布局布线、DFX/NPI、制造交付与ECO。日常操作分成 **6组入口**，完整流程展开为 **16个节点、G1–G6六道工程门禁**。
 
-作者：[Jack](https://github.com/jackwang988) · 版本 **R9.3** · [MIT](LICENSE)
+作者：[Jack](https://github.com/jackwang988) · 版本 **R9.4** · [MIT](LICENSE)
 
-👉 [下载 R9.3 Skill 安装包](https://github.com/jackwang988/kicad-pcb-ai-workflow/raw/refs/heads/main/dist/kicad-pcb-ai-workflow-R9.3.zip) · [SHA-256校验](dist/SHA256SUMS) · [完整流程](kicad-pcb-ai-workflow/references/full-workflow.md) · [安装与配置教程](kicad-pcb-ai-workflow/references/environment-onboarding.md) · [更新记录](RELEASE_NOTES.md)
+👉 [下载 R9.4 Skill 安装包](https://github.com/jackwang988/kicad-pcb-ai-workflow/raw/refs/heads/main/dist/kicad-pcb-ai-workflow-R9.4.zip) · [SHA-256校验](dist/SHA256SUMS) · [完整流程](kicad-pcb-ai-workflow/references/full-workflow.md) · [安装与配置教程](kicad-pcb-ai-workflow/references/environment-onboarding.md) · [更新记录](RELEASE_NOTES.md)
 
 适合希望用AI辅助KiCad开发的硬件工程师、嵌入式开发者与电子爱好者。你需要提供真实需求、器件资料、工程与制造条件；关键电气判断和生产放行仍由工程师、工厂及实际验证共同完成。
 
@@ -84,7 +84,7 @@ https://github.com/jackwang988/kicad-pcb-ai-workflow
 
 先阅读仓库README和kicad-pcb-ai-workflow/SKILL.md。
 实际Skill位于仓库的kicad-pcb-ai-workflow子目录，只安装这个目录。
-检查KiCad 10.0.7、kicad-cli及匹配的pcbnew Python绑定。
+检查本机KiCad版本、kicad-cli及匹配的pcbnew Python绑定；10.0.7是推荐基线，其他10.0.x稳定补丁版本必须通过真实环境setup。KiCad 9仅开放脱离原生KiCad的分析与静态预览，不授予制造放行。
 告诉我实际检测结果、缺失依赖和下一步配置方法。
 按预览和--apply规则操作，在新的独立目录验证工程。
 ```
@@ -101,6 +101,21 @@ https://github.com/jackwang988/kicad-pcb-ai-workflow
 git clone https://github.com/jackwang988/kicad-pcb-ai-workflow.git
 cd kicad-pcb-ai-workflow/kicad-pcb-ai-workflow
 ```
+
+## KiCad 10.0.8 原生运行证据
+
+R9.4 使用 GitHub Actions Ubuntu 24.04 + KiCad 官方 10.0 stable PPA 安装了真实 **KiCad 10.0.8**，在隔离工程副本上实际验证 CLI/pcbnew 版本、原理图 PDF/XML、ERC/DRC JSON、PCB 原生加载与几何解析、真实铜皮区域填充和保存重载，以及 Gerber、Excellon、CPL、BOM 和装配 PDF 命令与输出存在性。验证流程见 [原生测试](.github/workflows/native-kicad-10.0.8.yml)及 [自动化运行记录](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/41748194225)。
+
+这是受控示例工程上的**真实工具链兼容测试**，不替代任何产品项目的原厂电路对照、实际电气/版图评审、CAM、工程师签核或工厂投产放行。非基线版本仍需在其实际安装环境运行 `environment_start.py setup --apply`，制造门禁不得绕过。
+
+## 更新版本的兼容策略
+
+- **KiCad 10.0.7**：推荐基线，并非版本上限。
+- **后续稳定 KiCad 10.x**：CLI 和 `pcbnew` 匹配时，允许直接进入真实工程兼容性验证，不因版本号较新而立即拒绝；未通过原生验证和 G1–G6 工程门禁不得制造放行。
+- **KiCad 11 及未来稳定版**：即使没有旧的 `pcbnew` Python SWIG 绑定，Doctor 仍可识别可用的 CLI，并使用 `environment.setup --cli-only --apply` 在工程副本上验证 PDF/XML/ERC/DRC 等能力。设置 `KICAD_CLI_STARTUP_STATE` 后可继续使用经验证的 CLI-only 原理图功能。PCB 原生编辑、覆铜、保存及制造放行必须等待已验证的 IPC 适配器，不因新版版本号更高而假定通过。
+- **KiCad 9**：保留离线非原生能力；其 CLI/API 兼容性尚未完成原生验收。
+
+官方已宣布旧 `pcbnew` SWIG 接口会在 KiCad 11 移除。未来完整 PCB 自动化计划使用 IPC API/`kicad-python`，不是修改版本号可以解决的问题。
 
 ## 配置与首次运行
 
@@ -133,7 +148,7 @@ python3 scripts/workflow.py status /path/project --bundle control-r1
 给Agent的任务可以这样写：
 
 ```text
-请使用kicad-pcb-ai-workflow检查这个KiCad 10.0.7工程。
+请使用kicad-pcb-ai-workflow检查这个KiCad 10.0.x工程；先检查实际补丁版本与原生兼容证据。
 先核对规格、器件型号、原厂手册和工程输入是否齐全。
 原理图按推荐电路、模块接口、电源/复位/时钟和启动逻辑逐项评审。
 PCB按实际叠层、原厂布局要求、全部铜层和关键网络逐项评审。
@@ -162,7 +177,7 @@ AI实际阅读资料包、源图纸和原文，输出逐项报告；工程师本
 
 **维护者已确认本机KiCad CLI和pcbnew基础调用接通（2026-10-20）。** 使用者仍需在自己的电脑执行doctor和首次环境验证，确认版本、解释器、库、读图与工程资源。
 
-当前仓库的286项软件自动化检查全部通过，覆盖输入/来源、配置、网络、路径、布局、证据失效、受控导出与发布，以及独立ZIP运行和核心库存完整性。安装包含64文件、31个有效工具和18份通用模板。
+R9.4 包含319项 Python 软件契约回归测试，覆盖输入/来源、配置、网络、路径、布局、证据失效、受控制造导出、项目副本隔离及核心运行工具SHA-256完整性；正式安装包体积与文件数以本版构建和SHA256SUMS为准。
 
 ```bash
 # 在仓库根目录执行；环境软件测试不要求伪装成已安装KiCad

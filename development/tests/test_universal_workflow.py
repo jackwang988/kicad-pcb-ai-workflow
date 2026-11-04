@@ -118,11 +118,11 @@ class UniversalTests(unittest.TestCase):
         return {'returncode':0,'command':argv,'stdout':'TEST DOUBLE','stderr':''}
     def test_candidate_native_contract_double_not_approval(self):
         out=self.draft()
-        with patch.object(candidate,'environment',return_value={'cli_exact_target':True,'kicad_cli':'TEST'}),patch.object(candidate,'run',side_effect=self.fake_native):r=candidate.materialize(self.draftfile,out,True)
+        with patch.object(candidate,'environment',return_value={'cli_exact_target':True,'kicad_cli':'TEST','cli_version':'10.0.7'}),patch.object(candidate,'run',side_effect=self.fake_native):r=candidate.materialize(self.draftfile,out,True)
         self.assertEqual(r['status'],'NATIVE_CANDIDATE_CHECKED_NOT_APPROVED');self.assertFalse(r['production_authorized'])
     def test_candidate_wrong_native_topology_stays_blocked(self):
         out=self.draft();self.q['expected']['nets']={'WRONG':[['R1','1']]};dump(self.draftfile,self.q)
-        with patch.object(candidate,'environment',return_value={'cli_exact_target':True,'kicad_cli':'TEST'}),patch.object(candidate,'run',side_effect=self.fake_native):r=candidate.materialize(self.draftfile,out,True)
+        with patch.object(candidate,'environment',return_value={'cli_exact_target':True,'kicad_cli':'TEST','cli_version':'10.0.7'}),patch.object(candidate,'run',side_effect=self.fake_native):r=candidate.materialize(self.draftfile,out,True)
         self.assertEqual(r['status'],'BLOCKED');self.assertTrue((out/'candidate-result.json').exists())
     def contract(self):
         q=flow.template();q.update(project_id='TEST',revision='A',inputs={'schematic':'main.kicad_sch','project':'main.kicad_pro','board':'main.kicad_pcb'})
@@ -188,6 +188,23 @@ class UniversalTests(unittest.TestCase):
         self.export_config();self.frozen();out=self.base/'export'
         with patch.object(export,'environment',return_value={'cli_exact_target':True,'pcbnew_exact_target':True,'kicad_cli':'TEST'}),patch.object(export,'evaluate',return_value={'blocked':False,'inputs_sha256':{}}),patch.object(export,'run',side_effect=self.fake_export):r=export.export(self.root,self.root/'config.json',out,True)
         self.assertEqual(r['status'],'EXPORTED_NOT_RELEASED');self.assertFalse(r['production_authorized']);self.assertTrue((out/'gerber/a.gbr').is_file())
+    def test_export_native_side_effects_remain_inside_disposable_snapshot(self):
+        self.export_config();self.frozen();out=self.base/'export'
+        before={str(p.relative_to(self.root)):sha256(p) for p in self.root.rglob('*') if p.is_file()}
+        def side_effect(argv):
+            source=pathlib.Path(argv[-1])
+            self.assertNotEqual(source.parent,self.root)
+            self.assertTrue(source.is_file())
+            source.with_suffix('.kicad_prl').write_text('Test-only native CLI side effect')
+            return self.fake_export(argv)
+        env={'cli_exact_target':True,'pcbnew_exact_target':True,'kicad_cli':'TEST'}
+        with patch.object(export,'environment',return_value=env),patch.object(export,'evaluate',return_value={'blocked':False,'inputs_sha256':{}}),patch.object(export,'run',side_effect=side_effect):
+            r=export.export(self.root,self.root/'config.json',out,True)
+        after={str(p.relative_to(self.root)):sha256(p) for p in self.root.rglob('*') if p.is_file()}
+        self.assertEqual(r['status'],'EXPORTED_NOT_RELEASED')
+        self.assertEqual(before,after)
+        self.assertFalse(any(p.suffix=='.kicad_prl' for p in self.root.rglob('*')))
+
     def test_export_failure_removes_partial_manufacturing_files(self):
         self.export_config();self.frozen();out=self.base/'export';calls=[]
         def failed(argv):

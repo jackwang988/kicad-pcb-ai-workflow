@@ -14,9 +14,9 @@
 
 首次配置一次，日常快速检查通过后直接进入项目输入。环境通过仅代表已测工具可运行，不代表电路正确或可以制造。本教程负责环境入口；备用/DNP方案按reserve-options.md执行，不自动全板增加器件。
 
-需要：官方KiCad10.0.7、能导入对应pcbnew的Python、本地文件/命令执行与读图能力的Agent、当前完整Skill目录、一个合法且非空的KiCad示范工程。若只用云端聊天且无法访问装有KiCad的电脑，需要先建立平台支持的本地执行连接；MCP可选，不能只凭工具列表认定连接成功。
+需要：推荐官方KiCad10.0.7（其他10.0.x稳定补丁版本为待原生验证候选）、能导入对应pcbnew的Python、本地文件/命令执行与读图能力的Agent、当前完整Skill目录、一个合法且非空的KiCad示范工程。若只用云端聊天且无法访问装有KiCad的电脑，需要先建立平台支持的本地执行连接；MCP可选，不能只凭工具列表认定连接成功。
 
-从https://www.kicad.org/download/获取官方软件；当前候选锁定10.0.7，其他版本保持未验收，不自动升级/卸载。以下为跨项目的配置步骤；每台机器必须实际检测安装位置、版本和解释器，不能沿用他人的环境通过记录。
+从https://www.kicad.org/download/获取官方软件；推荐/历史验收基线为10.0.7。其他10.0.x稳定补丁版本先检查CLI与pcbnew同补丁版，随后在合法真实工程上执行setup --apply；环境烟雾通过只是原生基础功能验收，生产前仍须完整工程门禁。KiCad9原生调用目前不开放，仅可运行不依赖KiCad的需求、原厂资料和静态预览等功能。不会自动升级/卸载。以下为跨项目的配置步骤；每台机器必须实际检测安装位置、版本和解释器，不能沿用他人的环境通过记录。
 
 ## 2. Windows首次配置
 
@@ -41,7 +41,7 @@ Test-Path (Join-Path $SkillDir 'SKILL.md')
 & $PYK -c "import sys, pcbnew; print(sys.executable); print(pcbnew.GetBuildVersion())"
 ```
 
-CLI目标为10.0.7，绑定也应匹配。找不到python.exe时查询实际安装布局，不创建假路径、不套用旧版Python3.11。
+CLI与pcbnew应为同一10.0.x稳定补丁版本；10.0.7为推荐基线，其他版本初始标记PATCH_CANDIDATE_NATIVE_SMOKE_REQUIRED。找不到python.exe时查询实际安装布局，不创建假路径、不套用旧版Python3.11。
 
 5. 将CLI目录加入当前会话PATH，运行自检。此命令不修改系统PATH；后续运行的Agent子进程必须继承同一配置。
 
@@ -52,7 +52,7 @@ Set-Location $SkillDir
 $LASTEXITCODE
 ```
 
-required_ok=true且退出0才是基础通过。把上述路径配置保存到用户自己的本地启动记录，日后在同一Agent执行环境加载；Skill不擅自写系统环境、安装软件或持久化全局配置。只在手工终端配置PATH、Agent却使用另一环境时仍会失败。
+required_ok=true且退出0只证明版本/安装组合符合候选要求；未完成setup --apply前不得宣称原生环境或制造链已验证。把上述路径配置保存到用户自己的本地启动记录，日后在同一Agent执行环境加载；Skill不擅自写系统环境、安装软件或持久化全局配置。只在手工终端配置PATH、Agent却使用另一环境时仍会失败。
 
 ## 3. 第一次真实工程验证
 
@@ -70,7 +70,16 @@ required_ok=true且退出0才是基础通过。把上述路径配置保存到用
 
 执行内容：复制项目→导出原理图PDF/XML→导出顶底铜层PCB PDF→ERC/DRC JSON及parity→pcbnew.LoadBoard→核对原工程未改变。输出仅在新报告目录，不导出Gerber/BOM。工程依赖绝对路径的外部库不会被自动打包，仍需人工核对。
 
-成功为ENVIRONMENT_READY和startup-state.json；失败为BLOCKED，已开始的运行保留failed-setup.json/命令日志，不产生成功记录。报告目录已存在会拒绝覆盖，修复后用setup-r2等新目录。
+成功为ENVIRONMENT_READY和startup-state.json；失败为BLOCKED
+
+对非10.0.7的稳定 KiCad 10.0.x，完成首次setup后，还需在同一Agent执行环境中保存当前状态文件绝对路径；正式 PCB 规则审计、冻结及制造预审将主动复查其有效性：
+
+```powershell
+$env:KICAD_PATCH_STARTUP_STATE = 'D:\KiCad-Checks\setup-r1\startup-state.json'
+& $PYK scripts/environment_start.py check --state $env:KICAD_PATCH_STARTUP_STATE --kicad-cli $CLI
+```
+
+缺少或过期的状态文件会阻断非基线补丁版的工程签核和制造候选；不修改历史记录、不降级生产门禁。，已开始的运行保留failed-setup.json/命令日志，不产生成功记录。报告目录已存在会拒绝覆盖，修复后用setup-r2等新目录。
 
 ERC/DRC有违规但命令及已支持JSON解析正常时，记录design_issue_counts，仍可能ENVIRONMENT_READY；这是工具可运行，绝非设计通过。JSON模式未识别或命令失败会阻断，需查原始日志，不能修改报告伪造通过。
 
@@ -91,6 +100,26 @@ check只读，不安装/配置/写报告；每次真实探测当前CLI和绑定�
 - BLOCKED/退出2：当前工具缺失/版本不符或读取异常，先处理原因。
 
 状态记录是本地复用依据，不是防伪签名，也不能穷尽全部DLL/操作系统/外部库变化。新电脑、新执行环境、异常或重大系统/工具变化应主动重验。新项目不能跳过自己的库、需求、规则、原厂资料和制造检查；生产前仍运行最终全量门禁。
+
+## 面向未来版本：CLI-only 原生兼容性验证
+
+当 KiCad 11 或更高稳定版无法导入旧 `pcbnew` 时，不能直接认定整个 Skill 不可用。可先使用 CLI-only 功能：
+
+```powershell
+# $PYK 为可运行 Skill 的 Python；CLI-only 不需要旧 pcbnew
+& $PYK scripts/doctor.py --kicad-cli $CLI
+
+# 首次仅预览；确认路径后追加 --apply
+& $PYK scripts/environment_start.py setup --project 'D:\Projects\demo' --schematic 'demo.kicad_sch' --board 'demo.kicad_pcb' --project-file 'demo.kicad_pro' --report-dir 'D:\KiCad-Checks\future-cli-r1' --kicad-cli $CLI --cli-only
+
+# 使用 --apply 实际验证后，绑定当前 Agent 会话的真实状态文件：
+$env:KICAD_CLI_STARTUP_STATE = 'D:\KiCad-Checks\future-cli-r1\startup-state.json'
+& $PYK scripts/environment_start.py check --state $env:KICAD_CLI_STARTUP_STATE --kicad-cli $CLI
+```
+
+CLI-only setup仍要求真实非空工程，验证 PDF/XML、ERC/DRC JSON 真实输出但不执行 `pcbnew.LoadBoard`。成功状态 `ENVIRONMENT_CLI_READY` 不等于完整环境通过；PCB 规则、生效网络类、覆铜保存和生产放行仍需经过验证的 IPC 适配器。若新版CLI命令或JSON结构变化，该项应被明确标记为不可用，而非让整个离线Skill失效。
+
+工作流入口也可使用 `workflow.py ... --task environment.setup --cli-only`；遵守预览与 `--apply` 规则。
 
 ## 5. Linux/macOS与Agent连接
 
@@ -126,7 +155,7 @@ Linux/macOS完整setup格式：
 
 环境就绪后的顺序：需求冻结→器件资料与规则→原理图/设计意图→AI及工程师确认→封装→叠层→布局/布线→PCB逐层AI及工程师确认→NPI→制造候选/CAM/工厂EQ→授权打样→真实验证。完整模块入口见SKILL.md、device-knowledge.md、design-intent.md、static-ai-review.md和dfx-npi.md。
 
-可给Agent的首次指令：请使用本目录Skill，读取新手配置教程，检查本地KiCad10.0.7和匹配Python；先预览配置与测试命令，只在独立新目录验证已有示范工程，不改原工程。报告实际执行结果、缺项和下一步；禁止把环境通过当生产通过。
+可给Agent的首次指令：请使用本目录Skill，读取新手配置教程，优先检查本地KiCad10.0.7，其他KiCad10.0.x稳定补丁版必须与pcbnew匹配并在真实工程验证；先预览配置与测试命令，只在独立新目录验证已有示范工程，不改原工程。报告实际执行结果、缺项和下一步；禁止把环境通过当生产通过。
 
 ## 布局专项入口
 

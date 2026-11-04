@@ -12,12 +12,13 @@ import fnmatch
 import json
 import math
 import re
+import shutil
 import tempfile
 from collections import Counter, defaultdict
 from pathlib import Path
 from npi_common import (TARGET_VERSION, LEVELS, environment, run, sha256, load_board,
                         parse_sexpr, child, children, value, xy, distance,
-                        segment_distance, polygon_area, write_json)
+                        segment_distance, polygon_area, write_json, cli_compatible, pcbnew_compatible, pair_compatible, patch_native_ready)
 
 MANUAL = [
  ('NPI.CAM','npi','候选Gerber/CPL/BOM/装配内容与批准工程一致性审图','企业制造交付规范、PCB厂CAM/贴片厂装配要求','逐层检查极性/板框/孔位/CPL原点旋转/变体装配与版本；文件非空不能替代审图。'),
@@ -109,19 +110,30 @@ def bom_checks(r, path):
     r.check('BOM.FIELDS','completed',f'{len(rows)}行、{len(refs)}个位号；字段完整性/重复/冲突已检查')
     return rows
 
-def native_checks(r, env, sch, pcb):
-    if not env.get('cli_exact_target'):
-        r.risk('ENV.CLI','schematic','阻断级',f'需要KiCad {TARGET_VERSION} CLI，检测值={env["cli_version"]}',
-               standard='KiCad 10.0.7官方CLI文档',fix='用--kicad-cli指定10.0.7可执行文件，实际运行version核对。',method='KiCad CLI')
+def native_checks(r, env, project, sch, pcb):
+    if not cli_compatible(env):
+        r.risk('ENV.CLI','schematic','阻断级',f'需要匹配的KiCad 10.0.x 稳定版 CLI，检测值={env["cli_version"]}',
+               standard='KiCad 10.0 CLI文档及当前版本真实命令验证',fix='用--kicad-cli指定KiCad 10.0.x稳定版，核对实际版本与命令。',method='KiCad CLI')
         return
     # ERC does not support --variant in the official 10.0.7 CLI.
     with tempfile.TemporaryDirectory(prefix='kicad-npi-native-') as d:
+        from environment_start import inventory
+        snapshot=Path(d)/'project'
+        try:
+            for name in inventory(project):
+                target=snapshot/name
+                target.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copyfile(project/name,target)
+        except (OSError,ValueError) as e:
+            r.risk('NATIVE.SNAPSHOT','routing','阻断级','无法创建隔离工程副本：'+str(e),method='KiCad CLI')
+            return
         for kind,input_path in (('erc',sch),('drc',pcb)):
             if not input_path or not input_path.exists():
                 r.risk('NATIVE.'+kind.upper(),'schematic' if kind=='erc' else 'routing','阻断级',f'缺少{kind}输入文件',method='KiCad CLI'); continue
             report=Path(d)/(kind+'.json')
+            native_input=snapshot/input_path.relative_to(project)
             command=[env['kicad_cli'],'sch' if kind=='erc' else 'pcb',kind,
-                     '--format','json','--units','mm','--severity-all','--exit-code-violations','--output',str(report),str(input_path)]
+                     '--format','json','--units','mm','--severity-all','--exit-code-violations','--output',str(report),str(native_input)]
             if kind=='drc': command.insert(-1,'--schematic-parity')
             result=run(command); r.evidence.append(result)
             # Native results are evidence; missing/unparseable reports fail closed.
@@ -131,7 +143,7 @@ def native_checks(r, env, sch, pcb):
             except (ValueError,OSError):
                 r.risk('NATIVE.'+kind.upper(),'routing','阻断级','原生JSON报告不可解析',method='KiCad CLI'); continue
             from native_report import extract
-            try:groups=extract(kind,data,input_path)
+            try:groups=extract(kind,data,input_path,expected_version=env['cli_version'])
             except (ValueError,TypeError,KeyError) as e:
                 r.risk('NATIVE.SCHEMA','routing','阻断级','原生JSON不完整或结构不受支持：'+str(e),method='KiCad CLI');continue
             r.evidence.append({'kind':kind,'report':data})
@@ -336,6 +348,8 @@ def evaluate(project, config_path, mode='mass_production', phase='pre_export', c
     config=finite_tree(json.loads(config_path.read_text(encoding='utf-8')))
     r=Review(config,mode,phase); r.project=project; r.inputs[str(config_path)]=sha256(config_path)
     env=environment(cli)
+    if mode=='mass_production' and pair_compatible(env) and not patch_native_ready(env, cli):
+        r.risk('ENV.PATCH.SMOKE','layout','阻断级','非基线KiCad 10.0.x缺少当前有效的原生setup验证记录',fix='运行environment_start.py setup --apply后，设置KICAD_PATCH_STARTUP_STATE为startup-state.json，并执行check复验。',method='原生环境证明')
     paths={k:safe_input(project,config.get('inputs',{}).get(k)) for k in ('schematic','board','bom','project')}
     for p in paths.values():
         if p and p.is_file(): r.inputs[str(p)]=sha256(p)
@@ -345,10 +359,10 @@ def evaluate(project, config_path, mode='mass_production', phase='pre_export', c
     else:
         rows=bom_checks(r,paths['bom'])
         if paths['schematic']: schematic_structure(r,paths['schematic'],project)
-        native_checks(r,env,paths['schematic'],paths['board'])
-        if not env.get('pcbnew_exact_target'):
-            r.risk('ENV.PCBNEW','layout','阻断级','未验证KiCad 10.0.7 pcbnew绑定；静态预览不能用于生产放行',
-                   fix='用能导入10.0.7 pcbnew的Python运行；不要pip安装同名第三方包。',method='环境自检')
+        native_checks(r,env,project,paths['schematic'],paths['board'])
+        if not pair_compatible(env):
+            r.risk('ENV.PCBNEW','layout','阻断级','未验证匹配的KiCad 10.0.x CLI/pcbnew；静态预览不能用于生产放行',
+                   fix='使用与CLI同一KiCad 10.0.x构建的pcbnew Python；不要pip安装同名第三方包。',method='环境自检')
         board=None
         if paths['board'] and paths['board'].is_file():
             try:
@@ -390,7 +404,7 @@ def evaluate(project, config_path, mode='mass_production', phase='pre_export', c
         r.evidence.append({'external_query_list':[{'reference':row.get(fields.get('ref','Reference')),
                               'mpn':row.get(fields.get('mpn','MPN')),'lifecycle':'not_queried','derating':'manual_required'} for row in rows]})
     counts={level:sum(f['level']==level for f in r.findings) for level in LEVELS}
-    return {'schema_version':1,'target_kicad':TARGET_VERSION,'created_at':dt.datetime.now(dt.timezone.utc).isoformat(),
+    return {'schema_version':1,'target_kicad':TARGET_VERSION,'recommended_kicad':TARGET_VERSION,'tested_runtime_kicad':env.get('cli_version'),'created_at':dt.datetime.now(dt.timezone.utc).isoformat(),
             'project':str(project),'mode':mode,'phase':phase,'static_preview':static_preview,'environment':env,
             'counts':counts,'blocked':counts['阻断级']>0,
             'release_allowed':mode=='mass_production' and phase=='release' and not static_preview and counts['阻断级']==0,
@@ -404,7 +418,7 @@ def write_report(report, output):
     if output.exists() and any(output.iterdir()): raise ValueError('报告目录必须为空，防止覆盖已有证据')
     output.mkdir(parents=True,exist_ok=True)
     write_json(output/'npi-report.json',report)
-    lines=['# DFX/NPI量产评审报告','',f'目标：KiCad {TARGET_VERSION}',f'模式：{report["mode"]}；阶段：{report["phase"]}',
+    lines=['# DFX/NPI量产评审报告','',f'推荐基线：KiCad {TARGET_VERSION}，实际运行版本：{report.get("tested_runtime_kicad")}',f'模式：{report["mode"]}；阶段：{report["phase"]}',
            f'生产放行：{"允许" if report["release_allowed"] else "禁止"}',
            '', '## 风险汇总','', '| 等级 | 数量 |','|---|---:|']
     lines += [f'| {k} | {v} |' for k,v in report['counts'].items()]

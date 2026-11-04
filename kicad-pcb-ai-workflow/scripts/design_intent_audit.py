@@ -13,12 +13,12 @@ from pathlib import Path
 from design_intent import (compile_intent, local, digest, layout_digest, approval,
                            positive, native_profile)
 from npi_common import (environment, run, sha256, parse_sexpr, children, child,
-                        value, xy, distance, TARGET_VERSION)
+                        value, xy, distance, TARGET_VERSION, pair_compatible, patch_native_ready)
 from link_audit import arc_length
 
 def native_effective(root, intent):
     import pcbnew
-    if not environment().get('pcbnew_exact_target'):raise ValueError('KiCad10.0.7 pcbnew required')
+    if not patch_native_ready(environment()):raise ValueError('Matching KiCad 10.0.x CLI/pcbnew and current patch setup evidence required for native effective-rule audit')
     with tempfile.TemporaryDirectory(prefix='kicad-intent-native-') as temp:
         base=Path(temp);pro=local(root,intent['project_file']);board=local(root,intent['board_file'])
         for f in (pro,board,pro.with_suffix('.kicad_dru')):
@@ -33,7 +33,8 @@ def native_effective(root, intent):
             native_nets={str(k):v for k,v in b.GetNetsByName().items()};out={}
             for n in intent['nets']:
                 if n['name'] not in native_nets:raise ValueError('PCB net missing: '+n['name'])
-                nc=native_nets[n['name']].GetNetClass()
+                # The raw pointer from GetNetClass() is opaque in KiCad's SWIG binding.
+                nc=native_nets[n['name']].GetNetClassSlow()
                 out[n['name']]={'contains_expected':bool(nc.ContainsNetclassWithName(n['netclass'])),
                     'clearance_mm':float(pcbnew.ToMM(nc.GetClearance())),
                     'track_width_mm':float(pcbnew.ToMM(nc.GetTrackWidth())),
@@ -51,7 +52,7 @@ def audit(root, intent_file, native=True, effective_provider=None, phase='final'
     if phase not in ('pre_route','final'):raise ValueError('Unknown intent audit phase')
     def risk(code,description,location='工程级（无坐标）',fix='修复设计意图/生成规则并重新同步、评审；不得降低门禁。'):
         findings.append({'rule':code,'level':'阻断级','gate':'design_intent','location':location,
-                         'description':description,'reference':'原厂设计指南、批准叠层/工艺；KiCad10.0.7规则',
+                         'description':description,'reference':'原厂设计指南、批准叠层/工艺；实际KiCad10.0.x规则',
                          'fix':fix,'method':'设计意图静态核对/原生API/人工证据'})
     try:
         d=json.loads(intent_file.read_text());plan=compile_intent(root,d,verify=True);inputs.update(plan['inputs_sha256'])
