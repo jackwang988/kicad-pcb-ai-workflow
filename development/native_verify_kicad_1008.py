@@ -142,8 +142,12 @@ def validate(temp):
         raise RuntimeError("No Gerber files produced")
     if not any(p.endswith(".drl") for p in products):
         raise RuntimeError("No drill file produced")
-    if original != hashed_tree(src):
-        raise RuntimeError("Native tests modified the original demonstration project")
+    after = hashed_tree(src)
+    if original != after:
+        changed = {name: {"before": original.get(name), "after": after.get(name)}
+                   for name in sorted(set(original) | set(after)) if original.get(name) != after.get(name)}
+        print("SOURCE_CHANGE_DIAGNOSTIC", json.dumps(changed, indent=2), flush=True)
+        raise RuntimeError("Native tests modified demonstration project; changed files: " + json.dumps(changed))
     checks["steps"]["manufacturing_cli_interfaces"] = {
         "status": "OUTPUT_FILES_PRESENT_NOT_APPROVED_FOR_PRODUCTION",
         "invocations": native_outputs, "outputs_sha256": products}
