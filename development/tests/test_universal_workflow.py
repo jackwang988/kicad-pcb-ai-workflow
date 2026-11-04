@@ -192,7 +192,7 @@ class UniversalTests(unittest.TestCase):
         self.export_config();self.frozen();out=self.base/'export'
         before={str(p.relative_to(self.root)):sha256(p) for p in self.root.rglob('*') if p.is_file()}
         def side_effect(argv):
-            source=Path(argv[-1])
+            source=pathlib.Path(argv[-1])
             self.assertNotEqual(source.parent,self.root)
             self.assertTrue(source.is_file())
             source.with_suffix('.kicad_prl').write_text('Test-only native CLI side effect')
