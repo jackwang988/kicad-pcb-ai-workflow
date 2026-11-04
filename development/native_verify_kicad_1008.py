@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Real KiCad 10.0.8 integration evidence. Never treats CI smoke as factory approval."""
 from __future__ import annotations
-import hashlib
 import json
 import os
 import shutil
@@ -10,10 +9,13 @@ import sys
 import tempfile
 import traceback
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "kicad-pcb-ai-workflow/scripts"))
 from npi_common import environment, runtime_inventory, sha256, load_board
+from design_intent import native_profile
+from design_intent_audit import native_effective
 from environment_start import setup, check
 from manufacturing_export import commands
 
@@ -52,14 +54,14 @@ def validate(temp):
     cli = shutil.which("kicad-cli")
     if not cli:
         raise RuntimeError("Missing real kicad-cli binary")
-    version = execute([cli, "version"]).stdout.strip()
+    env = environment(cli)
+    version = env.get("cli_version")
     if version != "10.0.8":
-        raise RuntimeError("Must test exact stable KiCad 10.0.8, found " + version)
+        raise RuntimeError(f"Must test exact stable KiCad 10.0.8, found {version}: {env.get('cli_probe')}")
     import pcbnew
     pcbversion = str(pcbnew.GetBuildVersion())
     if "10.0.8" not in pcbversion:
         raise RuntimeError("pcbnew version mismatch: " + pcbversion)
-    env = environment(cli)
     if not env.get("version_pair_compatible"):
         raise RuntimeError("Skill rejects real KiCad 10.0.8 pair: " + str(env))
     inventory = runtime_inventory(ROOT / "kicad-pcb-ai-workflow")
@@ -135,51 +137,36 @@ def validate(temp):
     checks["steps"]["zone_fill_save_reload"] = {"status": "NATIVE_FILLED_COPPER_VERIFIED",
         "zones_after_reload": len(saved_zones),
         "filled_area_positive": True, "saved_sha256": sha256(saved)}
-    # Verify interfaces consumed by the native design-intent/netclass gate exist
-    # in the installed KiCad Python module. Project-specific effective rule
-    # *values* require an approved project and remain outside this fixture smoke.
-    for method in ("LoadProject", "GetProject", "UnloadProject"):
-        if not hasattr(pcbnew.SETTINGS_MANAGER, method):
-            raise RuntimeError("Missing KiCad 10 SETTINGS_MANAGER API: " + method)
-    for method in ("SetProject", "SynchronizeNetsAndNetClasses", "GetNetsByName"):
-        if not hasattr(loaded, method):
-            raise RuntimeError("Missing KiCad 10 BOARD API: " + method)
-    settings = pcbnew.SETTINGS_MANAGER()
-    project = None
-    native_rules_board = None
-    try:
-        pro = staged / (name + ".kicad_pro")
-        if not settings.LoadProject(str(pro)):
-            raise RuntimeError("KiCad project load via SETTINGS_MANAGER failed")
-        project = settings.GetProject(str(pro))
-        native_rules_board = pcbnew.LoadBoard(str(board_path))
-        if project is None or native_rules_board is None:
-            raise RuntimeError("Native project/board context unavailable")
-        native_rules_board.SetProject(project)
-        native_rules_board.SynchronizeNetsAndNetClasses(False)
-        named_nets = {str(k): v for k, v in native_rules_board.GetNetsByName().items()}
-        if "+3V3" not in named_nets:
-            raise RuntimeError("Native project synchronization lost +3V3 net")
-        effective = named_nets["+3V3"].GetNetClass()
-        actual_rules = {
-            "clearance_mm": pcbnew.ToMM(effective.GetClearance()),
-            "track_width_mm": pcbnew.ToMM(effective.GetTrackWidth()),
-            "diff_width_mm": pcbnew.ToMM(effective.GetDiffPairWidth()),
-            "diff_gap_mm": pcbnew.ToMM(effective.GetDiffPairGap()),
-            "tuning_profile": str(effective.GetTuningProfile()),
-        }
-        if any(v is None or not isinstance(v, (float, int)) or v < 0
-               for k, v in actual_rules.items() if k != "tuning_profile"):
-            raise RuntimeError("Invalid native effective netclass geometry")
-        checks["steps"]["netclass_api_surface"] = {
-            "status": "NATIVE_PROJECT_EFFECTIVE_RULES_READ",
-            "net": "+3V3", "actual_rules": actual_rules,
-            "note": "Demo project rules are not production impedance validation"}
-    finally:
-        if native_rules_board is not None:
-            native_rules_board.ClearProject()
-        if project is not None:
-            settings.UnloadProject(project, False)
+    # Use a separate fixture project so the temporary rule changes are isolated
+    # from the manufacturing smoke. Distinct values catch reads of Default.
+    rule_source = ROOT / "development/fixtures/npi-demo"
+    rule_project = temp / "native-netclass-fixture"
+    shutil.copytree(rule_source, rule_project)
+    pro = rule_project / "npi-demo.kicad_pro"
+    data = json.loads(pro.read_text(encoding="utf-8"))
+    class_name = "NativeSmokeDiff"
+    profile = native_profile(
+        {"name": class_name, "kind": "differential", "target_impedance_ohm": 90,
+         "geometry": [{"layer": "F.Cu", "reference_layers": ["B.Cu"],
+                       "width_mm": 0.27, "gap_mm": 0.31}]}, ["F.Cu", "B.Cu"])
+    net_settings = data.setdefault("net_settings", {})
+    net_settings["meta"] = {"version": 5}
+    net_settings.setdefault("classes", [{"name": "Default", "priority": 2147483647}]).append(
+        {"name": class_name, "priority": -1, "clearance": 0.23, "track_width": 0.25,
+         "diff_pair_width": 0.27, "diff_pair_gap": 0.31, "tuning_profile": profile["profile_name"]})
+    net_settings.setdefault("netclass_patterns", []).append({"pattern": "+3V3", "netclass": class_name})
+    data["tuning_profiles"] = {"meta": {"version": 0}, "tuning_profiles_impedance_geometric": [profile]}
+    pro.write_text(json.dumps(data), encoding="utf-8")
+    intent = {"project_file": pro.name, "board_file": "npi-demo.kicad_pcb",
+              "nets": [{"name": net, "netclass": class_name} for net in ("+3V3", "GND")]}
+    with patch.dict(os.environ, {"KICAD_PATCH_STARTUP_STATE": str(state_dir / "startup-state.json")}):
+        actual_rules = native_effective(rule_project, intent)
+    expected = {"contains_expected": True, "clearance_mm": 0.23, "track_width_mm": 0.25,
+                "diff_width_mm": 0.27, "diff_gap_mm": 0.31, "tuning_profile": profile["profile_name"]}
+    if actual_rules["+3V3"] != expected or actual_rules["GND"]["contains_expected"]:
+        raise RuntimeError(f"Unexpected effective NetClass values or membership: {actual_rules}")
+    checks["steps"]["netclass_api_surface"] = {
+        "status": "NATIVE_PROJECT_EFFECTIVE_RULES_READ", "actual_rules": actual_rules}
 
     # Native manufacturing *CLI interfaces* only: bypassing NPI approval is NOT allowed.
     cfg = {"inputs": {"board": name + ".kicad_pcb", "schematic": name + ".kicad_sch"},
@@ -229,7 +216,7 @@ def main():
             report["failure"] = str(exc)
             report["traceback"] = traceback.format_exc()[-6500:]
         finally:
-            reportfile.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n")
+            reportfile.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
             print("NATIVE_VERIFY_SUMMARY", json.dumps({k: v for k, v in report.items() if k != "steps"}, ensure_ascii=False), flush=True)
     return 0 if report.get("status") == "NATIVE_TOOLCHAIN_SMOKE_PASSED" else 2
 

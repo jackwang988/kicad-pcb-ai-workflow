@@ -7,6 +7,8 @@ on:
       - feat/kicad10-patch-capability-gates
     paths:
       - development/native_verify_kicad_1008.py
+      - development/fixtures/npi-demo/**
+      - kicad-pcb-ai-workflow/**
       - .github/workflows/native-kicad-10.0.8.yml
 
 permissions:

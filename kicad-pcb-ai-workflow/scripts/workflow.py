@@ -124,11 +124,12 @@ def _stage_inputs(root, name, bundle, group, evidence):
         # resolve also rejects traversal and symlink escape; explicit symlinks disallowed.
         if item.is_symlink() or not item.is_file() or not item.stat().st_size:
             raise ValueError('Missing, symlinked or empty stage evidence: ' + str(item))
-        if not item.resolve().is_relative_to(root):
+        resolved = item.resolve()
+        if not resolved.is_relative_to(root):
             raise ValueError('Stage evidence escapes project root')
         if approvals in item.parents or item == approvals:
             raise ValueError('Approval artifacts cannot be review evidence')
-        digest[item.relative_to(root).as_posix()] = sha256(item)
+        digest[resolved.relative_to(root).as_posix()] = sha256(resolved)
     return digest
 
 

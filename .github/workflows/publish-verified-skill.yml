@@ -69,8 +69,9 @@ jobs:
           mkdir -p "$RUNNER_TEMP/package"
           python3 development/build_release.py --output-dir "$RUNNER_TEMP/package/build" --apply
           install -m 0644 "$RUNNER_TEMP/package/build/kicad-pcb-ai-workflow.zip" dist/kicad-pcb-ai-workflow-R9.4.zip
+          expected=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["zip_sha256"]["kicad-pcb-ai-workflow.zip"])' < "$RUNNER_TEMP/package/build/package-report.json")
           cd dist
-          sha256sum -c <(sha256sum kicad-pcb-ai-workflow-R9.4.zip)
+          printf '%s  %s\n' "$expected" kicad-pcb-ai-workflow-R9.4.zip | sha256sum -c -
           sha256sum kicad-pcb-ai-workflow-R9.3.zip kicad-pcb-ai-workflow-R9.4.zip > SHA256SUMS
           sha256sum -c SHA256SUMS
       - name: Push R9.4 official installer to main only after both gates pass

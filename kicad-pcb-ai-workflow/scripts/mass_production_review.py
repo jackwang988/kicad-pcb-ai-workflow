@@ -12,6 +12,7 @@ import fnmatch
 import json
 import math
 import re
+import shutil
 import tempfile
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -109,19 +110,30 @@ def bom_checks(r, path):
     r.check('BOM.FIELDS','completed',f'{len(rows)}行、{len(refs)}个位号；字段完整性/重复/冲突已检查')
     return rows
 
-def native_checks(r, env, sch, pcb):
+def native_checks(r, env, project, sch, pcb):
     if not cli_compatible(env):
         r.risk('ENV.CLI','schematic','阻断级',f'需要匹配的KiCad 10.0.x 稳定版 CLI，检测值={env["cli_version"]}',
                standard='KiCad 10.0 CLI文档及当前版本真实命令验证',fix='用--kicad-cli指定KiCad 10.0.x稳定版，核对实际版本与命令。',method='KiCad CLI')
         return
     # ERC does not support --variant in the official 10.0.7 CLI.
     with tempfile.TemporaryDirectory(prefix='kicad-npi-native-') as d:
+        from environment_start import inventory
+        snapshot=Path(d)/'project'
+        try:
+            for name in inventory(project):
+                target=snapshot/name
+                target.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copyfile(project/name,target)
+        except (OSError,ValueError) as e:
+            r.risk('NATIVE.SNAPSHOT','routing','阻断级','无法创建隔离工程副本：'+str(e),method='KiCad CLI')
+            return
         for kind,input_path in (('erc',sch),('drc',pcb)):
             if not input_path or not input_path.exists():
                 r.risk('NATIVE.'+kind.upper(),'schematic' if kind=='erc' else 'routing','阻断级',f'缺少{kind}输入文件',method='KiCad CLI'); continue
             report=Path(d)/(kind+'.json')
+            native_input=snapshot/input_path.relative_to(project)
             command=[env['kicad_cli'],'sch' if kind=='erc' else 'pcb',kind,
-                     '--format','json','--units','mm','--severity-all','--exit-code-violations','--output',str(report),str(input_path)]
+                     '--format','json','--units','mm','--severity-all','--exit-code-violations','--output',str(report),str(native_input)]
             if kind=='drc': command.insert(-1,'--schematic-parity')
             result=run(command); r.evidence.append(result)
             # Native results are evidence; missing/unparseable reports fail closed.
@@ -347,7 +359,7 @@ def evaluate(project, config_path, mode='mass_production', phase='pre_export', c
     else:
         rows=bom_checks(r,paths['bom'])
         if paths['schematic']: schematic_structure(r,paths['schematic'],project)
-        native_checks(r,env,paths['schematic'],paths['board'])
+        native_checks(r,env,project,paths['schematic'],paths['board'])
         if not pair_compatible(env):
             r.risk('ENV.PCBNEW','layout','阻断级','未验证匹配的KiCad 10.0.x CLI/pcbnew；静态预览不能用于生产放行',
                    fix='使用与CLI同一KiCad 10.0.x构建的pcbnew Python；不要pip安装同名第三方包。',method='环境自检')

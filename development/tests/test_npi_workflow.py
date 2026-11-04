@@ -66,10 +66,13 @@ class WorkflowTests(unittest.TestCase):
     def test_unknown_native_report_schema_blocks_instead_of_passing(self):
         r=review.Review({},'mass_production','pre_export')
         def fake_run(command):
+            source=Path(command[-1])
+            self.assertFalse(source.is_relative_to(self.project))
+            self.assertEqual(source.read_bytes(),(self.project/source.name).read_bytes())
             path=Path(command[command.index('--output')+1]); path.write_text('{"unexpected": []}')
             return {'returncode':0}
         with patch.object(review,'run',side_effect=fake_run):
-            review.native_checks(r,{'cli_version':'10.0.7','cli_exact_target':True,'kicad_cli':'fake-cli'},self.project/'npi-demo.kicad_sch',self.project/'npi-demo.kicad_pcb')
+            review.native_checks(r,{'cli_version':'10.0.7','cli_exact_target':True,'kicad_cli':'fake-cli'},self.project,self.project/'npi-demo.kicad_sch',self.project/'npi-demo.kicad_pcb')
         self.assertEqual(sum(x['rule']=='NATIVE.SCHEMA' for x in r.findings),2)
     def test_preview_no_write_and_apply_freshness_guard(self):
         # Stub only the review verdict to isolate publication behavior.

@@ -53,7 +53,8 @@ class EvidenceTests(unittest.TestCase):
         source={'board.kicad_pcb':'a'*64};output={'a.gbr':'b'*64}
         config={'inputs':{'board':'board.kicad_pcb'},'delivery_manifest':{'gerber':['a.gbr']}}
         tool={'id':'cli','name':'kicad-cli','version':'10.0.7','executable_sha256':'c'*64}
-        command={'tool_id':'cli','argv':['/test/kicad-cli','pcb','export','gerbers','--output','/candidate','/design/board.kicad_pcb'],'cwd':'/design','source_root':'/design','output_root':'/candidate','returncode':0,'log':'export.log','source_basis_sha256':source,'output_sha256':output}
+        design=self.p/'design';candidate=self.p/'candidate'
+        command={'tool_id':'cli','argv':[str(self.p/'test/kicad-cli'),'pcb','export','gerbers','--output',str(candidate),str(design/'board.kicad_pcb')],'cwd':str(design),'source_root':str(design),'output_root':str(candidate),'returncode':0,'log':'export.log','source_basis_sha256':source,'output_sha256':output}
         auth={'reviewer':'fixture','date':'2026-10-17','factory':'F','order_scope':'TEST','source_basis_sha256':source,'output_sha256':output}
         return {'tools':[tool],'commands':[command],'logs':[{'file':'export.log','sha256':'d'*64}], 'source_sha256':source,'output_sha256':output,'production_authorization':auth},config
     def test_empty_truthy_tool_and_command_records_are_rejected(self):
@@ -63,11 +64,12 @@ class EvidenceTests(unittest.TestCase):
         data,cfg=self.contract();data['commands']=[{}]
         with self.assertRaises(ValueError):records(data,cfg,{})
     def test_non_export_wrong_source_category_and_output_are_rejected(self):
+        design=self.p/'design';candidate=self.p/'candidate'
         for argv in (
             ['kicad-cli','--version'],
-            ['kicad-cli','pcb','export','gerbers','-o','/elsewhere','/design/board.kicad_pcb'],
-            ['kicad-cli','pcb','export','gerbers','-o','/candidate','/design/other.kicad_pcb'],
-            ['kicad-cli','pcb','export','drill','-o','/candidate','/design/board.kicad_pcb'],
+            ['kicad-cli','pcb','export','gerbers','-o',str(self.p/'elsewhere'),str(design/'board.kicad_pcb')],
+            ['kicad-cli','pcb','export','gerbers','-o',str(candidate),str(design/'other.kicad_pcb')],
+            ['kicad-cli','pcb','export','drill','-o',str(candidate),str(design/'board.kicad_pcb')],
         ):
             data,cfg=self.contract();data['commands'][0]['argv']=argv
             with self.assertRaises(ValueError):records(data,cfg,{})

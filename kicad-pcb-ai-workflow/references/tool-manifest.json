@@ -89,7 +89,7 @@
     },
     {
       "file": "scripts/mass_production_review.py",
-      "sha256": "1996c9991b833c0107b5241674c405cec01da60119381e7c9542c65ba1b4091e",
+      "sha256": "73f90673a6c974c9096f82ef8ad71c0f73541bd0032b8ec342e279a62088e85b",
       "version": "2026.10-R2",
       "command": "python3 scripts/mass_production_review.py --help",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -251,7 +251,7 @@
         "2": "BLOCKED"
       },
       "validation_scope": "Python regression coverage; KiCad 10.0.x native smoke and KiCad 9 native compatibility are NOT yet verified",
-      "sha256": "a2c48454e4dad2494183a906a66d7d3267019ce630215e11a7597429d763aa2a"
+      "sha256": "a7ce7b0f0920939392ddfbc16844479ec3ee24f26793409af369a5a98e4000ff"
     },
     {
       "file": "scripts/static_review.py",
@@ -290,7 +290,7 @@
         "2": "BLOCKED/input or network failure"
       },
       "validation_scope": "Local source/cache/card/bundle/integration tests; live official PDF transfer blocked by environment DNS",
-      "sha256": "d229795f4ced360a0d8fafb442222dcab3b1affaa310af2e657b8f2ae7fa6396"
+      "sha256": "f0c8835a8085e76195f0e35c231f8fa004d615d26350ca2e5bcdd6c2178c066a"
     },
     {
       "file": "scripts/environment_start.py",
@@ -412,7 +412,7 @@
     },
     {
       "file": "scripts/workflow.py",
-      "sha256": "cea992bc56c26058fbc6f1865b6775571445650af7eed621a42bf158449d0bee",
+      "sha256": "3410090fc8e76f40f09db68d922e67c5ebc8ce590b5a338854cbcd3faffb515e",
       "version": "2026.10-R9.2",
       "command": "python3 scripts/workflow.py --help",
       "input": "One shared master; immutable flow/static/npi bundles; explicit fixed task and typed arguments",

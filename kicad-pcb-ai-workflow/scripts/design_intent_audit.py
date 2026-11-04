@@ -33,7 +33,8 @@ def native_effective(root, intent):
             native_nets={str(k):v for k,v in b.GetNetsByName().items()};out={}
             for n in intent['nets']:
                 if n['name'] not in native_nets:raise ValueError('PCB net missing: '+n['name'])
-                nc=native_nets[n['name']].GetNetClass()
+                # The raw pointer from GetNetClass() is opaque in KiCad's SWIG binding.
+                nc=native_nets[n['name']].GetNetClassSlow()
                 out[n['name']]={'contains_expected':bool(nc.ContainsNetclassWithName(n['netclass'])),
                     'clearance_mm':float(pcbnew.ToMM(nc.GetClearance())),
                     'track_width_mm':float(pcbnew.ToMM(nc.GetTrackWidth())),

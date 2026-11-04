@@ -213,7 +213,7 @@ def validate_bundle(root,record):
     if result['findings']:raise ValueError('Device source readiness blocked: '+json.dumps(result['findings'],ensure_ascii=False))
     expected={n for s in result['selected'] for n in s['files']}
     if not expected.issubset(m['files_sha256']):raise ValueError('Bundle misses required evidence')
-    return [str(mp.relative_to(root))]+[str(local(base,n).relative_to(root)) for n in sorted(expected)]
+    return [mp.relative_to(root).as_posix()]+[local(base,n).relative_to(root).as_posix() for n in sorted(expected)]
 
 def validate_project_binding(root,config,stage,graph):
     record=config['device_knowledge'];root=Path(root).resolve();mp=local(root,record['manifest']);m=read(mp)
