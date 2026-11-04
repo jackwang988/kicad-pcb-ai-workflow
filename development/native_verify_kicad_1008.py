@@ -144,8 +144,42 @@ def validate(temp):
     for method in ("SetProject", "SynchronizeNetsAndNetClasses", "GetNetsByName"):
         if not hasattr(loaded, method):
             raise RuntimeError("Missing KiCad 10 BOARD API: " + method)
-    checks["steps"]["netclass_api_surface"] = {
-        "status": "METHODS_PRESENT_VALUES_NOT_ENGINEERING_VERIFIED"}
+    settings = pcbnew.SETTINGS_MANAGER()
+    project = None
+    native_rules_board = None
+    try:
+        pro = staged / (name + ".kicad_pro")
+        if not settings.LoadProject(str(pro)):
+            raise RuntimeError("KiCad project load via SETTINGS_MANAGER failed")
+        project = settings.GetProject(str(pro))
+        native_rules_board = pcbnew.LoadBoard(str(board_path))
+        if project is None or native_rules_board is None:
+            raise RuntimeError("Native project/board context unavailable")
+        native_rules_board.SetProject(project)
+        native_rules_board.SynchronizeNetsAndNetClasses(False)
+        named_nets = {str(k): v for k, v in native_rules_board.GetNetsByName().items()}
+        if "+3V3" not in named_nets:
+            raise RuntimeError("Native project synchronization lost +3V3 net")
+        effective = named_nets["+3V3"].GetNetClass()
+        actual_rules = {
+            "clearance_mm": pcbnew.ToMM(effective.GetClearance()),
+            "track_width_mm": pcbnew.ToMM(effective.GetTrackWidth()),
+            "diff_width_mm": pcbnew.ToMM(effective.GetDiffPairWidth()),
+            "diff_gap_mm": pcbnew.ToMM(effective.GetDiffPairGap()),
+            "tuning_profile": str(effective.GetTuningProfile()),
+        }
+        if any(v is None or not isinstance(v, (float, int)) or v < 0
+               for k, v in actual_rules.items() if k != "tuning_profile"):
+            raise RuntimeError("Invalid native effective netclass geometry")
+        checks["steps"]["netclass_api_surface"] = {
+            "status": "NATIVE_PROJECT_EFFECTIVE_RULES_READ",
+            "net": "+3V3", "actual_rules": actual_rules,
+            "note": "Demo project rules are not production impedance validation"}
+    finally:
+        if native_rules_board is not None:
+            native_rules_board.ClearProject()
+        if project is not None:
+            settings.UnloadProject(project, False)
 
     # Native manufacturing *CLI interfaces* only: bypassing NPI approval is NOT allowed.
     cfg = {"inputs": {"board": name + ".kicad_pcb", "schematic": name + ".kicad_sch"},
