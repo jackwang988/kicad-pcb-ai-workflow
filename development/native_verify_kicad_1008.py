@@ -107,17 +107,45 @@ def validate(temp):
     checks["steps"]["pcbnew_geometry"] = {"footprints": len(footprints),
         "native_engine": checked["engine"],
         "copper_layers": checked.get("copper_layers")}
+    # A zero-zone PCB would produce a misleading green "fill" result.  Add an
+    # actual copper zone on the disposable in-memory board and verify the fill.
+    if not list(loaded.Zones()):
+        net = loaded.GetNetsByName().get("+3V3")
+        if net is None:
+            raise RuntimeError("Fixture has no +3V3 net to anchor copper zone")
+        zone = pcbnew.ZONE(loaded)
+        zone.SetLayer(pcbnew.B_Cu)
+        zone.SetNetCode(net.GetNetCode())
+        for x, y in ((2, 2), (28, 2), (28, 18), (2, 18)):
+            zone.AppendCorner(pcbnew.VECTOR2I(pcbnew.FromMM(x), pcbnew.FromMM(y)), -1)
+        loaded.Add(zone)
     saved = temp / "refill-save-reload.kicad_pcb"
     filler = pcbnew.ZONE_FILLER(loaded)
     filler.Fill(loaded.Zones())
+    zones = list(loaded.Zones())
+    if not zones or not any(z.IsFilled() and z.GetFilledArea() > 0 for z in zones):
+        raise RuntimeError("Real copper zone fill did not produce populated area")
     pcbnew.SaveBoard(str(saved), loaded)
     reloaded = pcbnew.LoadBoard(str(saved))
     if reloaded is None or len(list(reloaded.GetFootprints())) != len(footprints):
         raise RuntimeError("ZoneFill/SaveBoard/reload failed")
-    checks["steps"]["zone_fill_save_reload"] = {"status": "NATIVE_API_CALLS_OK",
-        "zones_in_fixture": len(list(loaded.Zones())),
-        "saved_sha256": sha256(saved),
-        "note": "When zones_in_fixture=0 this does NOT prove real copper-zone fill quality"}
+    saved_zones = list(reloaded.Zones())
+    if not saved_zones or not any(z.IsFilled() and z.GetFilledArea() > 0 for z in saved_zones):
+        raise RuntimeError("Real copper zone fill did not survive SaveBoard/LoadBoard")
+    checks["steps"]["zone_fill_save_reload"] = {"status": "NATIVE_FILLED_COPPER_VERIFIED",
+        "zones_after_reload": len(saved_zones),
+        "filled_area_positive": True, "saved_sha256": sha256(saved)}
+    # Verify interfaces consumed by the native design-intent/netclass gate exist
+    # in the installed KiCad Python module. Project-specific effective rule
+    # *values* require an approved project and remain outside this fixture smoke.
+    for method in ("LoadProject", "GetProject", "UnloadProject"):
+        if not hasattr(pcbnew.SETTINGS_MANAGER, method):
+            raise RuntimeError("Missing KiCad 10 SETTINGS_MANAGER API: " + method)
+    for method in ("SetProject", "SynchronizeNetsAndNetClasses", "GetNetsByName"):
+        if not hasattr(loaded, method):
+            raise RuntimeError("Missing KiCad 10 BOARD API: " + method)
+    checks["steps"]["netclass_api_surface"] = {
+        "status": "METHODS_PRESENT_VALUES_NOT_ENGINEERING_VERIFIED"}
 
     # Native manufacturing *CLI interfaces* only: bypassing NPI approval is NOT allowed.
     cfg = {"inputs": {"board": name + ".kicad_pcb", "schematic": name + ".kicad_sch"},
