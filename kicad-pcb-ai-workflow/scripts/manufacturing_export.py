@@ -8,6 +8,7 @@ import argparse
 from schematic_io import blocking
 import json
 import shutil
+import tempfile
 from pathlib import Path
 from engineering_gate import local
 from npi_common import environment,sha256,run,finite_tree,load_board,pair_compatible,patch_native_ready
@@ -63,10 +64,18 @@ def export(root,config_file,destination,apply=False,cli=None):
     before={str(p.relative_to(root)):sha256(p) for p in root.rglob('*') if p.is_file() and '.git' not in p.parts and '__pycache__' not in p.parts}
     out.mkdir(parents=True,exist_ok=False);logs=[]
     try:
-        for argv in plan:
-            output=Path(argv[argv.index('--output')+1]);output.parent.mkdir(parents=True,exist_ok=True)
-            r=run(argv);logs.append(r)
-            if r['returncode']!=0:raise ValueError('Native export failed')
+        # KiCad CLI can create *.kicad_prl beside its input board, even for an
+        # export. Always operate on a private, disposable project snapshot.
+        # This makes original-project immutability a hard invariant instead of
+        # permitting the CLI to leave local settings files in the source tree.
+        with tempfile.TemporaryDirectory(prefix='kicad-native-export-') as tmp:
+            staged_root=Path(tmp)/'project'
+            shutil.copytree(root,staged_root,ignore=shutil.ignore_patterns('.git','__pycache__'))
+            staged_plan=commands(staged_root,cfg,out,env['kicad_cli'])
+            for argv in staged_plan:
+                output=Path(argv[argv.index('--output')+1]);output.parent.mkdir(parents=True,exist_ok=True)
+                r=run(argv);logs.append(r)
+                if r['returncode']!=0:raise ValueError('Native export failed')
         after={str(p.relative_to(root)):sha256(p) for p in root.rglob('*') if p.is_file() and '.git' not in p.parts and '__pycache__' not in p.parts}
         if before!=after:raise ValueError('Project changed during export')
         for p,h in report['inputs_sha256'].items():
