@@ -1,0 +1,94 @@
+name: Publish verified Skill installer
+
+# Publishing is only possible after main has passed fresh Python and actual
+# KiCad 10.0.8 native checks.  No pull request runs have write access.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'README.md'
+      - 'RELEASE_NOTES.md'
+      - 'kicad-pcb-ai-workflow/**'
+      - 'development/native_verify_kicad_1008.py'
+      - '.github/workflows/publish-verified-skill.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  verify-python:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Software contracts and package integrity
+        run: |
+          python -B -m unittest discover -s development/tests -v
+          python -B development/build_release.py --output-dir /tmp/publish-preview
+
+  verify-kicad-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      KICAD_NATIVE_REPORT: /tmp/native-kicad-1008.json
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install genuine stable KiCad 10.0.8
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository -y ppa:kicad/kicad-10.0-releases
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends kicad kicad-demos xvfb
+          test "$(kicad-cli version)" = "10.0.8"
+          /usr/bin/python3 -c 'import pcbnew; assert "10.0.8" in pcbnew.GetBuildVersion()'
+      - name: Native project, zone, manufacturing CLI compatibility
+        run: /usr/bin/python3 development/native_verify_kicad_1008.py
+      - name: Preserve real native evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: main-verified-kicad1008
+          path: /tmp/native-kicad-1008.json
+          if-no-files-found: warn
+          retention-days: 90
+
+  publish-r94:
+    needs: [verify-python, verify-kicad-native]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Build standalone ZIP and independently verify hash
+        run: |
+          mkdir -p "$RUNNER_TEMP/package"
+          python3 development/build_release.py --output-dir "$RUNNER_TEMP/package/build" --apply
+          install -m 0644 "$RUNNER_TEMP/package/build/kicad-pcb-ai-workflow.zip" dist/kicad-pcb-ai-workflow-R9.4.zip
+          cd dist
+          sha256sum -c <(sha256sum kicad-pcb-ai-workflow-R9.4.zip)
+          sha256sum kicad-pcb-ai-workflow-R9.3.zip kicad-pcb-ai-workflow-R9.4.zip > SHA256SUMS
+          sha256sum -c SHA256SUMS
+      - name: Push R9.4 official installer to main only after both gates pass
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- dist/kicad-pcb-ai-workflow-R9.4.zip dist/SHA256SUMS
+          if git diff --cached --quiet; then
+            echo "Installer is already current"
+          else
+            git commit -m "release: R9.4 KiCad 10.0.8 native-verified installer and SHA-256"
+            git push origin HEAD:main
+          fi
+      - name: Retain release archive and checksums in Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: R9.4-official-skill-installer
+          path: |
+            dist/kicad-pcb-ai-workflow-R9.4.zip
+            dist/SHA256SUMS
+          retention-days: 90
