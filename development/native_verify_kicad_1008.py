@@ -100,7 +100,7 @@ def validate(temp):
     if not footprints:
         raise RuntimeError("Native test board has no footprint")
     checked = load_board(board_path, require_native=True)
-    if checked.get("engine") != "pcbnew":
+    if checked.get("engine") != "pcbnew.LoadBoard":
         raise RuntimeError("Skill board loader failed to prove pcbnew engine")
     checks["steps"]["pcbnew_geometry"] = {"footprints": len(footprints),
         "native_engine": checked["engine"],
