@@ -1,4 +1,13 @@
-# R9.3 工具索引
+# R10.0.0-rc.1 工具索引（候选）
+
+当前运行工具数量按 [R10工具清单](../kicad-pcb-ai-workflow/references/tool-manifest.json) 自动核对，共44个登记Python组件；与R9.4旧版工具索引分开管理。Konnect的228/235为外部服务在不同版本下发现的工具数量，不属于本仓库组件数。
+
+**新增重点**：`konnect_backend.py`（IPC/MCP后端）、`konnect_capabilities.py`（动态发现、风险分级、验收记录）、`device_knowledge.py`（G1–G4跨节点知识卡复用）。
+
+---
+
+## 历史R9.3/R9.4索引（保留）
+
 
 实际Skill位于仓库的kicad-pcb-ai-workflow子目录。以下命令在该Skill目录执行；Python须与KiCad10.0.7绑定匹配。按任务调用，不批量执行全部脚本。
 

@@ -1,10 +1,10 @@
-# KiCad PCB AI 工作流 · R9.4（当前稳定版）/ R10 架构预览
+# KiCad PCB AI 工作流 · R9.4稳定版 / R10.0.0-rc.1预发布版
 
-> **🧪 R10 升级架构预览（尚非main正式发布版本）**
+> **🧪 R10.0.0-rc.1 预发布（保持R9.4为已验证稳定版）**
 >
-> R10候选重点是 **器件知识卡跨G1–G4复用、Konnect MCP统一EDA写入、动态工具发现/风险分级/按需验收、KiCad原生独立复验**。目前只进行了33项离线功能测试，真实Konnect端到端验收、完整仓库CI和正式安装包发布仍待完成；**下方R9.4下载链接仍是当前main正式版本**。
+> R10候选重点是 **器件知识卡跨G1–G4复用、Konnect MCP统一EDA写入、动态工具发现/风险分级/按需验收、KiCad原生独立复验**。已通过319项原有回归、33项R10新增测试和KiCad 10.0.8原生工具链验收；**Konnect商业MCP在用户Windows主机上的实际编辑/覆铜尚未通过本轮端到端测试**，因此发布为RC预发布，不宣称全自动PCB或生产授权；**R9.4仍为稳定版**。
 >
-> 📘 **[R10详细架构与5份图文导航](docs/r10/README.md)** · [系统总架构图](docs/r10/01-system-architecture.md) · [16节点主流程图与每节点规则](docs/r10/02-16-node-workflow.md) · [器件知识库复用图](docs/r10/03-device-knowledge-reuse.md) · [Konnect动态能力与单写入图](docs/r10/04-konnect-capability-and-single-writer.md) · [验收边界](docs/r10/05-release-readiness.md)
+> 📦 **[下载R10.0.0-rc.1完整Skill预发布安装包](dist/kicad-pcb-ai-workflow-R10.0.0-rc.1.zip)** · [SHA-256校验](dist/SHA256SUMS-R10.0.0-rc.1) · [R10预发布说明](R10_RELEASE_NOTES.md)\n>\n> 📘 **[R10详细架构与5份图文导航](docs/r10/README.md)** · [系统总架构图](docs/r10/01-system-architecture.md) · [16节点主流程图与每节点规则](docs/r10/02-16-node-workflow.md) · [器件知识库复用图](docs/r10/03-device-knowledge-reuse.md) · [Konnect动态能力与单写入图](docs/r10/04-konnect-capability-and-single-writer.md) · [验收边界](docs/r10/05-release-readiness.md)
 
 ```mermaid
 flowchart LR
