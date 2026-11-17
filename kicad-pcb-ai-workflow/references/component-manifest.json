@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "skill_name": "kicad-pcb-ai-workflow",
-  "version": "R10.0-alpha.3-local.5+G1-G4+konnect-single-writer-migration-1 +workspace-token-preview",
+  "version": "R10.0-alpha.3-local.5+G1-G4+konnect-single-writer-migration-1",
   "release_channel": "alpha",
   "engineering_gates": [
     "G1",
@@ -49,22 +49,19 @@
         "references/environment-onboarding.md",
         "references/ipc-backend.md",
         "references/konnect-backend.md",
-        "references/konnect-capability-migration.md",
-        "references/workspace-and-token-policy.md"
+        "references/konnect-capability-migration.md"
       ],
       "tools": [
         "doctor",
         "environment_start",
         "kicad_ipc_probe",
         "konnect_backend",
-        "konnect_capabilities",
-        "workspace_manager",
-        "token_budget"
+        "konnect_capabilities"
       ]
     },
     {
       "id": "requirements",
-      "label": "Requirements, Architecture and Device Sources",
+      "label": "Requirements, Architecture, Manufacturer References",
       "state": "implemented",
       "intents": [
         "requirements",
@@ -89,7 +86,7 @@
     },
     {
       "id": "resources",
-      "label": "KiCad Symbol Footprint and Project Resources",
+      "label": "Symbols, Footprints and Project Resources",
       "state": "implemented",
       "intents": [
         "parts",
@@ -136,7 +133,7 @@
     },
     {
       "id": "pcb",
-      "label": "Rules Placement and Controlled Routing",
+      "label": "PCB Rules, Placement and Controlled Routing",
       "state": "experimental",
       "intents": [
         "pcb",
@@ -194,7 +191,7 @@
     },
     {
       "id": "lifecycle",
-      "label": "Prototype Testing ECO and Archive",
+      "label": "External Prototype, ECO and Archive",
       "state": "implemented",
       "intents": [
         "prototype",
