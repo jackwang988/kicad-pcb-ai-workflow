@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "package_kind": "universal_runtime",
-  "revision": "2026.11.17-R10-schematic-preplacement-v1-draft",
+  "revision": "2026.11.18-R10-two-stage-first-use-draft",
   "active": [
     {
       "file": "scripts/assembly_guard.py",
@@ -240,13 +240,13 @@
       "version": "R10-single-writer-migration-1",
       "command": "python scripts/konnect_capabilities.py --help (discover/assess/fixture/invoke)",
       "input": "Real locally pinned Konnect executable, current MCP tools, external acceptance registry; isolated engineering candidate required for mutations",
-      "output": "Risk-ranked dynamically discovered MCP tool inventory and scope-bound fixture acceptance/operation receipts",
+      "output": "Dynamic first-use L1/L2 operation receipt, exact postcheck when supported; L3 fixture required",
       "exit_codes": {
         "0": "Discovery/read-only assessment or explicitly limited fixture/operation result; never manufacturing release",
         "2": "BLOCKED/unverified tool, invalid backend, missing or conflicting evidence"
       },
-      "validation_scope": "Offline fake-MCP unit tests; real KiCad GUI/Konnect integration and release gates not validated",
-      "sha256": "f5d9fc326ca2d71aea68f789c7a3d2bf05240277ed783a9a855258ee29d423ac"
+      "validation_scope": "Offline software tests only; live Konnect/KiCad integration remains unverified.",
+      "sha256": "d1c41e774475f66872beddde2e539c1ae38e9aad3f0a803dbee085c42cf4f92d"
     },
     {
       "file": "scripts/link_audit.py",
@@ -487,7 +487,7 @@
       "input": "Explicit project contracts; no inferred circuit/process values",
       "output": "Declared-scope reports or independent candidate; never implicit engineering approval",
       "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
-      "sha256": "e49016cafcf760314e103ff220264f7c2e01124e089653cca5ab6c0d1a559828",
+      "sha256": "eca1a039f9b3f73a7cd8b4398e53f0d5ed3efe5b1aad6a95691f84c65e688d21",
       "exit_codes": {
         "0": "Declared scope complete/preview; never automatic approval",
         "2": "BLOCKED; do not advance or manufacture"
@@ -631,13 +631,13 @@
     },
     {
       "file": "scripts/schematic_preplacement.py",
-      "sha256": "7f674aaf06cc72803bd9095b67521af9cb5d85cfb6f54b265a291bec474a9501",
+      "sha256": "aa3883705d56b2a0c287971ffd4f058fb2d09c709e9d34e8d42113cf4be05d5f",
       "version": "R10-preplacement-v1-preview",
       "command": "python scripts/schematic_preplacement.py /project --request REQUEST",
       "input": "Existing source-bound geometry, independently authored topology, exact project state; no guessed dimensions.",
-      "output": "Read-only bounded pre-placement plan or pre-write receipt validation; no KiCad edits.",
+      "output": "Bounded rotating placement and hard geometric checks; route/density advice, no writes",
       "exit_codes": {
-        "0": "Scoped read-only candidate validation only",
+        "0": "geometry-feasible or conditionally feasible placement plan; no engineering approval",
         "2": "BLOCKED: no write permitted"
       },
       "validation_scope": "Offline software fixtures; actual KiCad rendering and Konnect write enforcement require live acceptance."
@@ -657,11 +657,11 @@
     },
     {
       "file": "scripts/schematic_incremental_gate.py",
-      "sha256": "0484c7ad1afae3b521ef8be8dcc8b12b5f18bc29c370c27338a1a787a3f50bd0",
+      "sha256": "ac061cdfbb99dabd6246894876e4561ec552da2cd16cc433a0aad0eeaa5daedd",
       "version": "R10-preplacement-v1-preview",
       "command": "python scripts/schematic_incremental_gate.py /project --request REQUEST --receipt RECEIPT",
       "input": "Existing source-bound geometry, independently authored topology, exact project state; no guessed dimensions.",
-      "output": "Read-only bounded pre-placement plan or pre-write receipt validation; no KiCad edits.",
+      "output": "Fast SHA-bound receipt recheck without repeated A* or EDA writes",
       "exit_codes": {
         "0": "Scoped read-only candidate validation only",
         "2": "BLOCKED: no write permitted"

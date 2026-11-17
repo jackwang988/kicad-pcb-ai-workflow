@@ -157,20 +157,64 @@ class PrePlacementTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'off the declared'):self.check()
     def test_overly_long_traces_are_rejected_before_placement(self):
         self.req['max_trial_wire_length_mm']=10
-        r=self.check();self.assertEqual(r['status'],'BLOCKED')
+        r=self.check();self.assertEqual(r['status'],'PREPLACEMENT_GEOMETRY_READY_ROUTE_REVIEW_REQUIRED');self.assertIsNone(r['trial_routes'])
     def test_excessive_bends_block_under_strict_project_policy(self):
         sch=self.root/'main.kicad_sch';sch.write_text('(kicad_sch (paper "A4") (text (uuid "note")))')
         self.req['schematic_sha256']=sha(sch)
         self.geometry['pages']['main.kicad_sch']['schematic_sha256']=sha(sch)
         self.geometry['pages']['main.kicad_sch']['objects'].append({'uuid':'note','kind':'text','bbox_mm':[70,35,85,45]})
         self.req['max_trial_wire_bends']=0
-        r=self.check();self.assertEqual(r['status'],'BLOCKED')
+        r=self.check();self.assertEqual(r['status'],'PREPLACEMENT_FEASIBLE_FOR_DECLARED_GEOMETRY');self.assertTrue(all(x['bends']==0 for x in r['trial_routes']))
     def test_no_path_when_all_corridors_blocked(self):
         sch=self.root/'main.kicad_sch';sch.write_text('(kicad_sch (paper "A4") (text (uuid "wall")))')
         self.req['schematic_sha256']=sha(sch);self.geometry['pages']['main.kicad_sch']['schematic_sha256']=sha(sch)
         self.geometry['pages']['main.kicad_sch']['objects'].append({'uuid':'wall','kind':'text','bbox_mm':[70,1,75,160]})
         # Detour may remain possible above or below, a wall spanning full page height blocks.
         self.geometry['pages']['main.kicad_sch']['objects'][0]['bbox_mm']=[70,0,75,210]
-        self.assertEqual(self.check()['status'],'BLOCKED')
+        r=self.check();self.assertEqual(r['status'],'PREPLACEMENT_GEOMETRY_READY_ROUTE_REVIEW_REQUIRED');self.assertIsNone(r['trial_routes'])
+
+    def test_search_budget_exhaustion_is_replan_not_page_full(self):
+        self.req['symbols'][0]['candidate_positions_mm']=[[245,180],[40,40]]
+        self.req['search_budget']=1
+        result=self.check()
+        self.assertEqual(result['status'],'REPLAN_REQUIRED')
+        self.assertFalse(result['executed'])
+
+    def test_rotation_rescues_candidate_before_mcp_write(self):
+        doc=self.root/'main.kicad_sch'
+        doc.write_text('(kicad_sch (paper "A4") (text (uuid "existing-note")))')
+        self.req['schematic_sha256']=sha(doc)
+        self.geometry['pages']['main.kicad_sch']['schematic_sha256']=sha(doc)
+        self.geometry['pages']['main.kicad_sch']['objects'].append({'uuid':'existing-note','kind':'text','bbox_mm':[43,31,46,34]})
+        self.req['symbols'][0]['rotations_deg']=[0,90]
+        result=self.check()
+        self.assertEqual(result['status'],'PREPLACEMENT_FEASIBLE_FOR_DECLARED_GEOMETRY',result)
+        self.assertEqual(result['placements']['R1']['rotation_deg'],90)
+
+    def test_hash_gate_does_not_repeat_a_star_search(self):
+        import schematic_incremental_gate as gate
+        from unittest.mock import patch
+        result=self.check()
+        self.write('request.json',self.req)
+        result['request_sha256']=sha(self.root/'request.json')
+        receipt=Path(self.temp.name)/'receipt.json'
+        receipt.write_text(json.dumps(result))
+        with patch('schematic_preplacement.layout',side_effect=AssertionError('repeat A*')):
+            actual=gate.authorize(self.root,'request.json',receipt)
+        self.assertTrue(actual['allow_placement_batch'])
+        self.assertFalse(actual['allow_unverified_wiring'])
+
+    def test_conditional_route_does_not_grant_wiring_approval(self):
+        import schematic_incremental_gate as gate
+        self.req['max_trial_wire_length_mm']=10
+        result=self.check()
+        self.assertEqual(result['status'],'PREPLACEMENT_GEOMETRY_READY_ROUTE_REVIEW_REQUIRED')
+        self.write('request.json',self.req)
+        result['request_sha256']=sha(self.root/'request.json')
+        receipt=Path(self.temp.name)/'receipt.json'
+        receipt.write_text(json.dumps(result))
+        actual=gate.authorize(self.root,'request.json',receipt)
+        self.assertEqual(actual['status'],'PREPLACEMENT_GEOMETRY_CURRENT_WIRING_REVIEW_REQUIRED')
+        self.assertFalse(actual['allow_unverified_wiring'])
 
 if __name__=='__main__':unittest.main()

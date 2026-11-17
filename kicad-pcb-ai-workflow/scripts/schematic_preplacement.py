@@ -50,7 +50,7 @@ def validate_topology(root,plan):
 
 def proposed_candidates(symbol,grid,dims,limit):
     candidates=[]
-    rotations=symbol.get('rotations_deg',[0])
+    rotations=symbol.get('rotations_deg',[0,90,180,270])
     if not isinstance(rotations,list) or not rotations or len(set(rotations))!=len(rotations) or any(r not in (0,90,180,270) for r in rotations):
         raise ValueError('Only unique orthogonal rotations supported')
     if symbol.get('candidate_positions_mm') is not None:
@@ -187,17 +187,55 @@ def layout(root, plan):
     ordered=sorted(syms,key=lambda s:(len(proposed_candidates(s,grid,dims,limit)),
                                  -(rect(s['geometry']['body_bbox_mm'])[2]-rect(s['geometry']['body_bbox_mm'])[0])*(rect(s['geometry']['body_bbox_mm'])[3]-rect(s['geometry']['body_bbox_mm'])[1]),s['ref']))
     if not isinstance(ordered,list):raise ValueError('Invalid order')
-    attempts=0;selected={};routes_result=None;rejections={};selected_boxes={}
-    def build(index,filled):
-        nonlocal attempts,routes_result
-        if attempts>=budget:return False
-        if index==len(ordered):
+    attempts=0;selected={};rejections={};selected_boxes={}
+    # Tier 1: hard electrical/geometry constraints. Tier 2: advisory route and
+    # layout quality. Search within bounded limits; never mislabel a heuristic
+    # timeout as an electrically impossible design.
+    best=None
+    solutions=0
+    max_solutions=int(number(plan.get('max_scored_solutions',12),1,100,'max_scored_solutions'))
+    def evaluate():
+        nonlocal best,solutions
+        solutions+=1
+        try:
             routes_result=check_routes(selected,obstacles,connections=routes,fixed=fixed,grid=grid,width=width,dims=dims,pin_escape=pin_escape,
-                                      max_wire_length=max_wire_length,max_bends=max_bends)
-            return routes_result is not None
+                                       max_wire_length=max_wire_length,max_bends=max_bends)
+        except ValueError as exc:
+            # Routing-grid/resource limits are an inconclusive planning result.
+            routes_result=None
+            route_note='trial_route_resource_limit: '+str(exc)[:180]
+        else:
+            route_note='trial_route_failed_or_soft_limit' if routes_result is None else None
+        rotations_cost=0
+        for s in ordered:
+            r=selected[s['ref']]['rotation']
+            # Application-specific preferences win. For ordinary parts, evaluate
+            # all legal orientations instead of assuming every symbol stays at 0.
+            prefs=s.get('preferred_rotations_deg')
+            if prefs is None:
+                role=s.get('role','')
+                prefs=([90,270,0,180] if role in ('decoupling','pullup','pulldown','vertical_branch')
+                       else [0,180,90,270])
+            if (not isinstance(prefs,list) or set(prefs)-{0,90,180,270}
+                    or not prefs or len(prefs)!=len(set(prefs))):
+                raise ValueError('Invalid preferred_rotations_deg for '+s['ref'])
+            rotations_cost+=prefs.index(r) if r in prefs else 4
+        wire_len=sum(r['estimated_length_mm'] for r in routes_result) if routes_result else 0
+        bends=sum(r['bends'] for r in routes_result) if routes_result else 0
+        coords=[c['origin'] for c in selected.values()]
+        spread=(max(x for x,y in coords)-min(x for x,y in coords) + max(y for x,y in coords)-min(y for x,y in coords)) if len(coords)>1 else 0
+        # Lower score is better, but a valid trial route outranks layout elegance.
+        score=(0 if routes_result is not None else 1, round(wire_len+4*bends+2*rotations_cost+0.05*spread,5))
+        if best is None or score<best['score']:
+            best={'score':score,'selected':dict(selected),'routes':routes_result,'route_note':route_note}
+    def build(index,filled):
+        nonlocal attempts
+        if attempts>=budget or solutions>=max_solutions:return
+        if index==len(ordered):
+            evaluate();return
         s=ordered[index]
         for at,angle in proposed_candidates(s,grid,dims,limit):
-            if attempts>=budget:break
+            if attempts>=budget or solutions>=max_solutions:break
             attempts+=1
             try:
                 c=placements(s,at,angle,pin_escape,width)
@@ -211,43 +249,62 @@ def layout(root, plan):
             added += [(s['ref']+':label:'+num,b) for num,b,_ in c['labels']]
             added += [(s['ref']+':escape:'+num,b) for num,b in c['escapes'].items()]
             selected[s['ref']]=c
-            if build(index+1,filled+added):return True
+            build(index+1,filled+added)
             del selected[s['ref']]
-        return False
-    ok=build(0,obstacles)
-    if not ok:
-        return {'schema_version':1,'status':'BLOCKED','reason':'No complete collision-free placement AND trial-route found within bounded search',
+    build(0,obstacles)
+    if best is None:
+        return {'schema_version':1,'status':('REPLAN_REQUIRED' if attempts>=budget else 'BLOCKED'),
+                'reason':'No geometry-feasible candidate found in the bounded search; this does not prove the page is full',
                 'attempted':attempts,'search_budget':budget,'rejections':rejections,
                 'scope':'current declared geometry only','production_authorized':False,'executed':False}
+    selected=best['selected'];routes_result=best['routes']
     protected_area=sum((b[2]-b[0])*(b[3]-b[1]) for uid,b in pg['obstacles'] if uid.startswith('protected:'))
     free_area=dims[0]*dims[1]-protected_area
-    occupied=sum((b[2]-b[0])*(b[3]-b[1]) for uid,b in pg['obstacles'] if not uid.startswith('protected:'))
+    def union_area(rectangles):
+        # Do not count overlapping labels/escape reservations more than once.
+        edges=sorted({v for b in rectangles for v in (b[0],b[2])})
+        total=0.0
+        for left,right in zip(edges,edges[1:]):
+            intervals=sorted((b[1],b[3]) for b in rectangles if b[0]<right-1e-7 and b[2]>left+1e-7)
+            if not intervals:continue
+            low,high=intervals[0];height=0.0
+            for y0,y1 in intervals[1:]:
+                if y0<=high:high=max(high,y1)
+                else:height+=high-low;low,high=y0,y1
+            height+=high-low;total+=(right-left)*height
+        return total
+    all_boxes=[b for uid,b in pg['obstacles'] if not uid.startswith('protected:')]
     for c in selected.values():
-        occupied+=sum((b[2]-b[0])*(b[3]-b[1]) for name,b in c['objects'])
-        occupied+=sum((b[2]-b[0])*(b[3]-b[1]) for _,b,_ in c['labels'])
-        occupied+=sum((b[2]-b[0])*(b[3]-b[1]) for b in c['escapes'].values())
+        all_boxes.extend(b for name,b in c['objects'])
+        all_boxes.extend(b for _,b,_ in c['labels'])
+        all_boxes.extend(c['escapes'].values())
+    occupied=union_area(all_boxes)
     occupancy=occupied/free_area if free_area>0 else float('inf')
-    if occupancy>max_occupancy:
-        return {'schema_version':1,'status':'BLOCKED','reason':'Combined conservative page occupancy exceeds project threshold; repartition before writing',
-                'estimated_occupancy':round(occupancy,4),'threshold':max_occupancy,'executed':False,'production_authorized':False}
     for ref,c in selected.items():
         selected_boxes[ref]={'position_mm':list(c['origin']),'rotation_deg':c['rotation'],
                              'object_bbox_mm':{name:list(box) for name,box in c['objects']},
                              'reserved_labels':[{'pin':n,'bbox_mm':list(box),'kind':d['kind']} for n,box,d in c['labels']],
                              'pin_escape_mm':{n:list(box) for n,box in c['escapes'].items()}}
-    return {'schema_version':1,'status':'PREPLACEMENT_FEASIBLE_FOR_DECLARED_GEOMETRY',
+    warnings=[]
+    if occupancy>max_occupancy:warnings.append('DENSITY_ADVISORY: page occupancy exceeds soft target; check readability or repartition')
+    if routes_result is None:warnings.append('TRIAL_ROUTE_INCONCLUSIVE: geometry is clear, but electrical wiring must be independently completed and verified')
+    if attempts>=budget:warnings.append('SEARCH_BUDGET_REACHED: better candidate may exist; selected layout is not proven optimal')
+    status=('PREPLACEMENT_FEASIBLE_FOR_DECLARED_GEOMETRY' if routes_result is not None
+            else 'PREPLACEMENT_GEOMETRY_READY_ROUTE_REVIEW_REQUIRED')
+    return {'schema_version':1,'status':status,
             'page':plan['page'],'schematic':plan['schematic'],'schematic_sha256':plan['schematic_sha256'],
             'geometry_sha256':plan['geometry_sha256'],'topology_sha256':plan['topology_sha256'],
             'bindings':{**ev['files_sha256'],**ev['all_sheet_sha256'],plan['topology_file']:plan['topology_sha256']},
             'placements':selected_boxes,'trial_routes':routes_result,'attempted':attempts,
-            'estimated_occupancy':round(occupancy,4),'threshold':max_occupancy,
-            'scope':'bounded geometry/orthogonal routing plan, NOT native electrical or rendered visual acceptance',
+            'scored_solutions':solutions,'selection_score':list(best['score']),
+            'estimated_occupancy':round(occupancy,4),'threshold':max_occupancy,'warnings':warnings,
+            'route_note':best['route_note'],
+            'scope':'hard geometry checked; route/density are soft and require post-write verification',
             'limitations':['Geometry and current worksheet/text bounds are supplied and source-bound, not extracted or authenticated by this planner.',
                            'Trial routes are not actual KiCad wires; label anchors and native wire connectivity require readback.',
                            'Existing pins and net identity require independent native-netlist comparison after execution.',
                            'Konnect direct calls outside this wrapper cannot be prevented by this standalone script.'],
             'production_authorized':False,'executed':False}
-
 
 def check_routes(selected, existing, connections, fixed, grid, width, dims, pin_escape, max_wire_length, max_bends):
     obstacles=list(existing)
@@ -307,7 +364,7 @@ def run_cli():
                 raise ValueError('Receipt must be a NEW file inside 03_REPORTS or outside the project')
             with target.open('x',encoding='utf-8') as fh:json.dump(result,fh,ensure_ascii=False,indent=2)
         print(json.dumps(result,ensure_ascii=False,indent=2))
-        return 0 if result['status'].startswith('PREPLACEMENT_FEASIBLE') else 2
+        return 0 if result['status'].startswith('PREPLACEMENT_') else 2
     except (ValueError,KeyError,TypeError,OSError,OverflowError) as exc:
         print(json.dumps({'status':'BLOCKED','reason':str(exc),'executed':False,'production_authorized':False}))
         return 2

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Konnect MCP capability discovery, risk gates and isolated fixture acceptance.
+"""Konnect MCP capability discovery, bounded first-use execution and evidence.
 
 No published tool count or predefined functional allowlist is assumed.  Only
 Konnect may write a live board; this module never edits a KiCad file itself.
@@ -37,11 +37,11 @@ def sha(path):
 
 
 def risk(tool):
-    """Conservative name-only floor; unknown capabilities are high risk."""
+    """Conservative name-only risk floor; unknown capabilities stay L3."""
     name = tool['name']
     if DANGEROUS.search(name):return 'L3'
-    if DESIGN_HINTS.search(name):return 'L2'
     if name.startswith(READ_HINTS):return 'L0'
+    if DESIGN_HINTS.search(name):return 'L2'
     if EDIT_HINTS.search(name):return 'L1'
     return 'L3'
 
@@ -155,7 +155,10 @@ def assessment(registry, identity, tool, kicad_version, scope):
                 continue
             matched.append(rec)
     return {'tool':tool['name'],'risk':floor,'scope':scope,'tool_schema_sha256':toolhash,
-            'status':'ACCEPTED_WITHIN_RECORDED_SCOPE' if matched else ('DISCOVERED_READ_ONLY' if floor=='L0' else 'FIXTURE_REQUIRED'),
+            'status':('ACCEPTED_WITHIN_RECORDED_SCOPE' if matched else
+                     'DISCOVERED_READ_ONLY' if floor=='L0' else
+                     'FIRST_USE_POSTCHECK_REQUIRED' if floor in ('L1','L2') else
+                     'FIXTURE_REQUIRED'),
             'matching_acceptance_count':len(matched),'production_authorized':False}
 
 
@@ -320,47 +323,78 @@ def fixture(session, tool, arguments, identity, board, source_board, expected, r
             'note':'Fixture validation does not replace current-project ERC/DRC, SI/PI or engineer review.'}
 
 
-def invoke(session, tool, arguments, identity, board, original_board, scope, registry, save_after=False):
-    """Call exactly one discovered tool. Mutation requires fixture acceptance.
+def invoke(session, tool, arguments, identity, board, original_board, scope, registry,
+           save_after=False, expected=None):
+    """Perform ONE bounded Konnect operation; no blanket fixture prerequisite.
 
-    This runs only on an independent working copy of the original project.
-    The operation receipt is NOT a design, DRC, or manufacturing acceptance.
+    L1/L2 first use may execute with explicit apply, target protection, save,
+    post-state checks and a report. L3 still requires accepted isolated testing.
+    Tool advertisement is never treated as electrical, mechanical or visual proof.
+    An unrecognized operation may execute on the protected working candidate, but
+    its result is *not automatically accepted*: the host must review the outcome.
     """
     board=Path(board).resolve();original_board=Path(original_board).resolve()
     if not board.is_file() or not original_board.is_file() or board==original_board:
-        raise ValueError('Use an existing separate original and candidate board')
+        raise ValueError('Use an existing separate protected source and working board')
     if board.parent==original_board.parent or board.is_relative_to(original_board.parent):
-        raise ValueError('Refusing a write in the original project directory')
+        raise ValueError('Refusing a write in the protected original directory')
     validate_board_argument_paths(arguments,board,original_board)
     live=require_live_board(session,board,identity['eligible_kicad_versions'])
     kicad_version=live['editor_state']['kicad_version']['full_version']
     allow=assessment(registry,identity,tool,kicad_version,scope)
-    if allow['risk']!='L0' and allow['status']!='ACCEPTED_WITHIN_RECORDED_SCOPE':
-        raise ValueError('Operation not fixture-accepted in this binary/board/schema/scope: '+allow['status'])
-    before=sha(board)
-    original_before=sha(original_board)
-    # Unknown state after a timed-out write: do not auto-retry.
+    if allow['risk']=='L3' and allow['status']!='ACCEPTED_WITHIN_RECORDED_SCOPE':
+        raise ValueError('L3 destructive operation requires isolated acceptance or a separately verified scope')
+    if allow['risk']!='L0' and not save_after:
+        raise ValueError('Mutating operation requires --save-after so its actual file state can be checked')
+    before=sha(board);original_before=sha(original_board)
+    before_objects=None
+    before_board_text=None
+    if isinstance(expected,dict) and expected.get('kind')=='placement':
+        before_objects=inspect_saved_board(board)
+    elif isinstance(expected,dict) and expected.get('kind')=='zone_fill':
+        before_board_text=board.read_text(encoding='utf-8-sig')
     response=session.call(tool['name'],arguments)
-    after_live=require_live_board(session,board,identity['eligible_kicad_versions'])
+    if isinstance(response,dict) and response.get('isError') is True:
+        raise ValueError('Konnect reported operation error; inspect current editor state before retry')
+    require_live_board(session,board,identity['eligible_kicad_versions'])
     save_response=None
     if save_after and allow['risk']!='L0':
-        tools={t['name']:t for t in session.tools()}
-        if 'save_project' not in tools:raise ValueError('Cannot save: Konnect save_project not loaded')
+        save_tools={t['name']:t for t in session.tools()}
+        if 'save_project' not in save_tools:raise ValueError('Cannot independently save: load Konnect save_project tool')
         save_response=session.call('save_project')
+        if isinstance(save_response,dict) and save_response.get('isError') is True:
+            raise ValueError('Konnect save failed; inspect before retry')
         require_live_board(session,board,identity['eligible_kicad_versions'])
+    after=sha(board)
     if sha(original_board)!=original_before:
-        raise ValueError('Original board unexpectedly changed during operation')
-    if allow['risk']=='L0' and sha(board)!=before:
-        raise ValueError('Read-only tool unexpectedly changed the saved candidate')
-    return {'schema_version':1,'status':'OPERATION_EXECUTED_REQUIRES_PROJECT_REVIEW',
+        raise ValueError('Protected source unexpectedly changed; stop and recover')
+    if allow['risk']=='L0' and after!=before:
+        raise ValueError('Read-only tool unexpectedly changed the saved working board')
+    verified=None
+    if allow['risk']!='L0' and after!=before:
+        if isinstance(expected,dict) and expected.get('kind')=='placement':
+            verified=verify_fixture_change(before_objects,inspect_saved_board(board),expected)
+        elif isinstance(expected,dict) and expected.get('kind')=='zone_fill':
+            verified=verify_zone_fill_change(before_board_text,board,expected)
+    ready=(verified is not None or allow['status']=='ACCEPTED_WITHIN_RECORDED_SCOPE') and (after!=before or allow['risk']=='L0')
+    outcome=('OPERATION_EXECUTED_REQUIRES_PROJECT_REVIEW' if ready else
+             'OPERATION_EXECUTED_NEEDS_POSTCHECK' if after!=before else
+             'NO_SAVED_CHANGE_REVIEW_REQUIRED')
+    return {'schema_version':1,'status':outcome,
             'tool':tool['name'],'tool_schema_sha256':tool_schema_hash(tool),
             'risk':allow['risk'],'scope':scope,'backend':identity,
             'kicad_version':kicad_version,'board':str(board),
             'original_board':str(original_board),'original_sha256':original_before,
-            'board_before_sha256':before,'board_after_sha256':sha(board),
+            'board_before_sha256':before,'board_after_sha256':after,
             'save_requested':bool(save_after),'save_completed':save_response is not None,
-            'mcp_response_sha256':digest_bytes(canonical(body(response)).encode()),'production_authorized':False,
-            'limitations':['MCP success is not KiCad DRC pass','Tool outcome must be compared with actual expected geometry/network changes',
+            'capability_status':allow['status'],'verified_change':verified,
+            'mcp_response_sha256':digest_bytes(canonical(body(response)).encode()),
+            'next_step':('Independent current-project DRC/netlist and visual/object review; '
+                         'only then continue with the next operation batch'),
+            'production_authorized':False,
+            'limitations':['MCP success is not native DRC/ERC pass',
+                           'Unrecognized operation changes are not automatically accepted',
+                           'No silent retry of ambiguous or timed-out writes',
                            'No CAM/EQ/manufacturing signoff']}
 
 
@@ -389,7 +423,7 @@ def main():
     p.add_argument('--board')
     p.add_argument('--source-board')
     p.add_argument('--arguments',help='Existing UTF-8 JSON object for one actual MCP tool invocation')
-    p.add_argument('--expected',help='Existing JSON expected placement/allowed footprint changes')
+    p.add_argument('--expected',help='Optional expected state for post-write verification; required for isolated fixture acceptance')
     p.add_argument('--kicad-cli',default='kicad-cli')
     p.add_argument('--apply',action='store_true',help='Required for fixture/invoke; explicit candidate write authorization')
     p.add_argument('--save-after',action='store_true',help='After one accepted mutating tool call, explicitly call Konnect save_project')
@@ -419,8 +453,8 @@ def main():
                     report={**assessment(registry,identity,tool,live['editor_state']['kicad_version']['full_version'],args.scope),
                             'backend':identity,'board':str(Path(args.board).resolve())}
                 else:
-                    if not all((args.board,args.source_board,args.arguments,args.registry)):
-                        raise ValueError('Fixture/invoke needs separate source/candidate, tool arguments and registry')
+                    if not all((args.board,args.source_board,args.arguments)):
+                        raise ValueError('Mutation requires protected source, active candidate and tool arguments')
                     arguments=json.loads(Path(args.arguments).read_text(encoding='utf-8'))
                     if not isinstance(arguments,dict):raise ValueError('Tool arguments must be a JSON object')
                     # API drift is not silently tolerated.
@@ -431,14 +465,14 @@ def main():
                     validate_json(instance=arguments,schema=tool.get('inputSchema',{}))
                     out.mkdir(parents=True,exist_ok=False)
                     if args.command=='fixture':
-                        if not args.expected:raise ValueError('Fixture requires explicit expected geometry')
+                        if not args.expected or not args.registry:raise ValueError('Fixture requires explicit expected geometry and registry')
                         expected=json.loads(Path(args.expected).read_text(encoding='utf-8'))
                         if not isinstance(expected,dict):raise ValueError('Fixture expected must be a JSON object')
                         report=fixture(session,tool,arguments,identity,args.board,args.source_board,expected,args.registry,
                                        registry,args.scope,args.kicad_cli,out)
                     else:
                         report=invoke(session,tool,arguments,identity,args.board,args.source_board,args.scope,
-                                      registry,save_after=args.save_after)
+                                      registry,save_after=args.save_after,expected=(json.loads(Path(args.expected).read_text(encoding='utf-8')) if args.expected else None))
     except Exception as exc:
         report={'status':'BLOCKED','reason':str(exc),'production_authorized':False,
                 'note':'No automatic backend fallback. If a write timed out, inspect candidate before retry.'}

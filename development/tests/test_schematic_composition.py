@@ -32,6 +32,13 @@ class CompTest(unittest.TestCase):
   return audit(self.root,'main.kicad_sch','style.json')
  def test_good_project_still_needs_visual_review(self):
   a=self.go();self.assertEqual(a['findings'],[]);self.assertEqual(a['status'],'DECLARED_STRUCTURE_CHECKS_COMPLETE');self.assertIn('GEOMETRY_SCREENED_REQUIRES_RENDER_REVIEW',[x.get('status') for x in a['checks']]);self.assertFalse(a['production_authorized'])
+ def test_dense_but_clear_page_is_advisory(self):
+  self.doc.write_text(self.doc.read_text().removesuffix(')')+' (text (uuid "large-note")))')
+  self.boxes.append({'uuid':'large-note','kind':'text','bbox_mm':[10,85,205,150]})
+  result=self.go(lambda policy,geometry:policy['partition'].update(max_occupancy=0.2))
+  self.assertFalse(any(f['rule']=='SHEET_PARTITION_POLICY.CAPACITY' for f in result['findings']))
+  self.assertTrue(any(c.get('status')=='DENSITY_ADVISORY' for c in result['checks']))
+
  def test_title_block_overlap(self):
   self.boxes[2]['bbox_mm']=[230,180,250,205]
   r=self.go();self.assertIn('TITLE_BLOCK_CLEAR',[x['rule'] for x in r['findings']]);self.assertEqual(r['status'],'BLOCKED')

@@ -163,7 +163,8 @@ def _composition(root, trees, spec, inputs):
         # Summing bounding areas overestimates overlap; it is only a density trigger.
         ratio=d['occupied_area']/d['usable_area']
         if ratio>max_occupancy:
-            risk('SHEET_PARTITION_POLICY.CAPACITY',page,'Conservative occupancy estimate exceeds configured threshold','Re-layout, enlarge page or move functions to a subsheet; preserve native nets.')
+            checks.append({'rule':'SHEET_PARTITION_POLICY.CAPACITY','page':page,'status':'DENSITY_ADVISORY',
+                           'recommendation':'Evaluate readability, alternate orientations or another sheet; density alone cannot block a collision-free design.'})
         checks.append({'rule':'SHEET_PARTITION_POLICY','page':page,'occupancy_upper_estimate':round(ratio,4),
                        'threshold':max_occupancy,'scope':'heuristic_not_native_visual_or_electrical_acceptance'})
     return findings,checks

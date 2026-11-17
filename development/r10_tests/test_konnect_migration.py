@@ -62,6 +62,7 @@ class MigrationTests(unittest.TestCase):
     def test_unknown_tool_appears_but_high_risk(self):
         self.assertEqual(kc.risk({'name':'new_future_tool'}),'L3')
         self.assertEqual(kc.risk({'name':'get_editor_state'}),'L0')
+        self.assertEqual(kc.risk({'name':'get_schematic_info'}),'L0')
         self.assertEqual(kc.assessment(kc.empty_registry(),self.identity,{'name':'new_future_tool'},'10.0.8','new')['status'],'FIXTURE_REQUIRED')
 
     def test_matching_acceptance_requires_exact_build_schema_kicad_scope(self):
@@ -76,11 +77,11 @@ class MigrationTests(unittest.TestCase):
                        'native_drc':{'returncode':0,'report_sha256':kc.sha(drc_path),'report_path':str(drc_path)}})
         registry={'schema_version':1,'kind':'konnect_capability_acceptance','records':[record]}
         self.assertEqual(kc.assessment(registry,self.identity,self.move,'10.0.8','placement:QFN32:v1')['status'],'ACCEPTED_WITHIN_RECORDED_SCOPE')
-        self.assertEqual(kc.assessment(registry,self.identity,self.move,'10.0.8','placement:QFN48:v1')['status'],'FIXTURE_REQUIRED')
+        self.assertEqual(kc.assessment(registry,self.identity,self.move,'10.0.8','placement:QFN48:v1')['status'],'FIRST_USE_POSTCHECK_REQUIRED')
         altered={**self.move,'inputSchema':{'type':'object','required':['other']}}
-        self.assertEqual(kc.assessment(registry,self.identity,altered,'10.0.8','placement:QFN32:v1')['status'],'FIXTURE_REQUIRED')
-        self.assertEqual(kc.assessment(registry,{**self.identity,'version':'0.15'},self.move,'10.0.8','placement:QFN32:v1')['status'],'FIXTURE_REQUIRED')
-        self.assertEqual(kc.assessment(registry,self.identity,self.move,'10.0.9','placement:QFN32:v1')['status'],'FIXTURE_REQUIRED')
+        self.assertEqual(kc.assessment(registry,self.identity,altered,'10.0.8','placement:QFN32:v1')['status'],'FIRST_USE_POSTCHECK_REQUIRED')
+        self.assertEqual(kc.assessment(registry,{**self.identity,'version':'0.15'},self.move,'10.0.8','placement:QFN32:v1')['status'],'FIRST_USE_POSTCHECK_REQUIRED')
+        self.assertEqual(kc.assessment(registry,self.identity,self.move,'10.0.9','placement:QFN32:v1')['status'],'FIRST_USE_POSTCHECK_REQUIRED')
 
     def test_workflow_konnect_write_requires_explicit_apply(self):
         options={'konnect_executable':'/verified/konnect.exe',
@@ -108,7 +109,7 @@ class MigrationTests(unittest.TestCase):
                          'ACCEPTED_WITHIN_RECORDED_SCOPE')
         drc_path.write_text('Changed evidence',encoding='utf-8')
         self.assertEqual(kc.assessment(registry,self.identity,self.move,'10.0.8','placement:unit:v1')['status'],
-                         'FIXTURE_REQUIRED')
+                         'FIRST_USE_POSTCHECK_REQUIRED')
 
     def test_saved_footprint_lock_and_position_without_pcbnew(self):
         self.assertEqual(kc.inspect_saved_board(self.can_board)['U1']['x'],10)
@@ -125,13 +126,69 @@ class MigrationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'Only placement'):
             kc.verify_fixture_change(before,after,{'kind':'routing','placements':{'U1':{'x':25,'y':30,'rotation':0}}})
 
-    def test_invoke_unaccepted_write_blocks_before_tool_call(self):
-        class FailCall:
-            def call(self,*args,**kwargs):raise AssertionError('Unapproved tool call must not execute')
+    def test_first_use_without_prior_fixture_saves_and_checks_expected_state(self):
+        class FakeCall:
+            def __init__(self,target):self.target=target;self.calls=[]
+            def call(self,name,args=None):
+                self.calls.append(name)
+                if name=='save_project':self.target.write_text(board(x=25,y=30))
+                return {'structuredContent':{'ok':True}}
+            def tools(self):return [{'name':'save_project'}]
+        fake=FakeCall(self.can_board)
         with patch.object(kc,'require_live_board',return_value={'editor_state':{'kicad_version':{'full_version':'10.0.8'}}}):
-            with self.assertRaisesRegex(ValueError,'not fixture-accepted'):
-                kc.invoke(FailCall(),self.move,{'reference':'U1'},self.identity,self.can_board,self.src_board,'placement:test',kc.empty_registry())
-        self.assertEqual(kc.sha(self.src_board),kc.sha(self.can_board))
+            r=kc.invoke(fake,self.move,{'reference':'U1'},self.identity,self.can_board,
+                        self.src_board,'placement:test',kc.empty_registry(),save_after=True,
+                        expected={'kind':'placement','placements':{'U1':{'x':25,'y':30,'rotation':0}}})
+        self.assertEqual(r['capability_status'],'FIRST_USE_POSTCHECK_REQUIRED')
+        self.assertEqual(r['status'],'OPERATION_EXECUTED_REQUIRES_PROJECT_REVIEW')
+        self.assertEqual(r['verified_change']['expected_moved'],['U1'])
+        self.assertEqual(fake.calls,['move_component','save_project'])
+
+    def test_unknown_edit_is_not_auto_accepted_or_retried(self):
+        class FakeCall:
+            def __init__(self,target):self.target=target
+            def call(self,name,args=None):
+                if name=='save_project':self.target.write_text(board(x=25,y=30))
+                return {'structuredContent':{'ok':True}}
+            def tools(self):return [{'name':'save_project'}]
+        with patch.object(kc,'require_live_board',return_value={'editor_state':{'kicad_version':{'full_version':'10.0.8'}}}):
+            r=kc.invoke(FakeCall(self.can_board),self.move,{'reference':'U1'},self.identity,
+                        self.can_board,self.src_board,'placement:unknown',kc.empty_registry(),save_after=True)
+        self.assertEqual(r['status'],'OPERATION_EXECUTED_NEEDS_POSTCHECK')
+        self.assertIsNone(r['verified_change'])
+
+    def test_L3_destructive_still_requires_isolated_fixture(self):
+        class Fail:
+            def call(self,*a,**kw):raise AssertionError('No destructive tool invocation')
+        with patch.object(kc,'require_live_board',return_value={'editor_state':{'kicad_version':{'full_version':'10.0.8'}}}):
+            with self.assertRaisesRegex(ValueError,'L3 destructive'):
+                kc.invoke(Fail(),{'name':'delete_all_components'}, {},self.identity,
+                          self.can_board,self.src_board,'L3:delete',kc.empty_registry(),save_after=True)
+
+    def test_edit_without_save_is_rejected_before_call(self):
+        class Fail:
+            def call(self,*a,**kw):raise AssertionError('No edit before save authorization')
+        with patch.object(kc,'require_live_board',return_value={'editor_state':{'kicad_version':{'full_version':'10.0.8'}}}):
+            with self.assertRaisesRegex(ValueError,'save-after'):
+                kc.invoke(Fail(),self.move,{'reference':'U1'},self.identity,self.can_board,
+                          self.src_board,'placement:test',kc.empty_registry())
+
+    def test_first_use_zone_fill_verifies_saved_polygons(self):
+        before='(kicad_pcb (zone (net 1) (name "GND")))'
+        after='(kicad_pcb (zone (net 1) (name "GND") (filled_polygon (pts (xy 0 0)))))'
+        self.src_board.write_text(before);self.can_board.write_text(before)
+        class Fake:
+            def __init__(self,target):self.target=target
+            def call(self,name,args=None):
+                if name=='save_project':self.target.write_text(after)
+                return {'structuredContent':{'ok':True}}
+            def tools(self):return [{'name':'save_project'}]
+        with patch.object(kc,'require_live_board',return_value={'editor_state':{'kicad_version':{'full_version':'10.0.8'}}}):
+            r=kc.invoke(Fake(self.can_board),{'name':'fill_zones'}, {'board':str(self.can_board)},self.identity,
+                        self.can_board,self.src_board,'zone:GND',kc.empty_registry(),save_after=True,
+                        expected={'kind':'zone_fill','min_filled_polygons':1})
+        self.assertEqual(r['status'],'OPERATION_EXECUTED_REQUIRES_PROJECT_REVIEW')
+        self.assertEqual(r['verified_change']['kind'],'zone_fill')
 
     def test_legacy_workflow_edit_blocked_without_bundle(self):
         with self.assertRaisesRegex(ValueError,'LEGACY_WRITE_DISABLED'):
