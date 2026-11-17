@@ -1,3 +1,7 @@
 # Core Python scripts and software tests use the standard library.
 # Install KiCad 10.0.7 and its matching pcbnew bindings through the target installation.
 # PDF source extraction may require the external pdftotext command.
+
+# Required only for Konnect MCP mutation argument schema validation.
+# Install into the same Python environment running konnect_capabilities.py.
+jsonschema>=4.18,<5

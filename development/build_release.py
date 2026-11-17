@@ -56,7 +56,7 @@ def validate(core):
             for node in ast.walk(tree):
                 names = [a.name.split('.')[0] for a in node.names] if isinstance(node, ast.Import) else [node.module.split('.')[0]] if isinstance(node, ast.ImportFrom) and node.module else []
                 for name in names:
-                    if name in sys.stdlib_module_names or name in ('pcbnew','_pcbnew','ctypes'):
+                    if name in sys.stdlib_module_names or name in ('pcbnew','_pcbnew','ctypes','jsonschema'):
                         continue
                     if name not in tools:
                         raise ValueError('Unbundled runtime import: ' + name)
