@@ -44,7 +44,7 @@ def signature(cli=None):
             'configuration_sha256':digest({k:os.getenv(k) for k in ('PATH','PYTHONPATH','PYTHONHOME','KICAD_CONFIG_HOME','KICAD10_SYMBOL_DIR','KICAD10_FOOTPRINT_DIR')}),
             'files_sha256':files,'cli_version':env.get('cli_version'),'pcbnew_version':env.get('pcbnew_version')},env
 
-def setup(project,schematic,board,project_file,output,cli=None,apply=False,cli_only=True):
+def setup(project,schematic,board,project_file,output,cli=None,apply=False,cli_only=False):
     project=Path(project).resolve();out=Path(output).resolve();sig,env=signature(cli)
     plan={'status':'PREVIEW','production_authorized':False,'environment':env,
           'project':str(project),'report_dir':str(out),'inputs':{'schematic':schematic,'board':board,'project_file':project_file},

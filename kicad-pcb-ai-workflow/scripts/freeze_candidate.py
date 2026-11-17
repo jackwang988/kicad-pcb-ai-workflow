@@ -105,6 +105,14 @@ def finalize(candidate_dir, board_relative, operation_report, cli='kicad-cli'):
     return result
 
 
+
+# Read-only compatibility for legacy R9.4 callers. The old pcbnew writer has
+# deliberately not been restored: explicit --apply must use prepare()/Konnect.
+def freeze(project, board_relative, destination, apply=False):
+    if apply:
+        raise ValueError('Legacy freeze write is disabled; use prepare() and approved Konnect handoff')
+    return prepare(project, board_relative, destination, apply=False)
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('project',help='Original project for prepare; candidate directory for --finalize')

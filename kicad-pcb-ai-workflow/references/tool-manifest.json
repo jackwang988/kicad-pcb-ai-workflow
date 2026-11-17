@@ -109,7 +109,7 @@
         "2": "BLOCKED or FULL_SETUP_REQUIRED"
       },
       "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
-      "sha256": "9a9396f8ff2661746fadd54ae8c5badc9f94cc430b2d135cbf1190c5600ff257"
+      "sha256": "17bfabd63bb6fdab8a137b33d739bd9548c246a7b933faa5dcebd52ae8a7b99b"
     },
     {
       "file": "scripts/freerouting_adapter.py",
@@ -126,7 +126,7 @@
     },
     {
       "file": "scripts/freeze_candidate.py",
-      "sha256": "bd268b67e9745dfb2cdf8dbd3b60f77f37c12cfa0fbf49f89837aa5d37f740ee",
+      "sha256": "d3d5de670c7c5f5114a37bb9569ee5c4615993194cbd40dc38224d22e9af85ff",
       "version": "R10.0-alpha.3",
       "command": "python3 scripts/freeze_candidate.py --help",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",

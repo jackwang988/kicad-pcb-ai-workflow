@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-SKILL=Path(__file__).resolve().parents[1]
+SKILL=Path(__file__).resolve().parents[2] / 'kicad-pcb-ai-workflow'
 sys.path.insert(0,str(SKILL/'scripts'))
 import konnect_capabilities as kc
 import konnect_backend as kb

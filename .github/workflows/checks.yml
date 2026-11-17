@@ -12,5 +12,7 @@ jobs:
           python-version: '3.12'
       - name: Test software contracts and package isolation
         run: python -B -m unittest discover -s development/tests -v
+      - name: R10 cache and Konnect migration software regressions
+        run: python -B -m unittest discover -s development/r10_tests -v
       - name: Validate standalone Skill and preview distribution
         run: python -B development/build_release.py --output-dir /tmp/kicad-release-preview

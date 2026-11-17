@@ -47,9 +47,9 @@ def validate(core):
         relative = p.relative_to(core)
         if p.name != 'SKILL.md' and relative.parts[0] == 'scripts' and (len(relative.parts) != 2 or p.suffix != '.py'):
             raise ValueError('Unexpected runtime script payload')
-        if relative.parts[0] == 'assets' and (len(relative.parts) != 2 or not p.name.endswith('.template.json')):
+        if relative.parts[0] == 'assets' and (len(relative.parts) != 2 or not (p.name.endswith('.template.json') or p.name.endswith('.example.json'))):
             raise ValueError('Only generic templates belong in runtime assets')
-        if relative.parts[0] == 'references' and (len(relative.parts) != 2 or p.suffix not in ('.md','.json')):
+        if relative.parts[0] == 'references' and ((len(relative.parts) < 2 or (len(relative.parts) > 2 and relative.parts[1] != 'high-speed') or p.suffix not in ('.md','.json'))):
             raise ValueError('Historical/build data in runtime references')
         if p.suffix == '.py':
             tree = ast.parse(p.read_bytes(), filename=str(p))
