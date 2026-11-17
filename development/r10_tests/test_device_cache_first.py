@@ -230,7 +230,7 @@ class CacheFirstTests(unittest.TestCase):
         self.assertEqual(packet['documents'][0]['text_origin'],'verified_project_device_cache')
         brief=json.loads((self.root/'g1-packet'/'device-knowledge-brief.json').read_text())
         self.assertEqual(brief['devices'][0]['items'][0]['item_id'],'power-vcc')
-        self.assertIn('先读packet.json中的device_knowledge_brief',
+        self.assertIn('Read the verified device-card brief referenced by packet.json/device_knowledge_brief first',
                       (self.root/'g1-packet'/'review-request.md').read_text(encoding='utf-8'))
 
     def test_no_overwriting_resolved_file(self):
