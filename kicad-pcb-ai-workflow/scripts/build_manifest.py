@@ -13,7 +13,7 @@ from engineering_gate import local
 
 def collect(project,config,candidate,records,level='D0',apply=False,cli=None):
     project=Path(project).resolve();config=Path(config).resolve();candidate=Path(candidate).resolve()
-    cfg=finite_tree(json.loads(config.read_text()));approved=finite_tree(json.loads(Path(records).read_text()))
+    cfg=finite_tree(json.loads(config.read_text(encoding='utf-8-sig')));approved=finite_tree(json.loads(Path(records).read_text(encoding='utf-8-sig')))
     output=candidate/'build-manifest.json'
     if output.exists():raise ValueError('Build manifest exists; overwrite forbidden')
     if not candidate.is_dir():raise ValueError('Existing isolated candidate directory required')
@@ -21,7 +21,7 @@ def collect(project,config,candidate,records,level='D0',apply=False,cli=None):
     if level=='D2' and design['blocked']:raise ValueError('Design gates have unresolved blocking findings')
     sources={str(Path(p).relative_to(project)):h for p,h in design['inputs_sha256'].items() if Path(p).is_relative_to(project)}
     if cfg.get('engineering_profile'):
-        profile=json.loads(local(project,cfg['engineering_profile']).read_text())
+        profile=json.loads(local(project,cfg['engineering_profile']).read_text(encoding='utf-8-sig'))
         # Include CAM/EQ review evidence deferred by pre_export, for subsequent release matching.
         for item in profile.get('reviews',{}).values():
             for rec in item.get('evidence',[]):
@@ -62,5 +62,13 @@ def main():
     try:r=collect(a.project,a.config,a.candidate_dir,a.records,a.level,a.apply,a.kicad_cli)
     except Exception as e:print(json.dumps({'status':'BLOCKED','reason':str(e)},ensure_ascii=False));return 2
     print(json.dumps(r,ensure_ascii=False,indent=2));return 0
+
+if __name__ == '__main__':
+    # JSON/text CLI protocol is UTF-8 on every platform, including Windows.
+    import sys as _stdio_sys
+    for _stdio_stream in (_stdio_sys.stdout, _stdio_sys.stderr):
+        if hasattr(_stdio_stream, 'reconfigure'):
+            _stdio_stream.reconfigure(encoding='utf-8')
+
 
 if __name__=='__main__':raise SystemExit(main())

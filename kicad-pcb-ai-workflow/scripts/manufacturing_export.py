@@ -52,7 +52,7 @@ def export(root,config_file,destination,apply=False,cli=None):
     result={'status':'PREVIEW','production_authorized':False,'scope':'isolated_manufacturing_candidate_only','commands':plan,'remaining':['native current design gates before export','actual CAM, factory EQ, assembly review and authorized release']}
     if not apply:return result
     if not cfg.get('workflow_contract') or not cfg.get('schematic_style',{}).get('policy'):raise ValueError('R9 export requires project workflow contract and schematic style policy; legacy config is diagnostic only')
-    if not pair_compatible(env):raise ValueError('Matching stable KiCad 10.0.x CLI and pcbnew required; native manufacturing gates must also pass')
+    if not pair_compatible(env):raise ValueError('MIGRATION_PENDING: full native geometry/NetClass review still needs an independently validated equivalent to pcbnew read-only API; no manufacturing export bypass')
     if not patch_native_ready(env, cli):raise ValueError('Non-baseline KiCad patch requires current environment.setup --apply state in KICAD_PATCH_STARTUP_STATE')
     report=evaluate(root,config_file,'mass_production','pre_export',cli,False,None)
     if report['blocked']:return {**result,'status':'BLOCKED','reason':'Current pre-export gates failed','findings':report['findings'],'commands_executed':[]}
@@ -92,10 +92,18 @@ def export(root,config_file,destination,apply=False,cli=None):
             if p.is_dir():shutil.rmtree(p)
             else:p.unlink()
         result.update(status='BLOCKED',reason=str(e),findings=[blocking('EXPORT.CANDIDATE',e)],commands_executed=logs)
-    (out/'export-result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n');return result
+    (out/'export-result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n', encoding='utf-8');return result
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('project');p.add_argument('--config',required=True);p.add_argument('--destination',required=True);p.add_argument('--kicad-cli');p.add_argument('--apply',action='store_true');a=p.parse_args()
     try:r=export(a.project,a.config,a.destination,a.apply,a.kicad_cli);print(json.dumps(r,ensure_ascii=False,indent=2));return 2 if r['status']=='BLOCKED' else 0
     except Exception as e:print(json.dumps({'status':'BLOCKED','reason':str(e),'production_authorized':False,'findings':[blocking('INPUT.CONTRACT',e)]},ensure_ascii=False));return 2
+if __name__ == '__main__':
+    # JSON/text CLI protocol is UTF-8 on every platform, including Windows.
+    import sys as _stdio_sys
+    for _stdio_stream in (_stdio_sys.stdout, _stdio_sys.stderr):
+        if hasattr(_stdio_stream, 'reconfigure'):
+            _stdio_stream.reconfigure(encoding='utf-8')
+
+
 if __name__=='__main__':raise SystemExit(main())

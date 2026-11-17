@@ -1,5 +1,16 @@
 # 可选 Freerouting v2.5.0 适配器（实验性）
 
+## local.5的两条执行路径
+
+- **首选可选MCP路径**：Konnect-EDA 0.14.1调用`check_freerouting`确认engine/native MCP/bridge都ready后，按实际schema执行`export_specctra_dsn`→`route_specctra_dsn`→`plan_specctra_ses_import`→`apply_specctra_ses`，只写新的PCB候选，随后独立原生检查。在两器件夹具中已验证无新增DRC问题、必要未连接为零；其他板型不自动继承通过。
+- **下面保留的旧CLI脚本**：仍只负责已有DSN到新SES，导出、回导和原生验收不由该脚本执行。不要把MCP路径的实测能力记到旧CLI上。
+
+本机测试使用Freerouting 2.5.0 JAR及独立Temurin Java25；实测Java21不能运行该JAR。使用本机安装记录中的明确Java/JAR路径和哈希，不修改系统默认Java，不随Skill分享程序。Konnect服务器工作目录中的freerouting.jar可被发现，或通过工具的jar_path显式指定；没有通用config.jar_path参数。
+
+Rust DSN导出默认使用native_bridge_mode=disable，认证的KiCad原生导出桥未验收，不依赖它。已锁定直线/通孔等支持范围按实际版本核对；未锁定既有走线、弧、铜区或其他不支持几何不得删除/降级来适配导出。脚本优先规划和关键网络保护继续生效；这个兜底不替代高速、差分、功率或RF专项。
+
+以下章节描述旧CLI适配器本身。
+
 适用范围：**已布局的 KiCad PCB → 用户在 KiCad PCB Editor 导出 Specctra DSN → Freerouting CLI 产生 SES → 用户在 KiCad PCB Editor 导入 SES → 原生 DRC/逐层审查**。
 
 不随 Skill 捆绑 Java 或 Freerouting，也不添加必需安装依赖。未安装/未识别 v2.5.0 时输出 `MANUAL_ROUTING_FALLBACK`，继续原有 KiCad 人工交互布线。适配器是**独立可选命令**，现已登记进运行时工具白名单，但**未作为强制执行任务**，不能声称已进入 R9 的统一工作流门禁。

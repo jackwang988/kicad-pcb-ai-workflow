@@ -17,6 +17,9 @@ CATEGORIES=('requirements','schematic','footprints','stackup','signal_integrity'
             'thermal','safety','manufacturing','assembly','cam','factory_eq','validation_plan','change_control')
 
 def local(project,name):
+    project=Path(project)
+    if any(x.is_symlink() for x in (project,*project.parents)):raise ValueError('Symlinked project parent')
+    project=project.resolve()
     original=project/name;p=original.resolve()
     if original.is_symlink() or not p.is_relative_to(project):raise ValueError('Unsafe input/evidence path: '+str(name))
     if any(x.is_symlink() for x in original.parents if x!=project.parent):raise ValueError('Symlinked parent')
@@ -41,7 +44,25 @@ def inspect_inventory(r):
     except Exception as e:r.risk('TOOLS.INVENTORY','npi','阻断级',str(e),fix='恢复批准版本工具；缺脚本或工具合同不完整不得放行。')
 
 def inspect(r,project,config,candidate,board_path=None):
+    project=local(Path(project),'.')
     inspect_inventory(r)
+    if config.get('require_high_speed_review') or config.get('high_speed_policy'):
+        inspect_high_speed(r, project, config, board_path)
+    if config.get('resource_lock'):
+        try:
+            from resource_guard import check as resource_check
+            lock=local(project,config['resource_lock']);result=resource_check(project,lock)
+            r.inputs[str(lock)]=sha256(lock)
+            r.inputs.update({str(local(project,k)):v for k,v in result['inputs_sha256'].items()})
+            r.evidence.append({'resource_consistency':result})
+            for stage in ('schematic','pcb'):
+                record=config['static_ai_reviews'][stage]
+                packet=json.loads((local(project,record['packet'])/'packet.json').read_text(encoding='utf-8-sig'))
+                if packet['config'].get('resource_lock')!=config['resource_lock']:
+                    raise ValueError('Resource lock differs from current confirmed '+stage+' review')
+            r.check('RESOURCES.CONSISTENCY','completed','Project resource lock rechecked; manufacturer/G2 approval remains independent')
+        except Exception as e:
+            r.risk('RESOURCES.CONSISTENCY','npi','阻断级',str(e),fix='重新核对项目资源及来源，生成新锁定并刷新受影响评审；不复用过期G2证据。')
     from design_intent_audit import integrate as intent_integrate
     intent_integrate(r,project,config)
     from static_review_gate import integrate as static_ai_integrate
@@ -56,7 +77,7 @@ def inspect(r,project,config,candidate,board_path=None):
             from schematic_style import audit as style_audit
             style=style_audit(project,config['inputs']['schematic'],config['schematic_style']['policy']);r.inputs.update(style['inputs_sha256'])
             for f in style['findings']:r.risk(f['rule'],'schematic',f['level'],f['description'],f['location'],f['reference'],f['suggestion'])
-            record=config['static_ai_reviews']['schematic'];packet_path=local(project,record['packet'])/'packet.json';packet=json.loads(packet_path.read_text())
+            record=config['static_ai_reviews']['schematic'];packet_path=local(project,record['packet'])/'packet.json';packet=json.loads(packet_path.read_text(encoding='utf-8-sig'))
             if packet['config'].get('schematic_style')!=config['schematic_style'] or packet['config'].get('require_schematic_style') is not True:raise ValueError('R9 style policy differs from confirmed schematic review')
             if config.get('require_system_integration') is not True or not config.get('system_integration',{}).get('contract'):
                 raise ValueError('R9 workflow requires a system architecture/interface contract')
@@ -64,9 +85,9 @@ def inspect(r,project,config,candidate,board_path=None):
                 raise ValueError('System architecture/interface contract differs from confirmed schematic review')
             from system_integration import audit as system_audit
             netlist=local(project,Path(record['packet'])/'netlist.xml')
-            facts=json.loads(local(project,Path(record['packet'])/'facts.json').read_text())
+            facts=json.loads(local(project,Path(record['packet'])/'facts.json').read_text(encoding='utf-8-sig'))
             result=system_audit(project,config['system_integration']['contract'],config['inputs']['schematic'],facts['netlist'],config['documents'])
-            captured=json.loads(local(project,Path(record['packet'])/'system-integration.json').read_text())
+            captured=json.loads(local(project,Path(record['packet'])/'system-integration.json').read_text(encoding='utf-8-sig'))
             if result!=captured or not netlist.is_file():raise ValueError('System interface audit is stale or packet evidence is incomplete')
         except Exception as e:r.risk('FLOW.NPI','npi','阻断级',str(e),fix='完成当前项目契约、结构检查与实际原理图AI/工程师确认；不改用旧模板绕过R9。')
     from reserve_review import integrate as reserve_integrate
@@ -77,7 +98,7 @@ def inspect(r,project,config,candidate,board_path=None):
     if not profile_path:
         r.risk('ENG.PROFILE','npi','阻断级','缺少产品工程规格与证据配置 engineering_profile',fix='按references/engineering-rules.md及assets/engineering-profile.template.json填写产品规格；不能拿通用经验替代。');return
     try:
-        pp=local(project,profile_path);profile=finite_tree(json.loads(pp.read_text()));r.inputs[str(pp)]=sha256(pp)
+        pp=local(project,profile_path);profile=finite_tree(json.loads(pp.read_text(encoding='utf-8-sig')));r.inputs[str(pp)]=sha256(pp)
         if not profile.get('product_id') or not profile.get('revision') or not profile.get('owner'):
             raise ValueError('Product id/revision/owner required')
         # Reproducible in-project source/library/rule inventory, never an implicit external library.
@@ -121,7 +142,7 @@ def inspect(r,project,config,candidate,board_path=None):
         netlist=profile.get('netlist',{})
         try:
             before=local(project,netlist['before']);after=local(project,netlist['after'])
-            eco=json.loads(local(project,netlist['eco']).read_text()) if netlist.get('eco') else None
+            eco=json.loads(local(project,netlist['eco']).read_text(encoding='utf-8-sig')) if netlist.get('eco') else None
             result=compare(before,after,netlist.get('mode','preserve'),netlist.get('topology',False),eco,netlist.get('allow_zero_nets',False))
             r.inputs[str(before)]=sha256(before);r.inputs[str(after)]=sha256(after)
             if netlist.get('eco'):
@@ -156,7 +177,7 @@ def inspect(r,project,config,candidate,board_path=None):
             try:
                 from link_audit import primitives,audit
                 pathspec=local(project,profile['link_profile']);r.inputs[str(pathspec)]=sha256(pathspec)
-                b,edges=primitives(board_path,True);result=audit(b,edges,json.loads(pathspec.read_text()))
+                b,edges=primitives(board_path,True);result=audit(b,edges,json.loads(pathspec.read_text(encoding='utf-8-sig')))
                 r.evidence.append({'endpoint_path_audit':result})
                 if result['status']!='PASS':r.risk('ENG.LINK','routing','阻断级','端点链路检查未通过；圆弧/分支/缺路径不得跳过')
             except Exception as e:r.risk('ENG.LINK','routing','阻断级',str(e))
@@ -209,12 +230,14 @@ def inspect_courtyards(r,board_path,profile,project):
     except Exception as e:r.risk('ENG.COURTYARD','layout','阻断级','Courtyard检查异常：'+str(e))
 
 def inspect_production(r,project,config,profile,candidate):
+    project=local(Path(project),'.')
+    candidate=local(Path(candidate),'.') if candidate else None
     if candidate and candidate.is_relative_to(project):
         r.risk('ENG.BUILD','npi','阻断级','制造候选包目录必须位于工程目录外，防止源/输出混淆');return
     if not candidate or not candidate.is_dir():
         r.risk('ENG.BUILD','npi','阻断级','缺少可复验候选制造包');return
     try:
-        manifest_path=local(candidate,'build-manifest.json');build=json.loads(manifest_path.read_text())
+        manifest_path=local(candidate,'build-manifest.json');build=json.loads(manifest_path.read_text(encoding='utf-8-sig'))
         if build.get('level')!='D2' or not build.get('production_authorization'):
             raise ValueError('D2打样生产授权未记录；D0/D1不允许生产发布')
         # Production authorization is a record, not permission for ChatGPT to send an order.
@@ -248,19 +271,19 @@ def inspect_production(r,project,config,profile,candidate):
         check_cpl(read_bom(local(candidate,bom_files[0])),local(candidate,cpl_files[0]),profile.get('assembly_variant'))
         for key in ('cam_review','final_state_validation','factory_eq'):
             evidence(build[key],candidate,r)
-        cam=json.loads(local(candidate,build['cam_review']['file']).read_text())
+        cam=json.loads(local(candidate,build['cam_review']['file']).read_text(encoding='utf-8-sig'))
         if cam.get('status')!='PASS' or not all(cam.get(k) for k in ('viewer','viewer_version','reviewer','date','checks')):
             raise ValueError('独立CAM加载/审图证据无效')
         cam_checks(cam)
         for name in config.get('delivery_manifest',{}).get('gerber',[])+config.get('delivery_manifest',{}).get('drill',[]):
             if cam.get('actual_files_sha256',{}).get(name)!=sha256(local(candidate,name)):
                 raise ValueError('CAM审图并非针对当前实际Gerber/钻孔：'+name)
-        eq=json.loads(local(candidate,build['factory_eq']['file']).read_text())
+        eq=json.loads(local(candidate,build['factory_eq']['file']).read_text(encoding='utf-8-sig'))
         if eq.get('status')!='CLOSED' or eq.get('open_items')!=[] or eq.get('factory')!=build['production_authorization']['factory']:
             raise ValueError('板厂EQ未关闭或工厂不一致')
         if eq.get('source_basis_sha256')!=design_basis or eq.get('output_sha256')!=manufacturing_binding:raise ValueError('工厂EQ不是针对当前设计/制造包')
         dt.date.fromisoformat(eq['date'])
-        final=json.loads(local(candidate,build['final_state_validation']['file']).read_text())
+        final=json.loads(local(candidate,build['final_state_validation']['file']).read_text(encoding='utf-8-sig'))
         expected_ops=['refill','save','reload','erc','drc','schematic_parity','spec_review']
         if final.get('operations')!=expected_ops or final.get('status')!='PASS':raise ValueError('没有最终状态refill/save/reload/原生/规格审计证据')
         board=local(project,config['inputs']['board'])
@@ -274,7 +297,7 @@ def inspect_production(r,project,config,profile,candidate):
         if not freeze.is_file() or final.get('freeze_log_sha256')!=sha256(freeze):raise ValueError('冻结记录缺失或与最终验证不一致')
         review_name=str(Path(build['final_state_validation']['file']).parent/final['full_review_file'])
         review_file=evidence({'file':review_name,'sha256':final['full_review_sha256']},candidate,r)
-        full=json.loads(review_file.read_text())
+        full=json.loads(review_file.read_text(encoding='utf-8-sig'))
         if full.get('blocked') is not False or full.get('counts',{}).get('阻断级')!=0 or not pair_compatible(full.get('environment',{})):
             raise ValueError('完整最终检查报告并未在目标原生环境通过')
         for file,digest in r.inputs.items():
@@ -287,6 +310,32 @@ def inspect_production(r,project,config,profile,candidate):
         r.inputs[str(manifest_path)]=sha256(manifest_path)
         r.check('ENG.BUILD','completed','D2源/输出哈希、实际文件结构和工程审核记录齐全；独立CAM内容正确性由审图证据负责')
     except Exception as e:r.risk('ENG.BUILD','npi','阻断级',str(e),fix='从冻结源重建实际制造包；补齐独立Gerber/钻孔CAM复核、最终状态验证、EQ与生产授权记录。')
+
+def inspect_high_speed(r, project, config, board_path):
+    """Recompute an explicitly selected specialist audit; never trust a saved PASS string."""
+    try:
+        from high_speed import audit_project
+        name = config.get('high_speed_policy')
+        if not isinstance(name, str) or not name.strip() or board_path is None:
+            raise ValueError('Selected high-speed review requires an explicit policy and current board')
+        project = Path(project).resolve()
+        policy = local(project, name)
+        result = audit_project(project, name, native=True)
+        if result.get('board_sha256') != sha256(board_path):
+            raise ValueError('Specialist report targets a different board revision')
+        if (result.get('phase') != 'handoff' or result.get('deferred_rules')
+                or result.get('status') != 'DECLARED_CHECKS_COMPLETE'
+                or result.get('native_geometry_verified') is not True):
+            raise ValueError('Applicable handoff specialist checks remain failed, blocked, deferred or under review')
+        r.inputs[str(policy)] = sha256(policy)
+        for filename, digest in result['inputs_sha256'].items():
+            r.inputs[str(local(project, filename))] = digest
+        r.evidence.append({'high_speed_declared_scope': result})
+        r.check('ENG.HIGH_SPEED', 'completed', 'Selected declared-scope audit recomputed on current board; external evidence remains separately reviewed')
+    except Exception as exc:
+        r.risk('ENG.HIGH_SPEED', 'npi', '阻断级', str(exc),
+               fix='完成当前候选的适用高速/PI专项及独立工程审核；不得用旧报告或配置完整状态代替。')
+
 
 def violation_identity(v):
     """Development regression identity; equal counts do not imply equivalence."""

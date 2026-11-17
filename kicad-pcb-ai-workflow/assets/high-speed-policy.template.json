@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "phase": "pre_route",
+  "inputs": {
+    "board": {"file": null, "sha256": null}
+  },
+  "nets": [],
+  "differential_pairs": [],
+  "power_rails": [],
+  "manufacturing": {
+    "source": {"file": null, "sha256": null, "locator": null},
+    "min_track_width_mm": null,
+    "min_clearance_mm": null,
+    "min_via_drill_mm": null,
+    "min_via_diameter_mm": null,
+    "min_annulus_mm": null
+  },
+  "stackup": {"source": {"file": null, "sha256": null, "locator": null}},
+  "requirements": [],
+  "evidence": [],
+  "scope_note": "Unconfigured template only. Prefer high_speed.py init to derive actual board inventory. No manufacturing or electrical defaults."
+}

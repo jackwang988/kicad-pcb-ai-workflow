@@ -128,11 +128,19 @@ def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('board');p.add_argument('--profile',type=Path,required=True);p.add_argument('--static-preview',action='store_true')
     a=p.parse_args()
     try:
-        board,edges=primitives(a.board,not a.static_preview);result=audit(board,edges,json.loads(a.profile.read_text()))
+        board,edges=primitives(a.board,not a.static_preview);result=audit(board,edges,json.loads(a.profile.read_text(encoding='utf-8-sig')))
         result['board_sha256']=sha256(a.board);result['static_preview']=a.static_preview
         if a.static_preview:result['production_authorized']=False
     except (OSError,ValueError,KeyError,TypeError,ImportError) as e:result={'status':'BLOCKED','reason':str(e)}
     print(json.dumps(result,ensure_ascii=False,indent=2))
     return {'PASS':0,'FAIL':1,'BLOCKED':2}[result['status']]
+
+if __name__ == '__main__':
+    # JSON/text CLI protocol is UTF-8 on every platform, including Windows.
+    import sys as _stdio_sys
+    for _stdio_stream in (_stdio_sys.stdout, _stdio_sys.stderr):
+        if hasattr(_stdio_stream, 'reconfigure'):
+            _stdio_stream.reconfigure(encoding='utf-8')
+
 
 if __name__=='__main__':raise SystemExit(main())

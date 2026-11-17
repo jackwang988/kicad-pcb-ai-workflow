@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "max_check_age_days": 90,
+  "devices": [
+    {
+      "ref": "U1",
+      "manufacturer": "REPLACE_WITH_EXACT_MANUFACTURER",
+      "mpn": "REPLACE_WITH_EXACT_MPN",
+      "package": "REPLACE_WITH_EXACT_PACKAGE",
+      "application": "REPLACE_WITH_PRODUCT_OPERATING_CONDITIONS",
+      "required_kinds": [
+        "datasheet",
+        "errata",
+        "hardware_guide"
+      ],
+      "cards": [],
+      "latest_checks": {}
+    }
+  ]
+}

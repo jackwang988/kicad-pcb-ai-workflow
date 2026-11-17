@@ -21,7 +21,7 @@ BEAUTY={'alignment','uniform_spacing','orientation'}
 KINDS=BEAUTY|{'fixed','pad_proximity','decoupling','corridor'}
 TOPICS={'routability','return_paths','source_layouts','mechanical'}
 
-def read(p):return finite_tree(json.loads(Path(p).read_text()))
+def read(p):return finite_tree(json.loads(Path(p).read_text(encoding='utf-8-sig')))
 def text(row,*keys):
     if any(not isinstance(row.get(k),str) or not row[k].strip() for k in keys):raise ValueError('Missing nonempty fields '+','.join(keys))
 def num(n):
@@ -33,7 +33,7 @@ def rect(values):
     return values
 
 def metadata(board_file,board=None):
-    tree=parse_sexpr(Path(board_file).read_text());result={}
+    tree=parse_sexpr(Path(board_file).read_text(encoding='utf-8-sig'));result={}
     for fp in children(tree,'footprint'):
         props={x[1]:x[2] for x in children(fp,'property') if len(x)>2}
         for t in children(fp,'fp_text'):
@@ -236,11 +236,11 @@ def write_artifacts(result,board,out):
     out=Path(out)
     if out.exists():raise ValueError('Report directory must be new')
     out.mkdir(parents=True,exist_ok=False)
-    (out/'placement-report.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+    (out/'placement-report.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
     lines=['# 布局专项报告',f"状态：{result['status']}；相位：{result['phase']}；仅静态布局，不授予生产许可。",'', '输入版本：`'+json.dumps(result['inputs_sha256'],ensure_ascii=False)+'`','']
     for f in result['findings']:lines.append(f"- 【{f['level']}】{f['location']}：{f['description']}；依据：{f['reference']}；建议：{f['suggestion']}")
     lines+=['','检查明细：']+[f"- {c.get('id',c.get('ref',''))}：{json.dumps(c,ensure_ascii=False)}" for c in result['checks']]
-    (out/'placement-report.md').write_text('\n'.join(lines)+'\n')
+    (out/'placement-report.md').write_text('\n'.join(lines)+'\n', encoding='utf-8')
     fs={f['ref']:f for f in board['footprints']};meta=result['placement_metadata']
     def drawing(refs,name,check_ids=None):
         selected=[c for c in result['checks'] if c.get('id') in (check_ids or [])]
@@ -271,10 +271,10 @@ def write_artifacts(result,board,out):
             for label in [c['id']]+[k+': '+(f'{v:.4g}' if isinstance(v,(int,float)) else str(v)) for k,v in actual.items()]:
                 parts.append(f'<text x="{lx}" y="{cursor}" font-size="0.3">{html.escape(label)}</text>');cursor+=0.5
         parts.append(f'<text x="{x0+0.2}" y="{y0+h-0.3}" font-size="0.3">Geometry only. Grey = module bounds, not board edge. No copper/CAM proof.</text>')
-        parts.append('</svg>');(out/name).write_text(''.join(parts))
+        parts.append('</svg>');(out/name).write_text(''.join(parts), encoding='utf-8')
     drawing(list(fs),'module-map.svg')
     for i,s in enumerate(result['critical_subcircuits']):drawing([r for r in s['refs'] if r in fs],f'local-{i+1}.svg',s.get('check_ids',[]))
-    (out/'visual-review.md').write_text('# 视觉整理与例外待评审\n\n检查对齐/方向/间距、重复通道、丝印可读/极性/引脚1、测试与返修可达性。电气/结构约束优先。模块图仅几何示意，必须结合真实铜层、装配/结构图审查。任何移动后重跑电气约束并重新确认，禁止自动填通过。\n')
+    (out/'visual-review.md').write_text('# 视觉整理与例外待评审\n\n检查对齐/方向/间距、重复通道、丝印可读/极性/引脚1、测试与返修可达性。电气/结构约束优先。模块图仅几何示意，必须结合真实铜层、装配/结构图审查。任何移动后重跑电气约束并重新确认，禁止自动填通过。\n', encoding='utf-8')
 
 def validate_review_binding(root,config):
     entry=config['placement_review'];q=read(local(Path(root).resolve(),entry['policy']));tasks=[t for t in config['stages']['pcb']['tasks'] if t.get('category')=='placement_quality' and t.get('check',{}).get('kind')=='semantic']
@@ -302,12 +302,42 @@ def integrate(r,root,config,board_file):
     except Exception as e:r.risk('PLACE.NPI','layout','阻断级',str(e),fix='完成模块/引脚级/布线前/最终视觉复验及当前PCB的AI和工程师确认。')
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('project');p.add_argument('--policy',required=True);p.add_argument('--netlist',required=True);p.add_argument('--board',required=True);p.add_argument('--phase',choices=['pre_route','final'],default='pre_route');p.add_argument('--static-preview',action='store_true');p.add_argument('--output-dir');a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('project');p.add_argument('--policy',required=True);p.add_argument('--netlist',required=True);p.add_argument('--board',required=True);p.add_argument('--phase',choices=['pre_route','final'],default='pre_route');p.add_argument('--static-preview',action='store_true');p.add_argument('--output-dir');p.add_argument('--review-config',help='Current static-review config with frozen device_knowledge');a=p.parse_args()
     try:
         root=Path(a.project).resolve();board_file=local(root,a.board);xml=local(root,a.netlist)
         if not a.static_preview and not patch_native_ready(environment()):raise ValueError('Matching KiCad10.0.x CLI/pcbnew and current patch setup evidence required; static-preview cannot prove native/production success')
-        board,edges=primitives(board_file,not a.static_preview);result=audit(root,local(root,a.policy),read_netlist(xml),board,edges,board_file,a.phase);result['inputs_sha256'][str(xml)]=sha256(xml)
+        graph=read_netlist(xml)
+        board,edges=primitives(board_file,not a.static_preview)
+        result=audit(root,local(root,a.policy),graph,board,edges,board_file,a.phase)
+        result['inputs_sha256'][str(xml)]=sha256(xml)
+        if a.review_config:
+            from device_knowledge import project_stage_brief, validate_project_binding
+            cfgpath=Path(a.review_config).resolve()
+            cfg=read(cfgpath)
+            binding=cfg.get('device_knowledge')
+            if cfg.get('require_device_knowledge') is True and not binding:
+                raise ValueError('G3 requires frozen device knowledge')
+            if binding:
+                validate_project_binding(root,cfg,'pcb',graph)
+                knowledge,_=project_stage_brief(root,binding,'g3')
+                if knowledge['coverage_gaps']:
+                    raise ValueError('G3 stage knowledge missing: '+json.dumps(knowledge['coverage_gaps'],ensure_ascii=False))
+                actual_refs={x['ref'] for x in board['footprints']}
+                missing=sorted({x['ref'] for x in knowledge['devices']}-actual_refs)
+                if missing:
+                    raise ValueError('Frozen core device footprints missing on PCB: '+','.join(missing))
+                result['g3_device_knowledge']=knowledge
+                result['inputs_sha256'][str(cfgpath)]=sha256(cfgpath)
+                result['g3_state']='VERIFIED_CACHED_LAYOUT_CANDIDATES_CURRENT_BOARD_VALIDATION_REQUIRED'
         if a.output_dir:write_artifacts(result,board,a.output_dir)
         print(json.dumps(result,ensure_ascii=False,indent=2));return 2 if result['status']=='BLOCKED' else 0
     except Exception as e:print(json.dumps({'status':'BLOCKED','reason':str(e),'production_authorized':False},ensure_ascii=False));return 2
+if __name__ == '__main__':
+    # JSON/text CLI protocol is UTF-8 on every platform, including Windows.
+    import sys as _stdio_sys
+    for _stdio_stream in (_stdio_sys.stdout, _stdio_sys.stderr):
+        if hasattr(_stdio_stream, 'reconfigure'):
+            _stdio_stream.reconfigure(encoding='utf-8')
+
+
 if __name__=='__main__':raise SystemExit(main())
