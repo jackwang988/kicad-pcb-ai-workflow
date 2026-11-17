@@ -48,6 +48,6 @@ def inspect(r,path):
             if b['shape'] not in ('rect','circle') or b['side']=='B.Cu' or a['net']==b['net'] and a['net']:continue
             if not (a['layers'] & b['layers']) and '*.Cu' not in a['layers']|b['layers']:continue
             gap=signed_gap(a,b)
-            if gap < -1e-8:r.risk('PAD.OVERLAP','layout','阻断级','支持的真实旋转焊盘铜形状相交；扇出走线不能解除既有铜短路',a['ref']+'/'+b['ref'],'器件原厂land pattern、PCB厂间距要求','按原厂坐标/旋转/pad number核对封装；不得擅自缩焊盘或改线绕过。')
-    if unsupported:r.check('PAD.SHAPE','pending',{'unverified_shapes_or_bottom_transform':unsupported},'必须原生DRC和封装原厂证据；不视为PASS')
-    r.check('PAD.SUPPORTED','completed',f'{len(pads)} pads inventoried; supported top rect/circle overlap only','旋转几何；最小间距仍以DRC为准')
+            if gap < -1e-8:r.risk('PAD.OVERLAP','layout','\u963b\u65ad\u7ea7','Supported rotated pad copper shapes intersect; track fanout cannot repair existing copper short',a['ref']+'/'+b['ref'],'Manufacturer land pattern and board-house clearance requirement','Verify footprint against manufacturer coordinates/rotation/pad number; do not shrink pads or bypass clearance.')
+    if unsupported:r.check('PAD.SHAPE','pending',{'unverified_shapes_or_bottom_transform':unsupported},'Requires native DRC and original footprint evidence; not PASS')
+    r.check('PAD.SUPPORTED','completed',f'{len(pads)} pads inventoried; supported top rect/circle overlap only','rotated geometry screening; native DRC determines final clearance')

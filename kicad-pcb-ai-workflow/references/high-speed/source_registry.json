@@ -1,6 +1,6 @@
 {
   "registry_version": "1.0",
-  "copyright_policy": "仅登记书目、公开范围与链接；不收录书籍全文、付费标准全文或未经授权的插图/公式页面。",
+  "copyright_policy": "Only bibliographic data, public scope and links are registered here; do not reproduce copyrighted books, paid standards or unlicensed figures/formulas.",
   "sources": [
     {
       "id": "BOOK-01",
@@ -20,7 +20,7 @@
         "measurement"
       ],
       "url": "https://www.pearson.com/en-us/subject-catalog/p/redirected-product/P200000000140/9780134513416",
-      "notes": "Pearson/InformIT 书目信息；第三版 992 页。"
+      "notes": "Publisher/InformIT bibliography; third edition, 992 pages."
     },
     {
       "id": "BOOK-02",
@@ -40,7 +40,7 @@
         "measurement"
       ],
       "url": "https://www.pearson.com/en-us/subject-catalog/p/high-speed-digital-design-a-handbook-of-black-magic/P200000009388/9780133957242",
-      "notes": "经典基础书；书中案例和年代背景需结合现代接口规范更新。"
+      "notes": "Classic foundational textbook; update dated examples for modern protocol and device requirements."
     },
     {
       "id": "BOOK-03A",
@@ -59,7 +59,7 @@
         "EMI"
       ],
       "url": "https://speedingedge.com/products/right-the-first-time/",
-      "notes": "官方页面说明需购买下载。"
+      "notes": "The official page states that the document requires a purchase before download."
     },
     {
       "id": "BOOK-03B",
@@ -80,7 +80,7 @@
         "vias"
       ],
       "url": "https://speedingedge.com/products/right-the-first-time/",
-      "notes": "官方页面列出第二卷主题；需购买下载。"
+      "notes": "The official page lists topics in the second volume; purchase is required for full access."
     },
     {
       "id": "BOOK-04",
@@ -98,7 +98,7 @@
         "simulation"
       ],
       "url": "https://shop.elsevier.com/books/high-speed-digital-design/zhang/978-0-12-418663-7",
-      "notes": "出版社书目页。"
+      "notes": "Publisher bibliography page."
     },
     {
       "id": "BOOK-05",
@@ -116,7 +116,7 @@
         "electromagnetic compatibility"
       ],
       "url": "https://link.springer.com/book/10.1007/978-1-4757-3640-3",
-      "notes": "Springer 书目页；244 页。"
+      "notes": "Springer bibliography; 244 pages."
     },
     {
       "id": "IPC-2141A",
@@ -136,7 +136,7 @@
         "materials"
       ],
       "url": "https://www.ipc.org/TOC/IPC-2141A.pdf",
-      "notes": "IPC 官方公开目录页；此文件是目录/前置信息，不等于标准全文。正式项目应核实适用版本和 errata。"
+      "notes": "IPC official public catalog/preview: not the full standard. Verify applicable revision and errata for real projects."
     },
     {
       "id": "IPC-2152",
@@ -149,7 +149,7 @@
         "temperature rise"
       ],
       "url": "https://quicksearch.dla.mil/qsDocDetails.aspx?ident_number=277660",
-      "notes": "DLA ASSIST 页面显示 Active，2021 reaffirmation；使用时应通过 IPC 核实正式版本。"
+      "notes": "DLA ASSIST lists this item as active and reaffirmed in 2021; verify current official IPC revision."
     },
     {
       "id": "INTEL-AN958",
@@ -174,7 +174,7 @@
       ],
       "url": "https://docs.altera.com/r/docs/683073/current/an-958-board-design-guidelines",
       "pdf": "https://cdrdv2-public.intel.com/677286/an958-683073-677286.pdf",
-      "notes": "厂商指南，器件相关章节只适用于对应 Intel/Altera 器件系列；通用章节可作方法参考。"
+      "notes": "Vendor guidance: device-specific sections apply only to the relevant Intel/Altera product family; general methodology may be informative."
     },
     {
       "id": "KICAD-IPC-API",
@@ -187,7 +187,7 @@
         "plugin architecture"
       ],
       "url": "https://dev-docs.kicad.org/en/apis-and-binding/ipc-api/for-addon-developers/",
-      "notes": "官方文档说明 KiCad 9/10 IPC API 限制及 KiCad 11 能力变化。"
+      "notes": "Official documentation explains KiCad 9/10 IPC restrictions and expected KiCad 11 capability changes."
     },
     {
       "id": "KICAD-PYTHON",
@@ -200,7 +200,7 @@
         "deprecation"
       ],
       "url": "https://dev-docs.kicad.org/en/apis-and-binding/pcbnew/",
-      "notes": "官方文档说明 SWIG pcbnew 自 KiCad 9 起弃用，计划 KiCad 11 移除。"
+      "notes": "Official documentation states that legacy SWIG pcbnew was deprecated starting KiCad 9 and is planned for removal in KiCad 11."
     },
     {
       "id": "KICAD-CLI-10",
@@ -213,7 +213,7 @@
         "CLI automation"
       ],
       "url": "https://docs.kicad.org/10.0/en/cli/cli.html",
-      "notes": "本机参数以安装版本的 --help 输出为准。"
+      "notes": "Confirm exact local command syntax against the installed version with --help."
     }
   ]
 }

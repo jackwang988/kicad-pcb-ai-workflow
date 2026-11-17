@@ -160,11 +160,11 @@ def audit(cache,requirements):
                     matches.append((name,c,r,files))
                 except Exception as e:
                     if name not in badcards:
-                        findings.append({'level':'阻断级','ref':dev['ref'],'kind':kind,'description':str(e),'suggestion':'修复资料卡或补充真实核对证据'})
+                        findings.append({'level':'\u963b\u65ad\u7ea7','ref':dev['ref'],'kind':kind,'description':str(e),'suggestion':'Repair manufacturer knowledge card or add actual verification evidence'})
                         badcards.add(name)
             if len(matches)!=1:
-                findings.append({'level':'阻断级','ref':dev['ref'],'kind':kind,'description':'Missing/ambiguous verified card','suggestion':'从原厂获取匹配资料，实际阅读后核对资料卡'})
-                if not dev.get('latest_checks',{}).get(kind):findings.append({'level':'阻断级','ref':dev['ref'],'kind':kind,'description':'Missing latest-version check evidence','suggestion':'核对原厂当前版本并保存真实查询依据'})
+                findings.append({'level':'\u963b\u65ad\u7ea7','ref':dev['ref'],'kind':kind,'description':'Missing/ambiguous verified card','suggestion':'Obtain exact manufacturer source and verify the card after reading it'})
+                if not dev.get('latest_checks',{}).get(kind):findings.append({'level':'\u963b\u65ad\u7ea7','ref':dev['ref'],'kind':kind,'description':'Missing latest-version check evidence','suggestion':'Check current official revision and retain real lookup evidence'})
                 continue
             name,c,r,files=matches[0];check=dev.get('latest_checks',{}).get(kind,{})
             try:
@@ -174,10 +174,10 @@ def audit(cache,requirements):
                 ep=local(cache,check['file'])
                 if not ep.is_file() or not ep.stat().st_size or sha256(ep)!=check['sha256']:raise ValueError('Latest-check evidence missing/changed')
                 files.append(check['file'])
-            except Exception as e:findings.append({'level':'阻断级','ref':dev['ref'],'kind':kind,'description':str(e),'suggestion':'核对原厂当前版本/勘误，保留证据；新版需差异评估，不能静默替换'})
+            except Exception as e:findings.append({'level':'\u963b\u65ad\u7ea7','ref':dev['ref'],'kind':kind,'description':str(e),'suggestion':'Recheck current manufacturer version/errata, preserve evidence and assess revision differences'})
             selected.append({'ref':dev['ref'],'application':dev['application'],'card':name,'files':files})
     for f in findings:
-        f.update(location=f['ref'],reference='匹配器件原厂资料、文档版本与资料卡证据契约')
+        f.update(location=f['ref'],reference='Exact manufacturer sources, document revision and verified-card evidence contract')
     return {'schema_version':1,'status':'BLOCKED' if findings else 'SOURCES_READY_FOR_PROJECT_REVIEW','findings':findings,'selected':selected,'production_authorized':False}
 
 def bundle(cache,requirements,output,apply=False):

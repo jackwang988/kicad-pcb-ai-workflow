@@ -1,21 +1,7 @@
-# Konnect-EDA local.5限定验收
+# Konnect-EDA Historical Local Fixture Evidence
 
-环境为Windows x64、KiCad/CLI/pcbnew 10.0.8、KiCad Python3.11.5、官方Konnect-EDA0.14.1 Windows包。程序内构建提交和SHA-256见版本档案；不把公开文档仓库提交当作闭源程序源码审查结果。
+This file summarizes **bounded historical records**, not universal acceptance of every discovered MCP tool. The sampled environment was Windows x64, KiCad 10.0.8 and a specific locally installed Konnect-EDA release. Reported tool counts vary with backend build and loaded toolsets; only the **actual currently discovered schemas** are relevant.
 
-| 验证内容 | 实际范围 |
-|---|---|
-| 协议及发现 | 新进程initialize、构建身份和工具集查询；完整发现235个接口，发现不等于全部验收 |
-| 实时PCB | 普通器件移动/旋转、两器件批量、显式恢复、保存、关闭及重开回读 |
-| 独立持久化 | 原生pcbnew重载核对位置和焊盘网络；恢复前后DRC问题及未连接对象身份集合相同 |
-| 已知锁定问题的补充保护 | 本Skill只读预检拒绝已锁定封装及保存/实时放置不一致；不依赖上游移动工具主动尊重锁定 |
-| 普通布线 | 单网焊盘间走线保存成功、实际网归属正确；跨网走线拒绝，未新增原生DRC问题 |
-| 原理图字段 | C1值修改、恢复；原生XML网络不变，ERC基线一致 |
-| 符号及同步 | 两个官方Device:R/0603；误穿其他引脚的接线被拒绝且文件不变；明确网标连接后，版本计划绑定同步到实时PCB，原生保存焊盘网归属与XML一致 |
-| 输出接口 | Konnect调用原生Gerber与钻孔导出，输出仅测试候选 |
-| 可选兜底 | Freerouting2.5.0+独立Java25，DSN、路由、SES计划/候选回导及独立原生DRC；两器件测试未连接为零、无新增DRC问题 |
+Small representative tests included connection, a limited part move/rotation, selected schematic symbol/field/net actions, simplified schematic-to-PCB synchronization, single-net routing rejection/acceptance cases and controlled export candidates. Complex hierarchical schematics, fully automated multilevel routing, sophisticated custom pad/zone geometry, SI/PI and industrial DFX/NPI require separate accepted fixtures and current-project native checks.
 
-软件回归与真实接口记录分开保存。完整原始记录、本机安装路径、运行环境及恢复备份留在Skill之外；当前机器安装回执绑定实际程序、配置与核心文件哈希。此处只说明实际测试范围，不能复制成其他安装者或真实产品通过记录。
-
-仍未完成：所有接口和故障组合、其他平台/版本、复杂板型、多层高速/RF/完整回流与SI/PI/热/EMC、GUI撤销键、真实样机及制造授权。测试夹具原有错误不会因执行成功而消失，也不授予生产资格。
-
-主线继续截止DESIGN_PACKAGE_READY_FOR_REVIEW；制造候选为EXPORTED_NOT_RELEASED，外部生命周期按用户另行要求推进。当前桌面聊天若仍持有旧MCP进程，须重启客户端后用get_installation_info确认实际服务版本和路径，不能以配置文件已更新代替服务已切换。
+The R10 policy is dynamic discovery + L0–L3 risk + scope-bound acceptance. Do not move an acceptance record across executable SHA, KiCad version, input schema, object type or operation range without evidence. See [Konnect migration](konnect-capability-migration.md).

@@ -56,5 +56,5 @@ def hashes(root,names):
     return {n:sha256(local(Path(root).resolve(),n)) for n in names}
 
 
-def blocking(code,description,location='工程级'):
-    return {'rule':code,'level':'阻断级','location':location,'description':str(description),'reference':'KiCad10.0.7 actual file/CLI semantics and explicit project contract','suggestion':'补齐真实输入/执行能力或修复该问题后重跑；不得补写批准或降低规则绕过。'}
+def blocking(code,description,location='project-wide'):
+    return {'rule':code,'level':'\u963b\u65ad\u7ea7','location':location,'description':str(description),'reference':'KiCad10.0.7 actual file/CLI semantics and explicit project contract','suggestion':'Supply real inputs/runtime capability or repair and rerun; never forge approval or weaken constraints.'}

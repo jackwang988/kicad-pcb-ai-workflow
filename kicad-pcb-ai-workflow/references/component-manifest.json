@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "skill_name": "kicad-pcb-ai-workflow",
-  "version": "R10.0-alpha.3-local.5+G1-G4+konnect-single-writer-migration-1",
+  "version": "R10.0-alpha.3-local.5+G1-G4+konnect-single-writer-migration-1 +workspace-token-preview",
   "release_channel": "alpha",
   "engineering_gates": [
     "G1",
@@ -34,7 +34,7 @@
   "modules": [
     {
       "id": "environment",
-      "label": "环境与KiCad连接",
+      "label": "Environment and KiCad Connection",
       "state": "implemented",
       "intents": [
         "onboard",
@@ -49,19 +49,22 @@
         "references/environment-onboarding.md",
         "references/ipc-backend.md",
         "references/konnect-backend.md",
-        "references/konnect-capability-migration.md"
+        "references/konnect-capability-migration.md",
+        "references/workspace-and-token-policy.md"
       ],
       "tools": [
         "doctor",
         "environment_start",
         "kicad_ipc_probe",
         "konnect_backend",
-        "konnect_capabilities"
+        "konnect_capabilities",
+        "workspace_manager",
+        "token_budget"
       ]
     },
     {
       "id": "requirements",
-      "label": "需求、架构与器件依据",
+      "label": "Requirements, Architecture and Device Sources",
       "state": "implemented",
       "intents": [
         "requirements",
@@ -86,7 +89,7 @@
     },
     {
       "id": "resources",
-      "label": "符号、封装与项目资源",
+      "label": "KiCad Symbol Footprint and Project Resources",
       "state": "implemented",
       "intents": [
         "parts",
@@ -107,7 +110,7 @@
     },
     {
       "id": "schematic",
-      "label": "原理图与PCB衔接",
+      "label": "Schematic Design and PCB Sync",
       "state": "implemented",
       "intents": [
         "schematic",
@@ -133,7 +136,7 @@
     },
     {
       "id": "pcb",
-      "label": "规则、布局与脚本优先布线",
+      "label": "Rules Placement and Controlled Routing",
       "state": "experimental",
       "intents": [
         "pcb",
@@ -165,7 +168,7 @@
     },
     {
       "id": "manufacturing",
-      "label": "工程评审与制造候选",
+      "label": "Engineering Review and Manufacturing Candidate",
       "state": "implemented",
       "intents": [
         "review",
@@ -191,7 +194,7 @@
     },
     {
       "id": "lifecycle",
-      "label": "样机、ECO与归档",
+      "label": "Prototype Testing ECO and Archive",
       "state": "implemented",
       "intents": [
         "prototype",

@@ -60,9 +60,9 @@ def citations(items,allowed,packet,folder):
 
 def validate(root,packet_dir,ai_file=None,engineer_file=None):
     root=Path(root).resolve();folder=Path(packet_dir).resolve();inputs={};findings=[];result_status='BLOCKED'
-    def risk(code,desc,location='工程级（无坐标）',level='阻断级',fix='补齐真实来源、静态证据和工程师确认；修复后重新生成评审，不得补写假通过。'):
+    def risk(code,desc,location='project-wide (no coordinate)',level='\u963b\u65ad\u7ea7',fix='Provide actual sources, static evidence and engineer approval; rerun after repair and never fabricate a PASS.'):
         findings.append({'rule':code,'level':level,'location':location,'description':desc,
-                         'reference':'产品规格、适用器件/原厂指南及静态评审契约','suggestion':fix})
+                         'reference':'Product specification, exact manufacturer guidance and static review contract','suggestion':fix})
     try:
         packet_path=local(folder,'packet.json');packet=finite_tree(json.loads(packet_path.read_text(encoding='utf-8-sig')));inputs[str(packet_path)]=sha256(packet_path)
         if packet.get('schema_version')!=1 or packet.get('scope')!='static_only':raise ValueError('Unsupported packet/scope')
@@ -106,11 +106,11 @@ def validate(root,packet_dir,ai_file=None,engineer_file=None):
             p=local(folder,name)
             if not p.is_file() or sha256(p)!=h:raise ValueError('Packet artifact missing/changed: '+name)
             inputs[str(p)]=h
-        if packet.get('demonstration_only'):risk('STATIC.DEMO','TEST演示资料不得用于真实工程签核')
-        if packet.get('native_ready') is not True or packet.get('preparation_issues'):risk('STATIC.INPUTS','原生来源/视图/数据覆盖尚未验证：'+str(packet.get('preparation_issues')))
+        if packet.get('demonstration_only'):risk('STATIC.DEMO','TEST demonstration data cannot authorize real-engineering review')
+        if packet.get('native_ready') is not True or packet.get('preparation_issues'):risk('STATIC.INPUTS','Native source/view/data coverage not verified: '+str(packet.get('preparation_issues')))
         provenance=packet.get('native_provenance',{});env=provenance.get('environment',{})
         if provenance.get('xml_origin')!='native_export' or not cli_native_ready(env, env.get('kicad_cli')) or (stage=='pcb' and (not pair_compatible(env) or not patch_native_ready(env, env.get('kicad_cli')))):
-            risk('STATIC.PROVENANCE','缺少目标版本原生导出来源；导入XML仅可作预评审')
+            risk('STATIC.PROVENANCE','No native current-version export provenance; imported XML is preview-only')
         if provenance.get('xml_sha256')!=sha256(local(folder,'netlist.xml')):raise ValueError('XML origin hash mismatch')
         facts=json.loads(local(folder,packet['facts_file']).read_text(encoding='utf-8-sig'))
         if packet['config'].get('device_knowledge'):
@@ -150,8 +150,8 @@ def validate(root,packet_dir,ai_file=None,engineer_file=None):
             elif c['status']=='FAIL':
                 t=tasks[c['task_id']];risk('STATIC.CHECK.FAIL',str(c['detail']),c['task_id'],t['level'])
         if ai_file is None or not Path(ai_file).is_file():
-            preexisting=any(f['level']=='阻断级' for f in findings)
-            risk('STATIC.AI.PENDING','尚未完成AI逐项静态工程评审');return {'status':'BLOCKED' if preexisting else 'AI_REVIEW_PENDING','review_state':'ai_pending','stage':stage,'production_authorized':False,'findings':findings,'inputs_sha256':inputs}
+            preexisting=any(f['level']=='\u963b\u65ad\u7ea7' for f in findings)
+            risk('STATIC.AI.PENDING','Required per-task AI static engineering review not completed');return {'status':'BLOCKED' if preexisting else 'AI_REVIEW_PENDING','review_state':'ai_pending','stage':stage,'production_authorized':False,'findings':findings,'inputs_sha256':inputs}
         ai_path=Path(ai_file).resolve();ai=finite_tree(json.loads(ai_path.read_text(encoding='utf-8-sig')));inputs[str(ai_path)]=sha256(ai_path)
         if ai.get('schema_version')!=1 or ai.get('scope')!='static_only' or ai.get('stage')!=stage or ai.get('packet_sha256')!=sha256(packet_path):raise ValueError('AI report stage/packet binding invalid')
         who=ai.get('reviewer',{})
@@ -185,7 +185,7 @@ def validate(root,packet_dir,ai_file=None,engineer_file=None):
             citations(row.get('source_citations'),allowed,packet,folder)
             if bycheck[t['id']]['status']=='FAIL' and row['status']!='FAIL':raise ValueError('AI cannot override deterministic failure')
             if bycheck[t['id']]['status']=='PASS' and row['status']=='NOT_APPLICABLE':raise ValueError('Measured applicable predicate cannot become N/A')
-            if row['status']=='NEEDS_EVIDENCE':risk('STATIC.AI.UNRESOLVED','静态要求证据不足，不得当通过',t['id'])
+            if row['status']=='NEEDS_EVIDENCE':risk('STATIC.AI.UNRESOLVED','Static requirement has insufficient evidence; cannot mark PASS',t['id'])
             if row['status']=='FAIL':
                 if not row.get('fix'):raise ValueError('Failed item needs actionable fix')
                 risk('STATIC.AI.FAIL',row['reasoning'],t['id'],row['level']);issues.append(row)
@@ -216,8 +216,8 @@ def validate(root,packet_dir,ai_file=None,engineer_file=None):
             if any((x['document_id'],x['locator']) not in refs for x in row['source_citations']):raise ValueError('Additional finding cites unapproved source/location')
             row={**row,'task_id':rid,'status':'FAIL'};issues.append(row);risk('STATIC.AI.EXTRA',row['reasoning'],rid,row['level'])
         if engineer_file is None or not Path(engineer_file).is_file():
-            preexisting=any(f['level']=='阻断级' for f in findings)
-            risk('STATIC.ENGINEER.PENDING','AI评审已提交，尚无硬件工程师对本版报告的最终确认')
+            preexisting=any(f['level']=='\u963b\u65ad\u7ea7' for f in findings)
+            risk('STATIC.ENGINEER.PENDING','AI review received but current-revision engineer approval is missing')
             result_status='BLOCKED' if preexisting else 'ENGINEER_REVIEW_PENDING'
         else:
             eng_path=Path(engineer_file).resolve();eng=finite_tree(json.loads(eng_path.read_text(encoding='utf-8-sig')));inputs[str(eng_path)]=sha256(eng_path)
@@ -230,15 +230,15 @@ def validate(root,packet_dir,ai_file=None,engineer_file=None):
                 disposition=eng.get('dispositions',{}).get(item['task_id'],{})
                 required='not_applicable' if item['status']=='NOT_APPLICABLE' else 'accept_deviation'
                 if disposition.get('action')!=required or disposition.get('item_sha256')!=digest(item) or not disposition.get('reason'):
-                    risk('STATIC.DISPOSITION','缺少针对当前问题/不适用项的逐项工程判断',item['task_id'])
-                if item['status']=='FAIL' and item['level']=='阻断级':risk('STATIC.NONWAIVABLE','当前阻断问题必须修复并重审，不能以签字豁免',item['task_id'])
+                    risk('STATIC.DISPOSITION','No engineer disposition for current finding/not-applicable item',item['task_id'])
+                if item['status']=='FAIL' and item['level']=='\u963b\u65ad\u7ea7':risk('STATIC.NONWAIVABLE','Current blocking issue must be repaired and reviewed again; signatures do not waive it',item['task_id'])
             evidence=eng.get('evidence')
             if not isinstance(evidence,list) or not evidence:raise ValueError('Actual engineer review evidence file/hash required')
             for rec in evidence:
                 p=local(root,rec['file'])
                 if not p.is_file() or not p.stat().st_size or sha256(p)!=rec['sha256']:raise ValueError('Engineer evidence missing/changed')
                 inputs[str(p)]=sha256(p)
-            result_status='APPROVED_STATIC' if not any(f['level']=='阻断级' for f in findings) else 'BLOCKED'
+            result_status='APPROVED_STATIC' if not any(f['level']=='\u963b\u65ad\u7ea7' for f in findings) else 'BLOCKED'
         return {'status':result_status,'stage':stage,'scope':'static_only','production_authorized':False,
                 'review_state':'engineer_pending' if engineer_file is None else 'changes_required' if result_status=='BLOCKED' else 'engineer_confirmed',
                 'issue_fingerprints':{item['task_id']:digest(item) for item in issues},
@@ -254,10 +254,10 @@ def integrate(r,root,config):
             result=validate(root,local(root,item['packet']),local(root,item['ai_review']),local(root,item['engineer_review']))
             if result.get('stage')!=stage:raise ValueError('Wrong review stage')
             r.inputs.update(result['inputs_sha256']);r.evidence.append({'static_ai_review':result})
-            if result['status']!='APPROVED_STATIC':r.risk('STATIC.'+stage.upper(),'schematic' if stage=='schematic' else 'routing','阻断级','AI静态评审/工程师确认未完成：'+result['status'],fix='按static-ai-review.md完成真实逐项评审并由硬件工程师确认；不允许AI自签。')
+            if result['status']!='APPROVED_STATIC':r.risk('STATIC.'+stage.upper(),'schematic' if stage=='schematic' else 'routing','\u963b\u65ad\u7ea7','AI static review or engineer acceptance is incomplete: '+result['status'],fix='Complete real per-task review and engineer confirmation under static-ai-review.md; AI cannot self-sign.')
             for f in result['findings']:
-                r.risk(f['rule'],stage,f['level'],f['description'],f['location'],f['reference'],f['suggestion'],'静态AI评审与工程师签核')
-        except Exception as e:r.risk('STATIC.'+stage.upper(),'npi','阻断级',str(e),fix='准备该阶段静态资料包、AI评审报告与当前版本工程师签核。')
+                r.risk(f['rule'],stage,f['level'],f['description'],f['location'],f['reference'],f['suggestion'],'AI static review plus separate engineer sign-off')
+        except Exception as e:r.risk('STATIC.'+stage.upper(),'npi','\u963b\u65ad\u7ea7',str(e),fix='Prepare current-stage packet, AI report and real current-revision engineer sign-off.')
 
 CATEGORIES_NAMES=('schematic','pcb')
 

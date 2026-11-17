@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "package_kind": "universal_runtime",
-  "revision": "2026.11.17-R10-workspace-token-preview",
+  "revision": "2026.11.17-R10-workspace-token-efficient-english-preview",
   "active": [
     {
       "file": "scripts/assembly_guard.py",
-      "sha256": "d7219e6d5628a482dc826d58f82e513cadf8b8aaa5212e39f713202cd5d464a5",
+      "sha256": "e7bc08b21308ccba192c565898889f84178688eb99589f3bd2f432a29ab434e3",
       "version": "R10.0-alpha.3",
       "command": "python3 scripts/assembly_guard.py --help",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -29,7 +29,7 @@
         "2": "BLOCKED"
       },
       "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
-      "sha256": "c527f118a51def85f232ba323a3b1a9f4cec9e6333312d9fcec45b19993ce9a8"
+      "sha256": "0d2d695904e9f8b332657f2d0a737ef9e21e123efc00502508950604459d994a"
     },
     {
       "file": "scripts/design_intent.py",
@@ -42,7 +42,7 @@
         "2": "BLOCKED"
       },
       "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
-      "sha256": "3de940b607d3096f4b0539f21d00a6a0b6d0a19aaed202ef2ca4069a6271430b"
+      "sha256": "f1b275216b76307854d167c8c689748d40447dbef53d438d9532d52234534473"
     },
     {
       "file": "scripts/design_intent_audit.py",
@@ -55,7 +55,7 @@
         "2": "BLOCKED"
       },
       "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
-      "sha256": "ff9d0274512f9fffc27e4345a408587246743d518cc26a2389e3bfd52d86e459"
+      "sha256": "b3e8aaf177fd3524c08e614f308fbd474e7a8f641beb054b0d360020708800a1"
     },
     {
       "file": "scripts/device_knowledge.py",
@@ -68,11 +68,11 @@
         "2": "BLOCKED/input or network failure"
       },
       "validation_scope": "Offline G1 cache-bound review packet checks; existing KiCad integration must be validated on target setup.",
-      "sha256": "0f0b05db18ebeb087992b45849211513f1ba59d2791a588879df89a143512de4"
+      "sha256": "56e33a63c418e7151cb7706f6eab53d34ebf301e4e598ff24f7a70acb6e4277e"
     },
     {
       "file": "scripts/doctor.py",
-      "sha256": "351371da905cdf4d6dafefe8ffae46d5ea18d3caa096e43e315e1c69a37c0430",
+      "sha256": "15dcb3ab689f7951482bd7abd5384f51726de4f9006bd14c0f3c1fc855408262",
       "version": "R10.0-alpha.3",
       "command": "python3 scripts/doctor.py --help",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -86,7 +86,7 @@
     },
     {
       "file": "scripts/engineering_gate.py",
-      "sha256": "74875691d371df5bae92bb7a43d408735c2346e6634fa6295ecc9a339713a1cb",
+      "sha256": "b99f4cb3bf25e67e500fb287dc1c2efa4231a36b4b74a79ca3d121f677606690",
       "version": "R10.0-alpha.3",
       "command": "Python module imported by mass_production_review.py",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -113,7 +113,7 @@
     },
     {
       "file": "scripts/freerouting_adapter.py",
-      "sha256": "d525894b1d46c102d3c00f15f16a4a46d2d4a2da3be20ee920387e47646c75a6",
+      "sha256": "4b70e547154449633db884bc7af19aedcebacaa7a23c98712645e3d16ad09d4f",
       "version": "R10.0-alpha.3",
       "command": "python3 scripts/freerouting_adapter.py --help",
       "input": "User-approved v2.5.0 JAR, KiCad-exported DSN, new result directory",
@@ -218,7 +218,7 @@
         "1": "Search/comparison incomplete where documented",
         "2": "BLOCKED or invalid input"
       },
-      "sha256": "dd1d09f1dc519562352634f208fd186e00811aa50de4262a44e85ebea8455c03",
+      "sha256": "09a97b24f9009eed6a6d9764d057f66719b69d570f3a898510bbcf65088eb3ff",
       "version": "R10.0-alpha.3",
       "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
     },
@@ -250,7 +250,7 @@
     },
     {
       "file": "scripts/link_audit.py",
-      "sha256": "39178798da73bec97cac19db336fc9f07e0794e2fbd484633e06ccc8d79aeea8",
+      "sha256": "370667fc8d3409cb3b8817160a91307f0549ab204ffe096a92c0210aa7ffc739",
       "version": "R10.0-alpha.3",
       "command": "python3 scripts/link_audit.py --help",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -277,7 +277,7 @@
     },
     {
       "file": "scripts/mass_production_review.py",
-      "sha256": "a01baa10358747ffcfce15bd6b040d69e4c6e5e7dcbfc44c24c648cc855b2b43",
+      "sha256": "a8166ca4b4eebe7238dad5476516ec6484682b5852cd5e7c9a0198db8ec1b08a",
       "version": "R10.0-alpha.3",
       "command": "python3 scripts/mass_production_review.py --help",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -305,7 +305,7 @@
     },
     {
       "file": "scripts/netlist_guard.py",
-      "sha256": "2584302c58ea56bcdf4597ce31bbfe27384df67689a255d7b8961005e96f2998",
+      "sha256": "8521d2ab8ce3cc78859c63f03bf972bcad17a570ec7e98732a0ae89834b0731d",
       "version": "R10.0-alpha.3",
       "command": "python3 scripts/netlist_guard.py --help",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -319,7 +319,7 @@
     },
     {
       "file": "scripts/npi_common.py",
-      "sha256": "fd05b21114393bca76831cd6bcff67e338472ab5a04de157bd03e53769a8926b",
+      "sha256": "5d9b0d4302787c414597a01e0f082b8e1af4480b809913e18af071222e5894aa",
       "version": "R10.0-alpha.3",
       "command": "Python module imported by mass_production_review.py",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -333,7 +333,7 @@
     },
     {
       "file": "scripts/npi_geometry.py",
-      "sha256": "5cece4d4ffbd86497495810c9a0ba74521c57fcd7b4390a1c74288cef7cce181",
+      "sha256": "5b0540e185348a0365086025390be2325135697f5f6331da4b93f2258df6eff2",
       "version": "R10.0-alpha.3",
       "command": "Python module imported by mass_production_review.py",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -347,7 +347,7 @@
     },
     {
       "file": "scripts/npi_release.py",
-      "sha256": "accc98d7826346f4ed64507077fb6d2a47c32f35a33212578cb15f27c71ce6ee",
+      "sha256": "f4c9a01d3c6b8f5a7e6259058015c1f85bef4de30498d642f920960311030f01",
       "version": "R10.0-alpha.3",
       "command": "python3 scripts/npi_release.py --help",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -361,7 +361,7 @@
     },
     {
       "file": "scripts/pad_audit.py",
-      "sha256": "2dc777df4a8c3166555efa95050997ba756df4e04a790e2fe9046c9bbcd9e1da",
+      "sha256": "3d15081d9d1306a1a2f3a527f654539f5215bcdc68b0eba5b4b8d76c6a2b8907",
       "version": "R10.0-alpha.3",
       "command": "Python module imported by mass_production_review.py",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -384,7 +384,7 @@
         "2": "BLOCKED/input/evidence failure"
       },
       "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
-      "sha256": "f5c92e60963f9e97b42157d4051485ab548f70e2e784de43ef09b213e10dd0e3"
+      "sha256": "1b179deaf0a06da29053cd9eb7650dd9d076bad93476c27e651ef1ebaf49b3b3"
     },
     {
       "file": "scripts/production_contract.py",
@@ -407,7 +407,7 @@
       "input": "Explicit project contracts; no inferred circuit/process values",
       "output": "Declared-scope reports or independent candidate; never implicit engineering approval",
       "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
-      "sha256": "f21b9db686a0bfee7c09f0a988750084b47b3d3a018ab75b04628c0fb244b7e0",
+      "sha256": "a55ff8e60590ecbb4294a6feca0b9789c29554afde629f3bd37a28eebf71cba8",
       "exit_codes": {
         "0": "Declared scope complete/preview; never automatic approval",
         "2": "BLOCKED; do not advance or manufacture"
@@ -424,7 +424,7 @@
         "2": "BLOCKED or invalid input/evidence"
       },
       "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
-      "sha256": "102897728b586d98d1ae0cf72374f4005d5fb9449774b5a9ffd76fe76efcaed6"
+      "sha256": "7f4ef4daa29256b61dd356d3587dada1571c1d4bd7486291e14acc2e79c30fc7"
     },
     {
       "file": "scripts/resource_guard.py",
@@ -436,7 +436,7 @@
         "1": "Search/comparison incomplete where documented",
         "2": "BLOCKED or invalid input"
       },
-      "sha256": "6523cb33bb472e0fe9355e529a1f6ae4bd62c88bdde9cd31929ba5764e9a881c",
+      "sha256": "d46abccbf02fb3367484e65e218050f4a4019bc41ef3351e311f2c4cbd35c6d4",
       "version": "R10.0-alpha.3",
       "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
     },
@@ -461,7 +461,7 @@
       "input": "Explicit project contracts; no inferred circuit/process values",
       "output": "Declared-scope reports or independent candidate; never implicit engineering approval",
       "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
-      "sha256": "b61f79a29c239db65f584446e44e64600d6c1960d17dea59986775c9352ceb28",
+      "sha256": "bfa5aa754f1cae25f85f637e3c0217fc973d1d7b21e464712d435480a2e836aa",
       "exit_codes": {
         "0": "Declared scope complete/preview; never automatic approval",
         "2": "BLOCKED; do not advance or manufacture"
@@ -474,7 +474,7 @@
       "input": "Explicit project contracts; no inferred circuit/process values",
       "output": "Declared-scope reports or independent candidate; never implicit engineering approval",
       "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
-      "sha256": "1b69a1d00497e1eae47a93121e7932b28a7abb128e0a878581ea43a6fb37d6a4",
+      "sha256": "0f6af5dc4023487d53430c56b2ae9ca2143a18a6ef61cbed600e017345703306",
       "exit_codes": {
         "0": "Declared scope complete/preview; never automatic approval",
         "2": "BLOCKED; do not advance or manufacture"
@@ -487,7 +487,7 @@
       "input": "Explicit project contracts; no inferred circuit/process values",
       "output": "Declared-scope reports or independent candidate; never implicit engineering approval",
       "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
-      "sha256": "272e85b728f043b4e39d01c725d8cb13e70565a1884c384e3e4c6aa0e42a21d4",
+      "sha256": "1d728f4819903ff2fb8547777bc8fab511beb9fb83dec59a8b23b83ce630ca1f",
       "exit_codes": {
         "0": "Declared scope complete/preview; never automatic approval",
         "2": "BLOCKED; do not advance or manufacture"
@@ -503,7 +503,7 @@
         "1": "Search/comparison incomplete where documented",
         "2": "BLOCKED or invalid input"
       },
-      "sha256": "4828307441521448fab20d3f4b8df14781cddc30a1b49325fae786b7793cb271",
+      "sha256": "501850eb5b9a6f341eae60069d3997707b9de9e54e80bc2975dd6aa63e2ebcf6",
       "version": "R10.0-alpha.3",
       "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
     },
@@ -523,7 +523,7 @@
     },
     {
       "file": "scripts/spice_precheck.py",
-      "sha256": "80eee00d50aaced92875eb8867c24ec97d275ffc76be982d58b1fb1051cebf28",
+      "sha256": "715bae6619b3696e816e9d80b48f32ac725458bbaebba9192dd57771ee5856a0",
       "version": "R10.0-alpha.3",
       "command": "python3 scripts/spice_precheck.py --help",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -546,7 +546,7 @@
         "2": "BLOCKED or pending"
       },
       "validation_scope": "Offline G1 cache-bound review packet checks; existing KiCad integration must be validated on target setup.",
-      "sha256": "ebe8282e72cb4e4c60242dbb029949ec5421bc00b598e29ad1e5ae64da30b631"
+      "sha256": "2035917ab015bf7ef2cbdfa7e5d58a36262eb2e2254954e66c94a95724a0ece8"
     },
     {
       "file": "scripts/static_review_gate.py",
@@ -559,11 +559,11 @@
         "2": "BLOCKED or pending"
       },
       "validation_scope": "Offline G1 cache-bound review packet checks; existing KiCad integration must be validated on target setup.",
-      "sha256": "c8cfff6050c05127bcef03ef70a8a5c70daf50363e9fd7efeb18dd7b68a3fd4b"
+      "sha256": "bf801fdefbd89a2316c7e990ca84e49071a57a428fbd96b5686a599eb3a6e229"
     },
     {
       "file": "scripts/system_integration.py",
-      "sha256": "eb0e15f32f7560a51127881c0d2a40fb787db54409611eb0bf48d846e412c581",
+      "sha256": "2073d6d5463259cd312ba04b4fc2c1f008fa4f50bf394f9a5f2b540052e68e1f",
       "version": "R10.0-alpha.3",
       "command": "python3 scripts/system_integration.py --help",
       "input": "Project system-integration contract, current KiCad XML netlist, top-level schematic and source document records",
@@ -577,7 +577,7 @@
     },
     {
       "file": "scripts/validate_frozen_candidate.py",
-      "sha256": "6df022166e798b4bf6aaca7928c41f5c1d0c946903890a967830eec3dab16a08",
+      "sha256": "914f7e35f487d6a31429dc14e40a278d3978bb62d20d7f920372890590b8bdf2",
       "version": "R10.0-alpha.3",
       "command": "python3 scripts/validate_frozen_candidate.py --help",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -591,7 +591,7 @@
     },
     {
       "file": "scripts/workflow.py",
-      "sha256": "4def30a649ed669fa84bd4ef28ff3115fc9d27538ac3d9ab8813b9978a75d2a2",
+      "sha256": "90dac7c22ed9d7701f08d6f698b4cd440e1aec90607ee100d3b785e2523c4172",
       "version": "R10.0-alpha.3-local.5+cache-first-1",
       "command": "python3 scripts/workflow.py --help (includes architecture.sources_resolve and architecture.sources_register tasks)",
       "input": "One shared master; immutable flow/static/npi bundles; explicit fixed task and typed arguments",

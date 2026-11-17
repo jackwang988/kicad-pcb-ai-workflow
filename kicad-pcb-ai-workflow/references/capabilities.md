@@ -1,64 +1,20 @@
-**2026-11-17单写入迁移补充**：动态发现所有实际暴露的Konnect工具；按L0–L3、工具接口schema、二进制版本、KiCad版本和操作范围登记验收，不将历史已验收列表永久当作能力边界。Konnect是唯一活动写入者，原pcbnew离线覆铜已改为候选交接；制造/NetClass/复杂几何只读等价适配尚未完成真实现场验收，未满足时保持BLOCKED。详见[迁移规范](konnect-capability-migration.md)。
+# Capability Matrix and Engineering Limitations (R10)
 
-# 能力范围与工程适用性 · R10.0-alpha.3
+## Implemented and bounded functions
 
-## cache-first-1 本次新增能力（仅软件契约测试）
+- A manifest-bound `workflow.py` front end dispatches task-specific Python scripts, with module-level reference loading and separate immutable G1–G4 evidence.
+- `device_knowledge.py` supports official-source ingestion, card validation, exact-MPN cache-first resolution, verification/freshness checks, project-frozen bundles and stage-specific briefs.
+- G1 current schematic evidence preparation and AI/engineer review; G2 actual symbol/footprint lock and device-card mapping; G3 current board placement assessment; G4 saved board copper/static review and evidence gate.
+- Python offers selected deterministic high-speed/PI checks, design-intent audits, source/network consistency, offline route search and manufacturing preflight. Each has a declared scope and does not automatically modify the PCB.
+- Konnect MCP dynamic discovery and scope-bound fixture acceptance permit **specific** real operations. The accepted capability must match executable/build, KiCad version, tool schema and tested object/geometry parameters.
+- Workspace index, immutable checkpoints and bounded report summaries reduce duplicate projects and unnecessary AI-context ingestion; neither changes KiCad's design database without a separate accepted operation.
 
-`device_knowledge.py` 增加离线 `register / resolve / brief`：已审核的知识卡及真实最新版本检查记录经不可变索引跨项目复用；新原理图需求先精确匹配制造商/MPN/封装，命中时不重新下载原始PDF，也不把全文放入模型上下文。仍需项目适用性判断、原厂版本时效核查、原有audit/bundle门禁；不能自动确保厂商未发布更新或替代完整电路评审。新增测试为离线合成夹具，不是芯片资料或KiCad原生验证。
+## Not automatically proven
 
-## local.5执行后端增量
+No universal schematic generator, general autorouter, auto-placer, guaranteed 3D collision/thermal/SI/EMC solver or automatic factory approval is provided. A clean ERC/DRC, a simulated A* route, a drawn keepout, a cached device card or a programmatically assembled Gerber archive does not prove product fitness. Complex multiboard/hierarchical, RF/high-speed and production cases require appropriate actual device/vendor/factory and engineering evidence.
 
-首选独立Konnect-EDA 0.14.1，旧开源0.13.0仅显式回退；程序、构建和配置分别核对。见[本次限定验收](konnect-eda-validation.md)。保留local.4的全部高速/PI、工程推进终点及轻量连接约定。
+## Version policy
 
-在Windows/KiCad 10.0.8软件夹具上，已验证封装操作与保存重载、原生锁定/未保存放置拒绝、单网普通焊盘布线与跨网拒绝、原理图字段修改与网表/ERC复验、标准符号/网标连接及计划绑定PCB同步、Gerber/钻孔接口，以及受限Freerouting候选闭环。这些记录不代表所有235个接口、复杂板型或产品性能通过。
+KiCad 10.0.7 is a historical recommendation, not a maximum version. Stable KiCad 10.x may be considered after matching actual native tests; KiCad 11+ should be evaluated with CLI-only scope and a separately validated Konnect/IPC capability, not a blanket assumption of `pcbnew` SWIG compatibility. KiCad 9 and RC/nightly require separate verification. Historic KiCad 10.0.8 integration evidence or R10 software-unit tests are **not** blanket acceptance of a new installed Konnect binary, arbitrary board or manufacturing release.
 
-## local.3按需高速/PI增量
-
-见[专项模块](module-high-speed.md)：新增真实保存板只读几何快照、目录绑定的16规则适用性/有限几何/来源与证据核验，以及显式调用的受限ngspice RLC AC适配器。默认不触发普通连接或低速工作。具体字段、阶段与不支持项以模块及运行报告为准。
-
-几何快照不包含完整参考面拓扑、电流场、热或电磁求解；外部报告已记录不表示其物理模型已自动验证。RLC适配器的软件测试不能代替真实ngspice环境验收或整板PI。既有Konnect执行、design_intent写入及独立DRC继续承担原职责；新增审计不宣称已实现通用自动布局/布线，也不自动授予资料就绪、G3/G4或生产许可。
-
-local.4修复ngspice47端点采样兼容性，独立计算两个端点并保持严格核验。本机真实命令行验收记录保存在Skill之外的solver-profiles，包含程序/适配器哈希和测试报告；发布包不将本机通过状态转授给其他安装者。能力仍限于声明的被动RLC模型采样点AC分析。
-
-## R10新增能力的真实范围
-
-| 能力 | 当前状态 | 不代表 |
-|---|---|---|
-| 七模块发现、按需阅读与组件绑定 | 已实现；模块/入口/规则变化使新版本bundle失效 | 独立运行的七个Agent或自动安装外部Skill |
-| 项目资源解析、一致性核验与离线锁定 | 已实现；可选shared.resource_lock绑定静态评审和NPI | 原厂引脚/尺寸语义正确、实际工程库表已解析或G2自动批准 |
-| IPC探测与内存快照 | 独立只读工具；显式实例和目标板匹配 | 原理图IPC或完整制造后端 |
-| Konnect MCP 后端 | 当前首选0.14.1独立本机安装，按构建档案检查；限定操作见本次验收。旧0.13.0安装器仅保留历史回退用途 | 新安装者已通过、所有工具已验证、任意电路或自动布线合格 |
-| 自研候选封装编辑 | 保留实验实现，退出默认安装与自动回退；实际只读回读已有记录，完整编辑验收未完成 | 已稳定的PCB写入/恢复或可发布的正式执行后端 |
-| 脚本优先路由预检与后端选择 | 已实现规划，不执行后端；无实际验收则待办/阻断 | 已集成自研或第三方全板Router |
-| 归一化网格实验路径搜索 | 离线实验；候选计划不写PCB | 实际铜几何、差分/回流/电气正确或原生DRC通过 |
-
-外部候选的状态见[组件清单](component-manifest.json)。以下保留的工程能力继续受原生环境、当前项目证据和G1–G6约束；R9.4历史原生证据不能自动转成新增R10能力的验收。
-
-通用的是阶段、数据接口、检查方法与证据门禁。具体电路、封装、叠层、电流、阻抗、工艺阈值、适用标准及验收条件必须来自当前项目与原厂/工厂批准资料。
-
-| 能力 | 执行方式与边界 |
-|---|---|
-| 环境与保护 | 推荐基线10.0.7；允许KiCad 10.0.x稳定补丁版进入同版本CLI/pcbnew检测与原生setup，其他版本不直接取得制造资格；只读探测、独立新候选及实际环境验证 |
-| 需求/架构 | Agent和工程师建立规格、模块、首页架构及接口契约；脚本核对声明/端点，不证明架构本身正确 |
-| 器件资料 | 版本/哈希缓存和项目冻结；Agent实际读原厂原文、图表和勘误；无资料保持未决 |
-| 原理图 | 接收Agent已设计的精确文件草稿，原生导出/校验；不提供任意需求到正确电路的自动综合算法 |
-| PCB规则与几何 | 项目参数驱动差分/电源/RF、明确路径和布局检查；不支持的复杂几何不假通过 |
-| 布局/布线 | 使用真实KiCad工具或已验证适配器；历史固定坐标/网络脚本不随运行包提供 |
-| AI与工程师 | 原理图、PCB各自有当前版本资料包、真实AI观察及工程师确认，不能自动代签 |
-| DFX/NPI | 原生ERC/DRC、静态检查、制造/装配/测试与工程证据；阻断项禁止生产候选导出 |
-| 制造交付 | 冻结工程后隔离导出候选；实际CAM、工厂EQ、装配及授权后才发布 |
-| 实测与外部工具 | 动态EMC、SI/PI、热、可靠性与适用认证依赖实际模型、外部工具或样机测试 |
-
-### 稳定版补丁级验证边界
-
-- **KiCad 10.0.7**：推荐/历史验收基线，保留现有真实工程门禁。
-- **其他稳定 KiCad 10.0.x（例如10.0.8）**：版本一致仅代表候选资格。先运行 doctor，再在合法非空项目上运行 `environment_start.py setup --apply` 获得 `startup-state.json`；在执行制造预审、覆铜冻结和 PCB 原生签核的 Agent 环境中设置 `KICAD_PATCH_STARTUP_STATE` 为该状态文件绝对路径。程序会重新检查有效期、工具/脚本哈希和存储的真实烟雾结果。仅有版本字符串不能通过生产门禁。
-- **KiCad 9.x**：现阶段只开放不依赖原生 KiCad 的需求分析、资料检查、静态预览（不能产生原生证据或制造授权）。9.x CLI/pcbnew 及制造输出在取得实际原生测试证据前始终 UNVERIFIED / BLOCKED。
-- **KiCad 10.x 新稳定版**：同版本 CLI/pcbnew 可进入完整原生烟雾验证，之后仍须当前项目工程门禁。10.0 系列外的制造契约需验证后才可开放。
-- **KiCad 11+ 稳定版**：CLI 可独立识别并以 `--cli-only` 验证 PDF/XML/ERC/DRC；仅匹配报告模式及真实命令通过的 CLI-only 工作允许进入原理图签核。旧 SWIG `pcbnew` 不再被假定存在，PCB 原生读写、覆铜和制造暂保持 BLOCKED，需要新的 IPC/`kicad-python` 适配器及真实测试。
-- **KiCad RC/nightly/dev、混合 CLI/pcbnew**：不自动批准；必须独立评估。
-- 当前 GitHub Actions 的 Python 模拟测试不等于 KiCad 9/10 原生互操作验收。
-
-核心库存强制验证当前tool-manifest内全部运行工具的存在、唯一性、文件哈希和工具合同，实际数量由发布验证报告生成，拒绝额外混入的项目Python脚本。独立历史归档是否安装不影响该门禁。升级核心版本后，旧配置快照与环境记录须按各自版本/哈希规则重新确认。
-
-运行包不含测试夹具、个人机器通过记录或历史项目源码。软件测试通过只能支持声明范围内的控制逻辑，不能据此宣称任何PCB都正确或Gerber可直接投产。每个真实项目仍需完成同一基线下的原生设计、评审、制造与产品验收证据链。
+Independent design review, manufacturing data and physical hardware tests remain required. See [latest workflow](latest-complete-workflow.md), [Konnect acceptance](konnect-capability-migration.md) and [engineering rules](engineering-rules.md).

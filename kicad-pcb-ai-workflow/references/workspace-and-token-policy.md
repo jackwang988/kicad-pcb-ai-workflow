@@ -1,24 +1,53 @@
-# R10 唯一工作工程与Token优化规则
+# R10 Workspace Lifecycle and Context Budget Policy
 
-此功能只管理工程路径、候选和审核证据。**不修改EDA对象、不自动删除、移动或覆盖任何历史工程**，也不降低G1–G4及制造门禁。
+## Purpose and limits
 
-## 目录结构
-- `01_WORKING/`：唯一连续编辑的工程，必须由用户/Agent先选择并准备完整 `.kicad_pro/.kicad_sch/.kicad_pcb` 及需要的符号库/层级资源
-- `02_CHECKPOINTS/`：明确里程碑生成的不可变副本
-- `03_REPORTS/`：G1–G4、ERC/DRC、PDF、网表、技术检查的完整证据
-- `04_RELEASE/`：不可覆盖的冻结候选，不是工厂授权
-- `CURRENT_PROJECT.json`：权威工作工程路径，只是导航索引，工程师/工厂签核仍需单独完成
+Keep one identifiable working KiCad project and reduce repeated context ingestion without weakening G1–G4 or the final manufacturing controls. `workspace_manager.py` indexes project files and immutable evidence; it does not silently create circuits, invoke Konnect, run KiCad CLI, move historic directories, purge files or grant any engineering approval.
 
-`workflow.py workspace ROOT --action init --project-file 01_WORKING/NAME.kicad_pro --apply` 只登记已存在的工程，不猜测“修改时间最新就是正确工程”，也不会移动历史文件；`status` 返回唯一工作路径与各类历史数量。`inventory` 只分类旧候选、备份、配置快照和报告，**不删除**。`checkpoint --label NAME --apply` 只在高风险任务/里程碑时显式执行，不为每个移动、画线或ERC新建工程。`register --stage G1 --artifact 03_REPORTS/... --apply` 只创建证据索引且保存哈希，不直接批准G1。
+## Canonical project layout
 
-冻结制造候选时，如果工作区有索引，复制活动工程和必需设计配置，不递归复制 `02_CHECKPOINTS/03_REPORTS/04_RELEASE/` 全部历史。老工程未采用标准目录时沿用原来的安全隔离，不因为目录整洁而丢依赖。
+```text
+PROJECT_ROOT/
+  01_WORKING/                 One actively edited KiCad project
+    main.kicad_pro
+    main.kicad_sch
+    main.kicad_pcb             Optional during schematic-only work
+  02_CHECKPOINTS/             Explicit immutable milestone copies
+  03_REPORTS/                 Immutable ERC/DRC and G1-G4 evidence
+    index/                    References and hashes, not report duplicates
+  04_RELEASE/                 Immutable manufacturing candidates
+  CURRENT_PROJECT.json        Authoritative project location and revision
+```
 
-## 模型上下文限制
-1. `SKILL.md` 保留核心规则与当前任务路由，完整16节点仅在全流程规划时读。单节点只打开本节点模块，发现风险再按需要读相关参考文档。
-2. 芯片知识卡按精确MPN、封装、阶段类别检索，默认 `brief`；遇图表/特殊工况或证据冲突时打开缓存原厂文档的指定页。
-3. Konnect只按当前任务发现所需工具集并复用有效的能力记录；不得把动态工具总数做固定白名单，也不得绕过首次高风险能力验收。
-4. 日常 `status --format compact` 返回状态及未决数。`report-brief` 默认只给最多6条问题和全部状态计数，阻断/失败优先，但**完整报告/审查输入必须保留**并用于真实门禁。
-5. Token实际用量须由宿主usage核对；代码测试测量的是字节/字符而非真实模型Token。耗时、工具调用、IO也需要单独衡量。
+For an existing project, first make a separate backup and confirm the chosen complete KiCad project and all referenced libraries. Place it under `01_WORKING` deliberately and run workspace initialization. Never infer the authoritative project from the newest modification time. Historical projects outside this convention keep their old non-overwrite safeguards; the new index never authorizes blind replacement.
 
-## 失败与安全
-如果活动工程路径或版本不确定，阻断并要求确认，不从修改时间猜测。不修改已有检查点/审核记录。原工程/资料/规则变更后，旧哈希证据失效，仅重新评审受影响部分；必需的原生ERC/DRC/人工审批不可省略。
+## When to create a candidate
+
+Create a candidate only for first-time generation, an explicit branch, irreversible/high-risk fixture work, a named engineering checkpoint, or the manufacturing freeze. Within an authorized working session, regular part movement, wiring and component edits operate on the *same* KiCad project. Verify target path, UUID/net/footprint identities and pre/post hashes; use appropriate Konnect risk acceptance and read-back. Build one configuration bundle and reuse it while its source, tool and rule fingerprints remain valid. New review packets are immutable under `03_REPORTS`; store the report hash and project revision in the index.
+
+Manufacturing freeze must not recursively copy `02_CHECKPOINTS`, `03_REPORTS`, `04_RELEASE`, prior candidates, repositories or other historical trees. Confirm that the copied source schematic, PCB, project settings and required relative library assets remain intact. Preserve all historical files; never automatically delete or move them.
+
+## CLI
+
+```bash
+python scripts/workflow.py workspace /project --action init --project-file 01_WORKING/main.kicad_pro --apply
+python scripts/workflow.py workspace /project --action status
+python scripts/workflow.py workspace /project --action checkpoint --label G1-approved --apply
+python scripts/workflow.py workspace /project --action register --stage G1 --artifact 03_REPORTS/G1-r1/packet.json --apply
+python scripts/workflow.py workspace /project --action index --stage G1
+python scripts/workflow.py workspace /project --action inventory --limit 20
+python scripts/workflow.py status /project --bundle control-r1 --format compact
+```
+
+## AI context rules and measurement
+
+1. Read `SKILL.md` and one selected module. Read full workflow, DFX, high-speed and manufacturing references only when the task requires them. Do not load all toolsets for a simple operation.
+2. Keep original source PDFs, netlists, native ERC/DRC output and complete review packets on disk. Provide AI with bounded `checks_summary`, artifact paths, selected current-stage device card excerpts and hashes first. Read full evidence for exact affected nets, pins, source pages, high-risk findings or exceptions.
+3. Konnect discovery must remain dynamically complete; a task should load only the necessary toolset. Reuse valid build/schema-bound capability records.
+4. `workflow status --format compact` shows counts and the highest-priority missing items. Switch to JSON output for complete debugging.
+5. `token_budget.py --input REPORT --limit 6` prioritizes failed/blocked findings and displays total omitted counts; it must never relabel hidden failures as PASS. Gates always process the full original evidence.
+6. Only the model host's actual usage statistics can establish saved input/output tokens. File byte/character counts are proxy metrics, not a reliable universal conversion; English is not automatically cheaper for every tokenizer.
+
+## Acceptance and rollback
+
+Ten sequential small edits should keep one working project; checkpoint creation must require an explicit action. Failure, ambiguous source identity, or unsaved conflicting GUI state must block further writes. New instruction or rules revisions may invalidate old bundle hashes; rebuild the affected snapshots rather than replacing signed records. Preserve full audit trails and require genuine KiCad/Konnect end-to-end testing before claiming completed live editing.

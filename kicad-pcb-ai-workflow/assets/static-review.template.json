@@ -29,7 +29,7 @@
         {
           "id": "schematic.requirements",
           "category": "requirements",
-          "level": "阻断级",
+          "level": "\u963b\u65ad\u7ea7",
           "requirement": null,
           "strength": null,
           "targets": {
@@ -51,7 +51,7 @@
         {
           "id": "schematic.system_integration",
           "category": "system_integration",
-          "level": "阻断级",
+          "level": "\u963b\u65ad\u7ea7",
           "requirement": null,
           "strength": "mandatory",
           "targets": {
@@ -73,7 +73,7 @@
         {
           "id": "schematic.device_recommended_circuit",
           "category": "device_recommended_circuit",
-          "level": "阻断级",
+          "level": "\u963b\u65ad\u7ea7",
           "requirement": null,
           "strength": null,
           "targets": {
@@ -95,7 +95,7 @@
         {
           "id": "schematic.power_domains",
           "category": "power_domains",
-          "level": "阻断级",
+          "level": "\u963b\u65ad\u7ea7",
           "requirement": null,
           "strength": null,
           "targets": {
@@ -117,7 +117,7 @@
         {
           "id": "schematic.reset_boot_sequence",
           "category": "reset_boot_sequence",
-          "level": "阻断级",
+          "level": "\u963b\u65ad\u7ea7",
           "requirement": null,
           "strength": null,
           "targets": {
@@ -139,7 +139,7 @@
         {
           "id": "schematic.clock",
           "category": "clock",
-          "level": "阻断级",
+          "level": "\u963b\u65ad\u7ea7",
           "requirement": null,
           "strength": null,
           "targets": {
@@ -161,7 +161,7 @@
         {
           "id": "schematic.interfaces",
           "category": "interfaces",
-          "level": "阻断级",
+          "level": "\u963b\u65ad\u7ea7",
           "requirement": null,
           "strength": null,
           "targets": {
@@ -183,7 +183,7 @@
         {
           "id": "schematic.protection",
           "category": "protection",
-          "level": "阻断级",
+          "level": "\u963b\u65ad\u7ea7",
           "requirement": null,
           "strength": null,
           "targets": {
@@ -205,7 +205,7 @@
         {
           "id": "schematic.passives_unused_pins",
           "category": "passives_unused_pins",
-          "level": "阻断级",
+          "level": "\u963b\u65ad\u7ea7",
           "requirement": null,
           "strength": null,
           "targets": {
@@ -227,7 +227,7 @@
         {
           "id": "schematic.footprint_pinmap_variants",
           "category": "footprint_pinmap_variants",
-          "level": "阻断级",
+          "level": "\u963b\u65ad\u7ea7",
           "requirement": null,
           "strength": null,
           "targets": {
@@ -249,7 +249,7 @@
         {
           "id": "schematic.reserve_options",
           "category": "reserve_options",
-          "level": "阻断级",
+          "level": "\u963b\u65ad\u7ea7",
           "requirement": null,
           "strength": null,
           "targets": {
@@ -271,7 +271,7 @@
         {
           "id": "schematic.style",
           "category": "schematic_style",
-          "level": "阻断级",
+          "level": "\u963b\u65ad\u7ea7",
           "requirement": null,
           "strength": "mandatory",
           "targets": {
@@ -306,7 +306,7 @@
         {
           "id": "pcb.requirements",
           "category": "requirements",
-          "level": "阻断级",
+          "level": "\u963b\u65ad\u7ea7",
           "requirement": null,
           "strength": null,
           "targets": {
@@ -328,7 +328,7 @@
         {
           "id": "pcb.stackup_reference_planes",
           "category": "stackup_reference_planes",
-          "level": "阻断级",
+          "level": "\u963b\u65ad\u7ea7",
           "requirement": null,
           "strength": null,
           "targets": {
@@ -350,7 +350,7 @@
         {
           "id": "pcb.critical_signal_paths",
           "category": "critical_signal_paths",
-          "level": "阻断级",
+          "level": "\u963b\u65ad\u7ea7",
           "requirement": null,
           "strength": null,
           "targets": {
@@ -372,7 +372,7 @@
         {
           "id": "pcb.power_return_loops",
           "category": "power_return_loops",
-          "level": "阻断级",
+          "level": "\u963b\u65ad\u7ea7",
           "requirement": null,
           "strength": null,
           "targets": {
@@ -394,7 +394,7 @@
         {
           "id": "pcb.decoupling",
           "category": "decoupling",
-          "level": "阻断级",
+          "level": "\u963b\u65ad\u7ea7",
           "requirement": null,
           "strength": null,
           "targets": {
@@ -416,7 +416,7 @@
         {
           "id": "pcb.clock",
           "category": "clock",
-          "level": "阻断级",
+          "level": "\u963b\u65ad\u7ea7",
           "requirement": null,
           "strength": null,
           "targets": {
@@ -438,7 +438,7 @@
         {
           "id": "pcb.rf_antenna",
           "category": "rf_antenna",
-          "level": "阻断级",
+          "level": "\u963b\u65ad\u7ea7",
           "requirement": null,
           "strength": null,
           "targets": {
@@ -460,7 +460,7 @@
         {
           "id": "pcb.pads_vias_fanout",
           "category": "pads_vias_fanout",
-          "level": "阻断级",
+          "level": "\u963b\u65ad\u7ea7",
           "requirement": null,
           "strength": null,
           "targets": {
@@ -482,7 +482,7 @@
         {
           "id": "pcb.mechanical_manufacturing",
           "category": "mechanical_manufacturing",
-          "level": "阻断级",
+          "level": "\u963b\u65ad\u7ea7",
           "requirement": null,
           "strength": null,
           "targets": {
@@ -504,7 +504,7 @@
         {
           "id": "pcb.reserve_options",
           "category": "reserve_options",
-          "level": "阻断级",
+          "level": "\u963b\u65ad\u7ea7",
           "requirement": null,
           "strength": null,
           "targets": {
@@ -526,7 +526,7 @@
         {
           "id": "pcb.placement_quality",
           "category": "placement_quality",
-          "level": "阻断级",
+          "level": "\u963b\u65ad\u7ea7",
           "requirement": null,
           "strength": null,
           "targets": {

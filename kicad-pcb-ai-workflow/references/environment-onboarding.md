@@ -1,170 +1,30 @@
-# 新手环境配置与日常启动 · R9.3
+# Environment Setup and Daily Operation
 
-本教程用于首次配置、原生工具链验证和相应故障。单纯“测MCP/KiCad连通”先走[环境模块的轻量检查](module-environment.md)，不自动执行本教程中的GUI确认、项目复制、读图、ERC/DRC或状态文件生成。
+## Prerequisites
 
+Use a real KiCad installation and `kicad-cli` compatible with the target project; a separately licensed, locally enrolled Konnect MCP executable and accessible KiCad editor are required **only** for live operations. Python standard-library scripts work in an isolated interpreter; source PDF text extraction may need `pdftotext`. Do not install a random `pcbnew` wheel from PyPI as a substitute for KiCad's matching legacy Python binding. During the single-writer migration, old `pcbnew` can be optional for certain read-only audits, but it is not an authorized board writer.
 
-## 目录
+## First installation and smoke tests
 
-1. 适用范围与准备
-2. Windows首次配置
-3. 第一次真实工程验证
-4. 日常启动与重验条件
-5. Linux/macOS与Agent连接
-6. 常见失败与全流程入口
-
-## 1. 适用范围与准备
-
-首次配置一次，日常快速检查通过后直接进入项目输入。环境通过仅代表已测工具可运行，不代表电路正确或可以制造。本教程负责环境入口；备用/DNP方案按reserve-options.md执行，不自动全板增加器件。
-
-需要：推荐官方KiCad10.0.7（其他10.0.x稳定补丁版本为待原生验证候选）、能导入对应pcbnew的Python、本地文件/命令执行与读图能力的Agent、当前完整Skill目录、一个合法且非空的KiCad示范工程。若只用云端聊天且无法访问装有KiCad的电脑，需要先建立平台支持的本地执行连接；MCP可选，不能只凭工具列表认定连接成功。
-
-从https://www.kicad.org/download/获取官方软件；推荐/历史验收基线为10.0.7。其他10.0.x稳定补丁版本先检查CLI与pcbnew同补丁版，随后在合法真实工程上执行setup --apply；环境烟雾通过只是原生基础功能验收，生产前仍须完整工程门禁。KiCad9原生调用目前不开放，仅可运行不依赖KiCad的需求、原厂资料和静态预览等功能。不会自动升级/卸载。以下为跨项目的配置步骤；每台机器必须实际检测安装位置、版本和解释器，不能沿用他人的环境通过记录。
-
-## 2. Windows首次配置
-
-1. 安装并启动KiCad，打开原理图编辑器和PCB编辑器，完成默认符号/封装库初始化。先用GUI确认选用工程能打开、库能解析、封装符合预期；外部库和路径变量也需配置。此步骤不能由版本检测替代。
-2. 将完整Skill放在Agent支持的本地Skills目录，按该平台说明启用；没有统一跨平台安装目录。必须保留SKILL.md、scripts、references和assets的相对结构。
-3. 在Agent使用的PowerShell中设置以下示例变量，改成实际路径。Test-Path为False时先找正确路径，不继续。
-
-```powershell
-$SkillDir = 'D:\AI-Skills\kicad-pcb-ai-workflow'
-$KicadBin = 'C:\Program Files\KiCad\10.0\bin'
-$CLI = Join-Path $KicadBin 'kicad-cli.exe'
-$PYK = Join-Path $KicadBin 'python.exe'
-Test-Path $CLI
-Test-Path $PYK
-Test-Path (Join-Path $SkillDir 'SKILL.md')
-```
-
-4. 验证CLI与绑定，必须使用匹配的解释器；不靠普通Python/Anaconda的pip install pcbnew解决版本问题。
-
-```powershell
-& $CLI version
-& $PYK -c "import sys, pcbnew; print(sys.executable); print(pcbnew.GetBuildVersion())"
-```
-
-CLI与pcbnew应为同一10.0.x稳定补丁版本；10.0.7为推荐基线，其他版本初始标记PATCH_CANDIDATE_NATIVE_SMOKE_REQUIRED。找不到python.exe时查询实际安装布局，不创建假路径、不套用旧版Python3.11。
-
-5. 将CLI目录加入当前会话PATH，运行自检。此命令不修改系统PATH；后续运行的Agent子进程必须继承同一配置。
-
-```powershell
-$env:Path = "$KicadBin;$env:Path"
-Set-Location $SkillDir
-& $PYK scripts/doctor.py --kicad-cli $CLI
-$LASTEXITCODE
-```
-
-required_ok=true且退出0只证明版本/安装组合符合候选要求；未完成setup --apply前不得宣称原生环境或制造链已验证。把上述路径配置保存到用户自己的本地启动记录，日后在同一Agent执行环境加载；Skill不擅自写系统环境、安装软件或持久化全局配置。只在手工终端配置PATH、Agent却使用另一环境时仍会失败。
-
-## 3. 第一次真实工程验证
-
-选择一个你有权使用、已能在GUI打开的非空示范工程；顶层原理图、PCB、项目文件同名。运行包不附带生产示范工程，应选择已有合法工程；开发夹具不能冒充成功示范。准备一个位于工程外且尚不存在的报告目录。setup会复制整个工程（排除.git和__pycache__；符号链接拒绝），原工程不写入。
-
-```powershell
-& $PYK scripts/environment_start.py setup --project 'D:\Projects\demo' --schematic 'demo.kicad_sch' --board 'demo.kicad_pcb' --project-file 'demo.kicad_pro' --report-dir 'D:\KiCad-Checks\setup-r1' --kicad-cli $CLI
-```
-
-默认PREVIEW显示工程、输入和目标目录及步骤概述，不是完整原生argv清单；不写报告/副本，也不运行工程烟雾测试。基础工具缺失会先BLOCKED，此时不代表路径已经验收。基础探测阶段失败尚未创建目录，需保存终端输出用于排错。核对路径后加--apply执行实际验证：
-
-```powershell
-& $PYK scripts/environment_start.py setup --project 'D:\Projects\demo' --schematic 'demo.kicad_sch' --board 'demo.kicad_pcb' --project-file 'demo.kicad_pro' --report-dir 'D:\KiCad-Checks\setup-r1' --kicad-cli $CLI --apply
-```
-
-执行内容：复制项目→导出原理图PDF/XML→导出顶底铜层PCB PDF→ERC/DRC JSON及parity→pcbnew.LoadBoard→核对原工程未改变。输出仅在新报告目录，不导出Gerber/BOM。工程依赖绝对路径的外部库不会被自动打包，仍需人工核对。
-
-成功为ENVIRONMENT_READY和startup-state.json；失败为BLOCKED
-
-对非10.0.7的稳定 KiCad 10.0.x，完成首次setup后，还需在同一Agent执行环境中保存当前状态文件绝对路径；正式 PCB 规则审计、冻结及制造预审将主动复查其有效性：
-
-```powershell
-$env:KICAD_PATCH_STARTUP_STATE = 'D:\KiCad-Checks\setup-r1\startup-state.json'
-& $PYK scripts/environment_start.py check --state $env:KICAD_PATCH_STARTUP_STATE --kicad-cli $CLI
-```
-
-缺少或过期的状态文件会阻断非基线补丁版的工程签核和制造候选；不修改历史记录、不降级生产门禁。，已开始的运行保留failed-setup.json/命令日志，不产生成功记录。报告目录已存在会拒绝覆盖，修复后用setup-r2等新目录。
-
-ERC/DRC有违规但命令及已支持JSON解析正常时，记录design_issue_counts，仍可能ENVIRONMENT_READY；这是工具可运行，绝非设计通过。JSON模式未识别或命令失败会阻断，需查原始日志，不能修改报告伪造通过。
-
-还需Agent实际打开导出的PDF，说清一个真实位号/网络/图层，并由用户检查它读对；GUI库/封装、读图能力和项目资源不是本脚本可自动证明的内容。PCB PDF只用于冒烟验证，不代表全部铜层评审或CAM。
-
-## 4. 日常启动与重验条件
-
-日常MCP/KiCad是否在线，用[一次直接工具查询](module-environment.md)确认即可。下面的startup-state检查用于即将执行的原生工程/制造工具链，不能要求每次连接询问都运行。
-
-在已配置的同一Python/CLI环境运行：
-
-```powershell
-& $PYK scripts/environment_start.py check --state 'D:\KiCad-Checks\setup-r1\startup-state.json' --kicad-cli $CLI
-```
-
-check只读，不安装/配置/写报告；每次真实探测当前CLI和绑定，比较操作系统、Python/CLI/绑定及Skill脚本哈希、选定路径环境变量摘要和保存的烟雾证据。默认完整验证记录有效7天，可用--max-age-days 0..365按团队政策指定。7天是启动复验策略，不是硬件行业强制标准。
-
-- ENVIRONMENT_READY/退出0：跳过重复安装和完整烟雾验证，进入当前项目需求及资源检查。
-- FULL_SETUP_REQUIRED/退出2：无记录、过期、证据丢失、工具/解释器/脚本/相关路径变化；在新目录重新setup --apply，不手改日期/哈希。
-- BLOCKED/退出2：当前工具缺失/版本不符或读取异常，先处理原因。
-
-状态记录是本地复用依据，不是防伪签名，也不能穷尽全部DLL/操作系统/外部库变化。新电脑、新执行环境、异常或重大系统/工具变化应主动重验。新项目不能跳过自己的库、需求、规则、原厂资料和制造检查；生产前仍运行最终全量门禁。
-
-## 面向未来版本：CLI-only 原生兼容性验证
-
-当 KiCad 11 或更高稳定版无法导入旧 `pcbnew` 时，不能直接认定整个 Skill 不可用。可先使用 CLI-only 功能：
-
-```powershell
-# $PYK 为可运行 Skill 的 Python；CLI-only 不需要旧 pcbnew
-& $PYK scripts/doctor.py --kicad-cli $CLI
-
-# 首次仅预览；确认路径后追加 --apply
-& $PYK scripts/environment_start.py setup --project 'D:\Projects\demo' --schematic 'demo.kicad_sch' --board 'demo.kicad_pcb' --project-file 'demo.kicad_pro' --report-dir 'D:\KiCad-Checks\future-cli-r1' --kicad-cli $CLI --cli-only
-
-# 使用 --apply 实际验证后，绑定当前 Agent 会话的真实状态文件：
-$env:KICAD_CLI_STARTUP_STATE = 'D:\KiCad-Checks\future-cli-r1\startup-state.json'
-& $PYK scripts/environment_start.py check --state $env:KICAD_CLI_STARTUP_STATE --kicad-cli $CLI
-```
-
-CLI-only setup仍要求真实非空工程，验证 PDF/XML、ERC/DRC JSON 真实输出但不执行 `pcbnew.LoadBoard`。成功状态 `ENVIRONMENT_CLI_READY` 不等于完整环境通过；PCB 规则、生效网络类、覆铜保存和生产放行仍需经过验证的 IPC 适配器。若新版CLI命令或JSON结构变化，该项应被明确标记为不可用，而非让整个离线Skill失效。
-
-工作流入口也可使用 `workflow.py ... --task environment.setup --cli-only`；遵守预览与 `--apply` 规则。
-
-## 5. Linux/macOS与Agent连接
-
-命令结构相同，把$PYK替换为能导入目标pcbnew的Python路径，$CLI替换为实际kicad-cli路径。先执行：
+Confirm actual OS, install path, CLI version, KiCad application version, executable SHA-256, Konnect backend build and license. For stable KiCad 10.x, run native smoke on a real independent, nonempty project candidate and check schematic XML/PDF, ERC/DRC, PCB reload and manufacturing command availability as required by the task. For KiCad 11+ do not assume old SWIG `pcbnew` is available: the CLI-only smoke may permit bounded source tasks, not automatically PCB write/freeze/manufacturing approval. KiCad 9 has separate limited compatibility status unless independently validated. Future release numbers alone do not prove compatibility.
 
 ```bash
-/actual/python -c 'import pcbnew; print(pcbnew.GetBuildVersion())'
-/actual/python /actual/skill/scripts/doctor.py --kicad-cli /actual/kicad-cli
-/actual/python /actual/skill/scripts/environment_start.py check --state /actual/setup/startup-state.json --kicad-cli /actual/kicad-cli
+# Read-only environment diagnosis without creating an engineering project.
+python scripts/workflow.py run /project --task environment.doctor
+# Setup requires a real independent project and, for mutations, explicit --apply.
+python scripts/workflow.py run /project --task environment.setup --cli-only
+# See actual supported arguments for the installed version.
+python scripts/environment_start.py --help
 ```
 
-Linux/macOS完整setup格式：
+## Daily work (minimum necessary calls)
 
-```bash
-/actual/python /actual/skill/scripts/environment_start.py setup --project /actual/demo --schematic demo.kicad_sch --board demo.kicad_pcb --project-file demo.kicad_pro --report-dir /actual/new-setup --kicad-cli /actual/kicad-cli
-# 核对预览后，在同一命令末尾加 --apply 执行真实副本验证
-```
+For routine MCP availability, try one supported protocol ping or lightweight read; for real KiCad project connection try a single `open_project` query with the expected board path. Stop on success. Do not automatically relaunch software, install a plugin, open new test boards, discover all 200+ tools, screenshot the desktop or run DRC for a connection ping. If connection fails, inspect the returned failure class, then perform one targeted diagnostic before attempting a change.
 
-当前无工具时check优先BLOCKED，即使状态文件也缺失；工具匹配后才判断是否需要首次完整验证。不假定所有平台安装包都包含相同目录名或python可执行程序。系统包、沙箱安装、WSL调用Windows程序等要验证路径与资源可达，不把另一环境的检测结果复用。本版没有跨平台安装器或GUI自动化连接器。
+When editing, read the workspace index and ensure `01_WORKING` is the authorized project. Konnect operation acceptance is stored separately from an environment smoke, and a saved current project needs its own native validation. Re-run setup after changes in CLI executable, service build, connection credentials/target board, project schema or rules that invalidate relevant prior evidence. Never copy another user's startup-state file or human approval record.
 
-## 6. 常见失败与全流程入口
+## Debugging and cross-platform notes
 
-| 现象 | 排查与处理 |
-|---|---|
-| Test-Path=False/找不到命令 | 检查实际安装目录，使用完整路径，确认Agent所在电脑/环境 |
-| No module named pcbnew | 使用匹配绑定的解释器，别混用系统Python/Anaconda |
-| CLI与绑定版本不一致 | 明确选中同一目标安装包，重新doctor，不关闭检查 |
-| 手工终端可用，Agent不可用 | 在Agent实际执行环境检查PATH、Python及文件权限 |
-| 库缺失/封装不解析 | GUI初始化库，修正项目库表和路径变量，再核对来源 |
-| JSON/PDF导出失败 | 查看failed-setup.json内实际命令和输出，不把空文件当成功 |
-| check要求完整重验 | 查reason，保留旧报告，在新目录运行setup，不改记录过期时间 |
-| 原厂下载失败 | 参考device-knowledge.md用真实原始文件离线导入，仍需来源核对 |
+Use actual local KiCad and Python paths for Windows PowerShell, Linux or macOS. Do not invent platform directories; check installed binaries using `--version`/`--help` and the user-provided installation. Different interpreters, nightly/RC versions and mixed KiCad libraries require explicit separate testing. Commands and export/report schemas may differ between releases. If a required capability is absent, state the exact scope of the block rather than pretending that an offline mock passed real native validation.
 
-环境就绪后的顺序：需求冻结→器件资料与规则→原理图/设计意图→AI及工程师确认→封装→叠层→布局/布线→PCB逐层AI及工程师确认→NPI→制造候选/CAM/工厂EQ→授权打样→真实验证。完整模块入口见SKILL.md、device-knowledge.md、design-intent.md、static-ai-review.md和dfx-npi.md。
-
-可给Agent的首次指令：请使用本目录Skill，读取新手配置教程，优先检查本地KiCad10.0.7，其他KiCad10.0.x稳定补丁版必须与pcbnew匹配并在真实工程验证；先预览配置与测试命令，只在独立新目录验证已有示范工程，不改原工程。报告实际执行结果、缺项和下一步；禁止把环境通过当生产通过。
-
-## 布局专项入口
-
-完成环境配置后按full-workflow.md进入需求/资料/工程门禁；布局阶段按placement-quality.md建立placement-plan。检查模块归属、准确电源/地端子与局部电路、布线前和最终视觉复验，不自动移动器件。原生环境通过不代表布局或制造通过。
-
-## 项目通用入口
-
-环境可用后先读universal-workflow.md，建立project-flow并指定实际需求/执行方法。不要运行历史固定坐标或默认写入脚本。原理图精确草稿与制造导出均有新独立候选接口，环境通过不自动完成设计。
+Related: [environment module](module-environment.md), [Konnect backend](konnect-backend.md), [workspace policy](workspace-and-token-policy.md), [KiCad-native verification](static-ai-review.md).

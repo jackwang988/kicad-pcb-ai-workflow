@@ -1,16 +1,7 @@
-# 符号、封装与项目资源
+# KiCad Symbol, Footprint and Project Resource Integrity (G2)
 
-适用：新增/替换器件、缺库、项目交付或更换机器。
+Use locally trusted official KiCad libraries first. Lock exact symbol, footprint, optional 3D and project-specific library resources with hashes and source/provenance. Do not silently install an unknown vendor library. A stable file hash does not establish electrical correctness.
 
-1. 优先发现本机官方库，按当前项目需要取得资源；不下载全量3D或资料全集。
-2. 按 [项目资源契约](project-resources.md) 记录完整MPN、封装后缀、符号引脚与焊盘映射、来源及文件哈希。
-3. resource_guard离线核验实际文件并生成显式新锁定文件；默认预览，写锁定文件需--apply。不会改全局库或自动安装转换器。
-4. 原厂pinout/land pattern、EP和极性仍须核对。资源彼此一致不代表原厂正确，继续完成G2。
-5. 缓存与项目固定资源分开；资源更新不静默改变已有设计。交付时包含实际需要的项目相对资源。
+At G2, reuse the node 03 frozen device bundle. `resource_guard.py check --review-config` checks identity and produces the G2 knowledge-coverage brief. Independently compare current schematic pin numbers/electrical types to physical pad numbers, pin-1 orientation, exposed/thermal pad, polarity, optional/NC pins and actual manufacturer-recommended land pattern. Resolve missing pinout/footprint sources at node 03 and regenerate affected evidence. A missing or mismatched binding blocks G2; prior approval does not transfer to another project.
 
-外部Skill/转换器未捆绑、未验收时只作候选来源；不得绕过统一工程保护和工具白名单。
-
-
-## 新增：多阶段缓存复用与工程职责边界
-
-**G2缓存优先（本版已接入）**：执行`resource_guard.py check /project --lock resource-lock.json --review-config /project/static-review.json`，自动读取节点3冻结资料包的符号封装/Pinout相关卡片，不联网、不重复下载；要求制造商+MPN+封装与资源锁精确一致。无相关卡或哈希失效会阻断并返回节点3补齐。卡片不取代真实Pin/Pad映射、EP/极性及工程师G2审查。完整流程见[16节点规范](latest-complete-workflow.md)。
+See [resource contracts](project-resources.md), [device knowledge](device-knowledge.md), and [schematic review](module-schematic.md).

@@ -1,68 +1,30 @@
-**迁移优先规则（2026-11-17）**：本版本的新策略见[动态能力发现、L0-L3验收与单写入迁移](konnect-capability-migration.md)。下文关于固定0.14.1和pcbnew离线写入的描述仅为历史兼容背景，不覆盖迁移规则。
+# Konnect MCP Backend: Connection, Operation and Verification Contract
 
-# Konnect MCP 执行后端接入规范
+## Distinguish four requests
 
-## 先选择检查范围
+1. **MCP online?** Use a protocol ping or one exposed lightweight read; stop on success.
+2. **KiCad active board connected?** Call `open_project` with the expected board path when available. Confirm IPC, open board identity and actual path. Do not create a project to answer a connection question.
+3. **Which tools are available?** Dynamically discover the current toolset(s) and relevant MCP schemas, avoiding an all-tool dump unless explicitly auditing the backend.
+4. **May this tool edit the board?** Check local build/schema/version and operation-scope fixture acceptance. Discovery is not authorization; high-risk writes require a protected candidate and independent verification.
 
-用户只问“是否连通、ping、重启后再测、连接全链路”时，执行[环境模块的轻量检查](module-environment.md)，通常一次open_project即可，通过即结束。下文发行物核验属于安装/升级；候选工程的移动、旋转、保存及DRC属于操作能力验收，不能自动加入日常连接请求。接口检查不要求截图或桌面控制，也不自动启动编辑器或创建测试板。
+## Installation and identity
 
-## 决策与当前状态
+Konnect-EDA is an externally installed third-party executable, with its own terms and version-specific behavior; it is **not bundled in the public Skill ZIP**. The historical local profile recorded commercial 0.14.1 on Windows/KiCad 10.0.8 and older open-source 0.13.0 on a distinct basis. Those small fixture results are not universal operating guarantees. Verify installer provenance, actual executable SHA-256, server build, connection identity, KiCad version and target PCB on every relevant environment change. No silent downgrade to a different backend or hidden second writer is permitted.
 
-实时 KiCad 操作优先采用外部 Konnect MCP，核心 Skill 继续负责需求、原厂依据、资源、工程约束、版本证据和 G1–G6。自研 kicad_bridge 收为实验，不再作为默认安装或缺失 Konnect 时的自动写入回退。
+## Board operation loop
 
-本版提供`konnect_backend.py`只读MCP检查，按包内[版本档案](konnect-backends.json)核对程序SHA-256、服务版本、实际构建提交和配置；可进一步核验指定实时PCB，拒绝将文件回退当作实时证据。具体已验收操作以当前机器、版本的记录为准，不能沿用旧后端的通过记录。**每台新电脑仍需现场连接检查，安装成功不证明电路合格。** 缺少所需工具时停止对应操作，离线工作可继续。
+- Create or select the exact authorized working candidate. Protect board outline, locks, reference/footprint identities, netlist, already accepted routes and rules.
+- AI generates a scoped plan; Python checks deterministic constraints and relevant device cards. Prefer `dry_run` for complex schematic-to-PCB synchronization, and bind the returned plan revision to the corresponding actual call.
+- Use a verified task-specific Konnect tool to apply a bounded operation. Return UUID/network/geometry object identities and actual changed values. On timeout or uncertain response, **read actual state** before retrying; do not replay relative transforms blindly.
+- Save current KiCad source, release writer ownership, reload independent native files with KiCad CLI, evaluate ERC/DRC and verify project/board hashes. AI and the hardware engineer separately evaluate engineering correctness and current evidence.
+- Preserve raw operation receipt in the report folder; the model can initially see only status, affected-object count, changed UUIDs and evidence path, then expand if issues arise.
 
-当前本地首选 **Konnect-EDA v0.14.1**，它是商业闭源Beta，与原开源 **v0.13.0** 分开记录。旧版只作显式人工回退，不在调用失败或结果不明时自动切换。程序从官方固定发布页获取并校验，不跟随main或自动升级。官方包首次HTTPS下载后固定了本地SHA-256；未取得独立发布者校验清单，不把本地哈希宣称为发布者签名。上游发布说明提交与程序内报告的构建提交分别记录，不能互相替代。
+## Special conditions
 
-## 分工与指令归属
+- A file-backed schematic tool may conflict with unsaved schematic-editor state. Confirm the editor has saved the current source before edit and inspect the exported native netlist afterward.
+- `update_pcb_from_schematic` is a stateful operation: run dry-run first, inspect created/updated/removed/locked objects, and apply the exact recorded plan revision. A successful return does not prove parity until a native re-export and audit.
+- Moving a footprint may detach old tracks, change impedance, short protected objects or violate geometric constraints. Read back actual pads and rerun relevant DRC and G3/G4.
+- Freerouting DSN/SES interchange is not the same as verified copper in KiCad. Confirm SES import, actual board state, manufacturing rules and saved DRC.
+- If the backend lacks the operation, fail only the dependent task with a specific `BLOCKED` reason; never invent tool names or treat higher version numbers as automatic compatibility proof.
 
-| 层 | 职责 |
-|---|---|
-| 总 Skill 与七模块 | 需求、设计意图、原厂审核、风险、操作计划、证据和门禁 |
-| Konnect MCP | 按实际发现的工具能力读取和编辑原理图、PCB、资源及其他受支持对象 |
-| 独立 CLI 与已有检查器 | 对保存后的同一候选执行原生 ERC/DRC、网络/规则/布局检查及已有制造流程 |
-| 工程师与工厂 | 电气/结构/工艺判断、CAM/EQ、发布授权与样机验证 |
-
-不自动运行 `konnect init`，不整体导入其全局 Skill/Agent/Hook。它的“所有修改必须通过 Konnect”及通用参数表不能覆盖本 Skill 已有项目化约束。需要实时修改的当前候选交给 Konnect 单一写入者；离线规则生成、候选转换或现有 pcbnew 制造操作另行交接，先保存/关闭或隔离工程，再验证结果。不能两个后端同时写同一工程。
-
-## 安装核验与按需操作验收
-
-1. **发行物**：从官方v0.14.1发布页获取Windows程序包，独立部署并保留许可证，备份原Skill、MCP及KiCad配置；Codex统一入口为`pcb_skill_konnect`，停用重复旧入口。日常MCP不依赖菜单按钮；原生Specctra桥是单独的可选能力，未验收不启用。不运行`konnect init`，不内嵌或转发商业程序。旧R10整合安装包固定开源0.13.0，不能作为本版升级器再次执行。当前本机迁移和回退记录与其他电脑分别验收。
-2. **MCP 握手**：在宿主注册实际安装的 Konnect 服务，完成 initialize。服务应与桌面 KiCad 的 OS 用户及 IPC 权限环境匹配。不要把隔离命令进程的管道访问失败解释成 KiCad 工程损坏。
-3. **工具发现与真实调用**：调用 `get_installation_info`，记录实际服务构建、执行路径、CLI 与 IPC 检测；调用 `list_toolboxes`，按任务 `load_toolset`。工具数量或名字以运行服务返回为准，不凭 README 臆造参数，也不把发现工具等同于执行成功。
-4. **按需操作能力验收**：仅在用户要求验证实际编辑能力或专项验收时，在专用测试工程的隔离候选中，读取明确板路径、UUID、实际封装/焊盘；移动和旋转一个普通封装，回读实际位置、方向和网络，验证支持的撤销/恢复、保存、原生重载与 DRC。批量、旧计划、断线和实例切换按要求覆盖，逐项记录实际结果，未覆盖项保留待验收。单纯安装或连接检查不自动进入本项。
-
-需要独立安装证据或精确板内容验收时，可用`python scripts/konnect_backend.py --expected-board ABSOLUTE_BOARD --output-dir NEW_REPORT`。Windows默认读取用户主目录下`AppData/Local/PCB-Skill/install-receipt.json`，避免应用容器临时LOCALAPPDATA导致误选；自定义安装可传`--installation RECEIPT`。不带expected-board的结果只能是MCP连通。该命令不替代日常的一次直接工具查询。当前集成的实时验收配置锁定KiCad 10.0.8；旧版核心的其他版本能力不构成该MCP配置通过证据。
-
-执行工程编辑前应有当前服务构建的核对记录；当前会话、服务及配置均未变化时可复用，不为每次只读连接检查重复`get_installation_info`。按需加载任务工具。PCB修改前用`get_editor_state`确认唯一、准确的目标路径；`get_board_info`和焊盘回读要求`source=ipc`。`save_project`没有board参数，仅在刚确认唯一目标后调用。关闭板/未连接时，不把带文件回退的move/rotate用于“实时编辑”。原理图文件编辑前处理好编辑器内存与磁盘的交接。
-
-安装方法按固定版本 README；宿主注册按该宿主的实际配置规范。`get_installation_info` 显示未知构建或未知安装来源时，保留未知，不能自行补全。缺工具、握手失败或读回不符均不得生成合格记录。
-
-## 工程修改任务的闭环（不适用于单纯连接检查）
-
-1. 读取 workflow、已批准约束、资源锁及当前工程输入，明确修改目的和量化验收。
-2. 创建独立候选，保留源输入和必要项目资源。不要复制旧工程师签核作为新候选通过证据。
-3. 由真实 MCP 工具确认当前工程身份、版本和数据来源。要求实时状态时必须是 live IPC 证据；本版部分 Konnect 工具有关闭文件回退，不能将其冒充实时回读，也不能静默换后端。
-4. 生成修改计划，列出对象 UUID、前后目标、修改范围、约束与恢复方案。用户已有授权内继续，不为每次读取、常规移动重复申请确认。
-5. 使用实际工具 schema 中支持的预览/事务或小步操作。不能假定所有工具都有 dry-run、原子批量或统一 apply 参数。禁止通用 shell、任意代码和不受约束的整板优化代替明确工具。
-6. 每步读取真实结果，核对目标及受保护对象。结果不明先检查，不能把超时当作未执行后直接重复相对移动或网络变更。
-7. 保存同一候选，独立运行原生检查与本 Skill 的规则/布局/资源审查；工程变化使受影响证据失效，重新评审后才能推进。
-8. 主线终点保持DESIGN_PACKAGE_READY_FOR_REVIEW。制造候选仍为EXPORTED_NOT_RELEASED；CAM/EQ、生产授权、样机与ECO按用户另行要求进入外部扩展，不重新加入主线第六阶段。
-
-## 0.14.1已知问题对应的使用条件
-
-- 上游承认实时工具可能修改锁定对象。普通封装移动/旋转/批量放置前，对已保存候选调用`konnect_backend.py --expected-board BOARD --placement-refs C1 U1 --output-dir NEW_REPORT`，用原生pcbnew检查锁定状态并比较保存/实时放置。此检查只读，不执行移动；发现锁定、重号或保存/实时不一致时停止并重新准备候选。之后由同一写入者按该计划执行并回读，保护UUID；检查通过不是锁住GUI或其他客户端的保证。其他对象仍按其实际锁定、来源和专项验收检查。
-- 部分原理图几何操作可能错连或丢连接。移动/替换/复制和批量接线需独立比较修改前后的原生网表，并按预期网络变更表验收；ERC为零不能证明连接意图正确。参数修改也按影响复验。
-- 板框重设、项目重命名及带特殊字符的文本写入列为专项待验收，不能用来自动重写已有复杂工程。确需使用时先在独立候选验证可打开、几何与资源未丢失。
-- SES提交可能带DRC违规，导出/回导成功只形成候选。先核验当前后端明确支持的固定直线/通孔等几何范围，再保存、覆铜、原生DRC、连通与规则检查；不能将整板自动布线视为已验收。
-- 真实工具全部可按需发现，不把235个已发现接口都标成已通过。新任务按能力、适用条件和实际结果使用，不因未测试过所有工具而阻止无关只读工作。结果不明或回滚失败先回读，不自动重放写入。
-
-## 特别边界
-
-- Konnect 同样使用 KiCad IPC，不能预先保证消除 Windows 多实例、错误实例标识或重启后的端点问题。首次验收使用明确实例；冲突时拒绝写入，不清空实例标识或自动换板。
-- Konnect的受限DSN/Freerouting/SES流程并不等于自研脚本路由已接通，也不保证复杂铜区、禁布或自定义焊盘场景适用。按实际版本明确支持范围单独验收；不删对象、换封装或降规则来适配后端。
-- 通用去耦、I²C、复位参数只作线索，最终使用当前原厂及项目工况；不直接套用模板值作为工程依据。
-- 独立外部后端减少了本项目的执行器维护成本，但增加了发行物、安装和版本依赖。离线核心与运行依赖体积分别披露，不能声称只安装 Skill 就自动拥有全部能力。
-- 项目核心保留MIT。Konnect-EDA按上游商业许可使用，当前Beta允许免费使用但限制再分发；分享Skill只提供官方获取入口和自有适配，不包含上游程序或搬运其附带指导文档。旧开源Konnect继续按AGPL-3.0独立保留。
-
-依据：[Konnect-EDA 0.14.1发布与已知问题](https://github.com/Orchis-ai-LLC/Konnect-EDA/releases/tag/v0.14.1)、[新版使用说明](https://github.com/Orchis-ai-LLC/Konnect-EDA/blob/main/README.md)、[商业许可](https://github.com/Orchis-ai-LLC/Konnect-EDA/blob/main/LICENSE)、[旧开源0.13.0](https://github.com/mixelpixx/Konnect/releases/tag/v0.13.0)。
+See [dynamic capability policy](konnect-capability-migration.md), [module environment](module-environment.md) and [full process](latest-complete-workflow.md).

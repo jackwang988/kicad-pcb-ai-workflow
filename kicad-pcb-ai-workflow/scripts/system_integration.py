@@ -115,21 +115,21 @@ def audit(root, contract_name, top_schematic, graph, documents):
         for item in nets:
             name, terminals = item.get('name'), item.get('terminals')
             if not isinstance(name, str) or name not in graph['nets']:
-                findings.append({'rule':'SYS.NET.MISSING','level':'阻断级','location':iid+':'+str(name),'description':'接口网络在当前KiCad网表中不存在','reference':f"KiCad当前XML网表；接口来源{interface['source']['document_id']} {interface['source']['locator']}",'fix':'修复原理图连接或更新有依据的接口契约。'})
+                findings.append({'rule':'SYS.NET.MISSING','level':'\u963b\u65ad\u7ea7','location':iid+':'+str(name),'description':'Declared interface net not found in current KiCad netlist','reference':f"Current KiCad XML netlist; interface source {interface['source']['document_id']} {interface['source']['locator']}",'fix':'Repair schematic connection or update a properly sourced interface contract.'})
                 continue
             expected = {(n.get('ref'), str(n.get('pin'))) for n in terminals or [] if isinstance(n, dict)}
             if len(expected) < 2 or len(expected) != len(terminals or []):
                 raise ValueError('Net needs at least two unique explicit terminal endpoints: ' + iid + '/' + name)
             actual = {(ref, str(pin)) for ref, pin in graph['nets'][name]}
             if expected != actual:
-                findings.append({'rule':'SYS.NET.TOPOLOGY','level':'阻断级','location':iid+':'+name,
-                                 'description':'接口预期引脚端点与当前KiCad网表不完全一致','expected':sorted(expected),'actual':sorted(actual),
-                                 'reference':f"KiCad当前XML网表；接口来源{interface['source']['document_id']} {interface['source']['locator']}",
-                                 'fix':'核对系统接口和原理图网络；不要为消除差异而盲目修改契约。'})
+                findings.append({'rule':'SYS.NET.TOPOLOGY','level':'\u963b\u65ad\u7ea7','location':iid+':'+name,
+                                 'description':'Declared interface pin endpoints differ from current KiCad netlist','expected':sorted(expected),'actual':sorted(actual),
+                                 'reference':f"Current KiCad XML netlist; interface source {interface['source']['document_id']} {interface['source']['locator']}",
+                                 'fix':'Review system interface and actual netlist; do not edit the contract just to suppress a mismatch.'})
             owners = {ref_owner.get(ref) for ref, _ in expected}
             if left not in owners or right not in owners:
-                findings.append({'rule':'SYS.NET.MODULE_BOUNDARY','level':'阻断级','location':iid+':'+name,
-                                 'description':'该网络未实际跨越接口声明的两个模块','reference':f"项目模块接口契约；来源{interface['source']['document_id']} {interface['source']['locator']}",'fix':'核对模块归属、接口方向和网络端点。'})
+                findings.append({'rule':'SYS.NET.MODULE_BOUNDARY','level':'\u963b\u65ad\u7ea7','location':iid+':'+name,
+                                 'description':'Net does not actually cross the two modules declared in the interface','reference':f"Project module-interface contract; source {interface['source']['document_id']} {interface['source']['locator']}",'fix':'Verify module membership, direction and net endpoints.'})
             checked_nets.append({'interface_id':iid,'net':name,'expected':sorted(expected),'actual':sorted(actual),'status':'PASS' if expected == actual and left in owners and right in owners else 'FAIL'})
         checks = interface.get('checks')
         if not isinstance(checks, list) or not checks:

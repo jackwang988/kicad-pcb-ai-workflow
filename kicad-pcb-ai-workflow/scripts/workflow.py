@@ -843,7 +843,7 @@ def workspace_action(a):
 def compact_navigation(report):
     findings=report.get('findings',[])
     return {'status':report.get('status'),'scope':'navigation_only',
-            'findings_count':len(findings),'finding_preview':findings[:5],
+            'findings_count':len(findings),'finding_preview':[{**x,'level':{'\u963b\u65ad\u7ea7':'BLOCKER','\u9ad8\u98ce\u9669':'HIGH','\u4e2d\u98ce\u9669':'MEDIUM','\u4f18\u5316\u5efa\u8bae':'ADVISORY'}.get(x.get('level'),x.get('level'))} if isinstance(x,dict) else x for x in findings[:5]],
             'findings_truncated':len(findings)>5,
             'unfilled_fields_count':len(report.get('unfilled_config_fields',[])),
             'groups':[{'group':g['group'],'confirmation_status':g['confirmation_status']}
@@ -865,7 +865,8 @@ def report_brief(path, limit):
         if not isinstance(values,list):continue
         for v in values:
             if isinstance(v,dict):
-                status=str(v.get('status') or v.get('level') or v.get('severity') or 'UNKNOWN')
+                raw_status=str(v.get('status') or v.get('level') or v.get('severity') or 'UNKNOWN')
+                status={'\u963b\u65ad\u7ea7':'BLOCKER','\u9ad8\u98ce\u9669':'HIGH','\u4e2d\u98ce\u9669':'MEDIUM','\u4f18\u5316\u5efa\u8bae':'ADVISORY'}.get(raw_status,raw_status)
                 desc=str(v.get('description') or v.get('detail') or v.get('message') or v.get('task_id') or '')[:200]
             else: status='ISSUE';desc=str(v)[:200]
             issues.append({'status':status,'detail':desc,'origin':key})
@@ -877,15 +878,15 @@ def report_brief(path, limit):
 
 
 def summary(report):
-    lines = ['工作流待办（阶段确认仅控制协作节奏，不替代工程门禁）']
-    labels = ('环境', '需求/架构/资料', '原理图/封装', 'PCB规则/布局/布线', 'DFX/NPI/制造', '试产/ECO')
+    lines = ['Workflow action items (stage confirmation does not bypass engineering gates)']
+    labels = ('Environment', 'Requirements/architecture/sources', 'Schematic/footprints', 'PCB rules/placement/routing', 'DFX/NPI/manufacturing', 'Prototype/ECO')
     for group, label in zip(report['groups'], labels):
         lines.append(f"- {label} [{group['group']}] {group['confirmation_status']}: " + ', '.join(group['tasks']))
-    lines.append(f"项目契约缺项：{len(report['findings'])}；配置未填字段：{len(report['unfilled_config_fields'])}（含可能合法留空的可选项）。")
+    lines.append(f"Project contract findings: {len(report['findings'])}; unset configuration fields: {len(report['unfilled_config_fields'])} (some optional fields may remain blank).")
     for item in report['findings'][:8]:
         lines.append(f"  {item['location']}: {item['description']}")
-    lines.append('工程尚未生成的PCB等文件属于后续待办；环境/需求工作可先开始。')
-    lines.append('详细缺项用 status --format json；实际检查、AI和工程师签核必须分别执行。')
+    lines.append('Future PCB artifacts remain pending; environment and requirements work may proceed.')
+    lines.append('Use status --format json for details; native checks, AI review and engineer sign-off remain separate.')
     return '\n'.join(lines)
 
 

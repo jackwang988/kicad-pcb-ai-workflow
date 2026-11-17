@@ -1,15 +1,7 @@
-**单写入迁移更新**：`freeze_candidate.py --apply`现在只创建独立候选及 `freeze-handoff.json`，Konnect已验收的覆铜工具执行真实写入和保存；`--finalize --operation-report`复核Konnect操作证据并以KiCad CLI独立重载/DRC。不能再理解为Python pcbnew自动覆铜。制造级几何/网络类等价回读未验证的门禁继续阻断；详细参见[迁移规范](konnect-capability-migration.md)。
+# DFX/NPI and Manufacturing Candidate
 
-> 本地修订：先读[主流程与执行修订](design-execution-local.md)。下文六组/16节点与G5/G6为历史兼容资料；当前AI设计主线删除第六阶段，截止DESIGN_PACKAGE_READY_FOR_REVIEW。外部制造/样机/ECO仅按另行任务调用；既有安全门禁保留。
+Before any export, independently validate current G1–G4, netlist/board version, board-house stack-up, effective rules, BOM/CPL variants, pad/polarity, test points, mechanical outline, fabrication/assembly process limits and applicable SI/PI or safety findings. `mass_production_review.py` and `static_review_gate.py` must consume full evidence even if the agent sees a short summary.
 
-# 工程评审与制造候选
+Freeze a **new isolated candidate** with the documented Konnect zone-fill/save receipt and independent KiCad CLI reload/DRC. `manufacturing_export.py` may create Gerber, Excellon drill, BOM, CPL and drawings only after relevant gates; bind hashes to exactly the saved source candidate. A successful export means `EXPORTED_NOT_RELEASED`, never automatic factory approval. Real factory CAM, engineering query (EQ), panel/assembly review and production authorization require actual external evidence and human sign-off.
 
-适用：AI/工程师评审、DFX/NPI、候选制造输出、CAM/EQ和发布。
-
-- 使用 [静态评审](static-ai-review.md) 的当前版本资料包；AI真实读图与来源，工程师本人确认，Agent不得代签。
-- 按 [DFX/NPI](dfx-npi.md) 处理结构、工艺、装配、测试及风险；资料缺失或阻断未关闭则停止相关制造路径。
-- 新增资源锁定、布线计划及IPC快照只是相应范围证据，不能替代原有工程门禁。
-- freeze_candidate在新副本覆铜/保存/重载；manufacturing_export在隔离候选导出并保持EXPORTED_NOT_RELEASED。
-- 工厂CAM/EQ、装配变体和授权确认后才按npi_release复验G5；不自动上传或发厂。
-
-IPC读取适配器不解除现有pcbnew制造前置条件。未来完整IPC后端必须逐项验收后迁移；本版没有把连接成功当制造可用。
+See [DFX/NPI details](dfx-npi.md), [latest workflow](latest-complete-workflow.md) and [stage approvals](stage-approvals.md).

@@ -12,7 +12,7 @@ def audit(root,top,policy_file):
     root=Path(root).resolve();p=local(root,policy_file);q=finite_tree(json.loads(p.read_text(encoding='utf-8-sig')))
     if q.get('schema_version')!=1:raise ValueError('Unknown style policy')
     trees=sheets(root,top);inputs={str(p):sha256(p)};findings=[];checks=[]
-    def risk(code,where,description,fix,level='阻断级'):
+    def risk(code,where,description,fix,level='\u963b\u65ad\u7ea7'):
         findings.append(dict(rule=code,level=level,location=where,description=description,reference='KiCad hierarchical label/sheet pin semantics; explicit project style policy',suggestion=fix))
     # No default page size, device count, distance or forced hierarchy.
     if 'require_sheet_pin_wire' in q and not isinstance(q['require_sheet_pin_wire'],bool):raise ValueError('Explicit boolean sheet-pin-wire setting required')
@@ -35,18 +35,18 @@ def audit(root,top,policy_file):
         declared_pages = set()
         for case in cases:
             if not isinstance(case,dict) or case.get('archetype') not in allowed:
-                risk('STYLE.PROTOTYPE_KIND',str(case),'未知或缺失页面原型','选择已定义的页面原型并提供真实证据。')
+                risk('STYLE.PROTOTYPE_KIND',str(case),'Unknown or missing page archetype','Select a defined page archetype and provide actual evidence.')
                 continue
             name = case.get('page')
             kind = case['archetype']
             if not isinstance(name,str) or name not in trees or name in declared_pages:
-                risk('STYLE.PROTOTYPE_PAGE',str(name),'原型验证页面不可达、缺失或重复','使用当前工程中不同的真实页面。')
+                risk('STYLE.PROTOTYPE_PAGE',str(name),'Archetype evidence sheet is missing, inaccessible or duplicated','Use distinct real pages from current project.')
                 continue
             declared_pages.add(name)
             declared_types.add(kind)
             evidence = case.get('evidence')
             if not isinstance(evidence,dict) or not evidence.get('locator'):
-                risk('STYLE.PROTOTYPE_EVIDENCE',name,'缺少实际审图证据位置','补充证据文件、当前哈希与具体定位。')
+                risk('STYLE.PROTOTYPE_EVIDENCE',name,'Actual visual review evidence locator missing','Provide evidence file, current SHA and specific locator.')
                 continue
             try:
                 file = local(root,evidence['file'])
@@ -56,43 +56,43 @@ def audit(root,top,policy_file):
                     raise ValueError('Evidence has changed')
                 inputs[str(file)] = sha256(file)
             except (KeyError,ValueError,OSError) as exc:
-                risk('STYLE.PROTOTYPE_EVIDENCE',name,str(exc),'使用真实当前工程图面/PDF/人工审核证据，重新记录哈希。')
+                risk('STYLE.PROTOTYPE_EVIDENCE',name,str(exc),'Use actual current project visual/PDF/human review evidence and rebind hashes.')
         if len(declared_pages) < 2 or len(declared_types) < 2:
             risk('STYLE.PROTOTYPE_DIVERSITY','prototype_validation',
-                 '布局策略推广前至少需要两种不同页面原型的独立验证证据',
-                 '选择两种原型并记录整页、200%局部、网表与ERC人工复核。')
+                 'At least two distinct page archetypes require independent evidence before generalizing drawing strategy',
+                 'Use two distinct archetypes, with full-page/200% detail, netlist, ERC and human checks.')
         if 'power_conversion' in declared_types and not ({'mcu_soc','multi_pin_interface'} & declared_types):
             risk('STYLE.PROTOTYPE_GENERALIZE','prototype_validation',
-                 '电源页方案推广前未包含MCU或多引脚接口页',
-                 '增加MCU/多引脚接口代表页验证；不要复用固定坐标模板。')
+                 'Power-sheet strategy has not been validated on MCU or many-pin interface sheet',
+                 'Add representative MCU/mult_pin interface verification; avoid fixed coordinate templates.')
         checks.append({'prototype_validation': 'declared_evidence_only',
                        'archetypes': sorted(declared_types), 'pages': sorted(declared_pages),
                        'scope': 'evidence identity and archetype diversity, not automatic visual proof'})
     for name,tree in trees.items():
         inputs[str(local(root,name))]=sha256(local(root,name));paper=child(tree,'paper',[])
         expected=declared.get(name,{})
-        if expected.get('paper') and (len(paper)<2 or paper[1]!=expected['paper']):risk('STYLE.PAPER',name,'纸张与项目明确要求不符','按项目要求改图面；不得改动连接。')
+        if expected.get('paper') and (len(paper)<2 or paper[1]!=expected['paper']):risk('STYLE.PAPER',name,'Paper size differs from explicit project requirement','Adjust page settings only; preserve electrical connectivity.')
         if 'portrait' in expected:
             if not isinstance(expected['portrait'],bool):raise ValueError('Portrait must be explicit boolean')
-            if ('portrait' in paper)!=expected['portrait']:risk('STYLE.ORIENTATION',name,'页面方向与项目要求不符','按实际约定设置方向。')
+            if ('portrait' in paper)!=expected['portrait']:risk('STYLE.ORIENTATION',name,'Page orientation differs from requirements','Set specified page orientation.')
         electrical=children(tree,'symbol');seen={}
         for symbol in electrical:
             props={p[1]:p[2] for p in children(symbol,'property') if len(p)>2};ref=props.get('Reference','')
             # Across distinct pages/local instances is assessed natively; do not confuse repeated units with duplicate components.
             if ref.startswith(('#PWR','#FLG')):
-                if ref in seen:risk('STYLE.POWER_REF',name+':'+ref,'同页电源符号位号重复','重新注释电源位号并核对原生导出；不合并电源网络。')
+                if ref in seen:risk('STYLE.POWER_REF',name+':'+ref,'Duplicate power-symbol reference on a page','Correct power reference annotations and native export; do not merge power nets.')
                 seen[ref]=True
         for sheet in children(tree,'sheet'):
             props={p[1]:p[2] for p in children(sheet,'property') if len(p)>2};filename=props.get('Sheetfile') or props.get('Sheet file')
             sub=local(root,str((local(root,name).parent/filename).relative_to(root)));subname=sub.relative_to(root).as_posix()
             pins=[str(pin[1]) for pin in children(sheet,'pin')];labels=[str(x[1]) for x in children(trees[subname],'hierarchical_label')]
-            if len(pins)!=len(set(pins)) or set(pins)!=set(labels):risk('STYLE.HIERARCHY',name+' -> '+subname,'层次图框引脚与子页标签不一致或图框引脚重复','按实际接口逐项配对；再以原生XML/ERC核对电气连接。')
+            if len(pins)!=len(set(pins)) or set(pins)!=set(labels):risk('STYLE.HIERARCHY',name+' -> '+subname,'Hierarchical sheet pins do not match child labels or are duplicated','Map pins to actual interfaces then verify native XML/ERC connectivity.')
             if q.get('require_sheet_pin_wire') is True:
                 segments=[]
                 for wire in children(tree,'wire'):
                     pts=[(float(v[1]),float(v[2])) for v in children(child(wire,'pts',[]),'xy')];segments+=list(zip(pts,pts[1:]))
                 for pin in children(sheet,'pin'):
-                    if not any(segment_distance(xy(pin),a,b)<1e-6 for a,b in segments):risk('STYLE.SHEET_WIRE',name+':'+str(pin[1]),'明确要求实体互联的层次引脚未接到可识别导线','显式接线；总线入口和复杂接口需另用原生网表验证。')
+                    if not any(segment_distance(xy(pin),a,b)<1e-6 for a,b in segments):risk('STYLE.SHEET_WIRE',name+':'+str(pin[1]),'Hierarchical pin needing a real wire has no recognizable connected segment','Connect explicitly; verify buses/complex interfaces with native netlist.')
         checks.append({'page':name,'paper':paper[1:],'symbol_instances':len(electrical),'scope':'declared page constraints and immediate sheet mapping only'})
     return {'status':'BLOCKED' if findings else 'DECLARED_STRUCTURE_CHECKS_COMPLETE','scope':'schematic_structure_only','production_authorized':False,'findings':findings,'checks':checks,'inputs_sha256':inputs,
             'manual_remaining':['Actual readability, clusters, text overlap, power symbol scope, NC correctness and device recommendations', 'Prototype evidence identity does not prove its visual or ERC content; AI and engineer must review','Native ERC/XML and complete AI/engineer review; this is not electrical approval']}
