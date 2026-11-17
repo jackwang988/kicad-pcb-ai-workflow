@@ -41,3 +41,54 @@ The preparation stage may copy actual source files and create local PDF text for
 - A static review is not a hardware bench, impedance field solver, thermal analysis, EMC test or factory CAM acceptance. Report unsupported claims as external tests with owners and proof requirements.
 
 See [requirements and risk categories](engineering-rules.md), [stage approvals](stage-approvals.md) and [latest 16-node workflow](latest-complete-workflow.md).
+
+## Mandatory source and task contracts
+
+`assets/static-review.template.json` is a schema example, not a valid current engineering approval. Each approved `documents` entry needs a real, locally frozen file, SHA-256, issuer, title, revision, applicability and source approval; `authority` categories distinguish `product_spec`, `datasheet`, `manufacturer_guide`, `industry_standard`, `factory_spec`. Each task must state its `id/category/requirement/strength/level/targets/source_refs/check`, where `strength` separates mandatory constraints, recommendations and typical examples. Do not promote a typical diagram or absolute maximum rating into an unconditional design limit.
+
+`component_sources` binds each critical device to the matching exact manufacturer, MPN, package and revision; `critical_nets` explicitly covers power/ground, bootstrap/straps/reset, clocks, differential/high-speed, RF/analog and external interfaces. `support_files` must bind BOM, stackup, library, calculations, design intent and relevant drawings as used. Schematic hierarchical sheets and imported original documents must all be included in review baselines; screenshots cannot prove invisible wires or cross-sheet connectivity.
+
+| Check type | Deterministic scope | Insufficient for |
+|---|---|---|
+| `pin_net`, `same_net`, `different_nets` | Actual KiCad XML pin/net membership | Connector semantics, device behavior or crossing lines not linked by netlist |
+| `component_field` | Exact value, footprint, datasheet or declared part field | Trusting similar package/MPN descriptions |
+| `voltage_levels` | Explicit VOH/VOL, VIH/VIL, absolute operating boundaries | Current load, power-off injection, rise/fall, timing and fault behavior |
+| `resistor_divider` | Actual 3-net circuit and worst-case *unloaded* DC ratio under tolerance | Closed-loop stability, load, leakage, transients |
+| `track_geometry`, `via_count` | Named track segments/arcs, layers, width and via count | Characteristic impedance, return continuity or via-stub effects |
+| `pad_distance` | Real pad-center separation | Current loop geometry/ground inductance |
+| `endpoint_path` | Declared point-to-point path and supported delay model | Undeclared branches or complete channel SI analysis |
+| `semantic` | AI must examine source documents, graph and real views | Python returns `AI_REQUIRED`; never silently PASS |
+
+Manufacturer PDF text extraction (`pdftotext` where available) is only an indexed *text source*, not proof that diagrams, table layout, waveform conditions or captions have been viewed. For a scanned PDF or key manufacturer drawing, the reviewing Agent must inspect the original figures (and identify gaps when unavailable). Under the cache-first path, compare file hashes and reuse frozen device-card text rather than re-extracting every PDF or re-searching the public internet.
+
+## G1: schematic review obligations
+
+1. Verify the actual source versions, MPNs, packages, voltage/temperature/operating conditions, original manufacturer recommended circuits and errata; reject inappropriate reference-board assumptions.
+2. View the actual KiCad-exported schematic PDF and original manufacturer diagrams; cross-check all named pins against actual exported XML. A visual line crossing is not an electrical junction, and two hierarchical labels do not prove same net without exported evidence.
+3. Cover power input/output/enable/feedback and startup, clock sources and loading, reset/strap behavior, interface polarity/logic levels, termination/AC coupling/ESD, power-fault handling, analog input/feedback, thermal/exposed-pad requirements and every populated/unpopulated BOM variant as applicable. Not every product requires the same watchdog, reset or protection architecture; document applicability.
+4. Distinguish real deterministic FAIL from semantic uncertainty. AI must record `additional_findings` for risks not listed in preset tasks and `NEEDS_EVIDENCE` for missing drawings, unreadable sources or untested dynamic behavior.
+5. Native ERC/netlist parity + AI source-grounded reasoning + actual engineer approval are **three independent** approvals. A correct netlist does not prove visual readability or safe power behavior.
+
+## G4: PCB review obligations
+
+1. Read saved board and current stackup, actual footprint/pad/net geometry, tracks/arcs/vias/zones and **all copper layer views**, not a single attractive screenshot. An SVG view is not Gerber CAM inspection.
+2. Trace critical channels from actual endpoints, honoring serial components and reference/return layers; check layer transitions, voids, splits, differential routing, grounding/return and application-dependent timing. If impedance or delay models are unavailable, retain `NEEDS_EVIDENCE` rather than assert SI success.
+3. Check supply trunks, neck-downs, current and via/thermal limits, switching loops, feedback routes, oscillator and RF feed/antenna clearances, pad-to-device return geometry and manufacturer layout requirements. Short Euclidean distance does not prove a low-inductance loop.
+4. Check fab rules, outline, holes, courtyard, assembly polarity and variants, DNP and test access. Native DRC, signal-quality engineering judgment and factory CAM review remain independent.
+5. Capture all required footprint, critical net and copper-layer observations with correct object identity and source location. A diagram that does not show a region is not evidence of that region's correctness.
+
+## AI report, dispositions and engineer evidence
+
+The running Agent must read `packet.json`, `facts.json`, `checks.json`, G1/G4 stage-specific `device-knowledge-brief.json`, relevant source citations and genuine views, then produce a separate `ai-review.json` and readable engineering report. It cannot mark itself an actual human reviewer. Per-task AI status is `PASS|FAIL|NEEDS_EVIDENCE|NOT_APPLICABLE`; retain original engineering severity and record real observations (`ref/pin/net/layer/view` or precise facts JSON pointer), applicability conditions, short verified source citations, reasoning and an executable fix/verification plan. `additional_findings` must include structured discovered issues, even when no preset task covers them. Full component, critical-net and layer `coverage` cannot be replaced with an assertion saying "all covered."
+
+Dispositions such as `not_applicable`/`accept_deviation` need evidence, reason and binding to each current item SHA; they cannot nullify active blockers or missing sources. A human `engineer-review.json` binds real reviewer, date, scope, decision and packet/AI SHA hashes; no AI-generated signature or manufactured test result. The gate checks this binding and current files but cannot authenticate a person or guarantee the reasoning is technically correct. `APPROVED_STATIC` is *static review only*; it does not authorize production. Changes to files or source applicability invalidate affected review evidence. A PCB copper edit does not necessarily invalidate unchanged schematic knowledge, but it invalidates affected PCB G4 and later manufacturing files.
+
+```bash
+python scripts/static_review.py /project --config /project/static-review.json --stage schematic --output-dir /project/03_REPORTS/G1-r1
+python scripts/static_review_gate.py /project --packet /project/03_REPORTS/G1-r1 --ai-review /project/03_REPORTS/G1-r1/ai-review.json
+# After a real engineer review, supply an actual engineer-review.json for the same packet:
+python scripts/static_review_gate.py /project --packet /project/03_REPORTS/G1-r1 --ai-review /project/03_REPORTS/G1-r1/ai-review.json --engineer-review /project/03_REPORTS/G1-r1/engineer-review.json
+python scripts/static_review.py /project --config /project/static-review.json --stage pcb --output-dir /project/03_REPORTS/G4-r1
+```
+
+A successful `prepare` only proves packet creation; without an independently valid current KiCad CLI/netlist/Drc evidence it is a *preview*, not an approved board. The gate can refuse missing ERC/DRC, unchanged/bad evidence, AI-only approval or an out-of-date human review. Product performance, thermal, EMC, eyes/USB compliance, simulation and prototype tests still require external actual evidence. Under R10, Konnect is the single live EDA writer; optional legacy pcbnew is limited to independently isolated read-only compatibility, not an automatic save/fill fallback.
