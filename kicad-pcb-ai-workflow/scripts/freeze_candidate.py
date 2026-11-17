@@ -34,7 +34,14 @@ def prepare(project, board_relative, destination, apply=False):
             'required_operations':['copy','konnect_zone_fill','konnect_save_project','native_reload_and_drc'],
             'production_authorized':False}
     if not apply:return result
-    shutil.copytree(project,dest,ignore=shutil.ignore_patterns('.git','__pycache__'))
+    def _ignore(src, names):
+        skip={'.git','__pycache__'} & set(names)
+        if Path(src).resolve()==project and (project/'CURRENT_PROJECT.json').is_file():
+            if not str(board_relative).replace('\\','/').startswith('01_WORKING/'):
+                raise ValueError('Indexed workspace board must be under 01_WORKING')
+            skip.update({'02_CHECKPOINTS','03_REPORTS','04_RELEASE'} & set(names))
+        return skip
+    shutil.copytree(project,dest,ignore=_ignore)
     candidate=dest/board_relative
     try:
         if sha256(board)!=result['source_board_sha256'] or sha256(candidate)!=result['source_board_sha256']:

@@ -703,6 +703,175 @@ def command(root, name, bundle, task, options):
     return TASKS[task], args
 
 
+
+# R10: workspace index is navigation, not a KiCad writer or approval.
+def workspace_action(a):
+    import hashlib
+    import shutil
+    import re
+    import datetime
+    root = Path(a.project).resolve()
+    if not root.is_dir() or Path(a.project).is_symlink():
+        raise ValueError('Existing non-symlink workspace required')
+    working = root / '01_WORKING'
+    checkpoint_root = root / '02_CHECKPOINTS'
+    reports = root / '03_REPORTS'
+    release = root / '04_RELEASE'
+    index = root / 'CURRENT_PROJECT.json'
+    def safe(rel, exists=True):
+        p = Path(rel)
+        if p.is_absolute() or '..' in p.parts:
+            raise ValueError('Workspace-relative safe path required')
+        path = root
+        for part in p.parts:
+            path = path / part
+            if path.is_symlink():
+                raise ValueError('Symlinked workspace path refused')
+        resolved = path.resolve()
+        if not resolved.is_relative_to(root) or (exists and not resolved.exists()):
+            raise ValueError('Missing/out-of-workspace path')
+        return resolved
+    def shafile(p):
+        h = hashlib.sha256()
+        with p.open('rb') as stream:
+            for block in iter(lambda: stream.read(1024*1024), b''):
+                h.update(block)
+        return h.hexdigest()
+    action = a.action
+    if action == 'init':
+        if not a.project_file:
+            raise ValueError('--project-file required')
+        project = safe(a.project_file)
+        if project.suffix != '.kicad_pro' or not project.is_file() or project.relative_to(root).parts[0] != '01_WORKING':
+            raise ValueError('Select existing .kicad_pro under 01_WORKING')
+        if index.exists():
+            raise ValueError('CURRENT_PROJECT.json already exists; never overwrite')
+        if a.apply:
+            for d in (checkpoint_root,reports,release):
+                if d.exists() and not d.is_dir():
+                    raise ValueError('Workspace directory path occupied by a file')
+            for d in (checkpoint_root,reports,release):
+                d.mkdir(exist_ok=True)
+            record={'schema_version':1,'project':project.relative_to(root).as_posix(),
+                    'workspace_policy':'single_active_project','history_policy':'preserve_all',
+                    'production_authorized':False}
+            with index.open('x',encoding='utf-8') as f:
+                f.write(encoded(record))
+        return {'status':'WORKSPACE_READY' if a.apply else 'PREVIEW',
+                'project':project.relative_to(root).as_posix(),
+                'history_deleted':False,'production_authorized':False}
+    if not index.is_file() or index.is_symlink():
+        raise ValueError('First register workspace with --action init')
+    state=read(index)
+    if state.get('schema_version') != 1 or state.get('workspace_policy') != 'single_active_project':
+        raise ValueError('Unrecognized workspace index')
+    selected=state.get('project')
+    if not isinstance(selected,str) or not selected.startswith('01_WORKING/') or not selected.endswith('.kicad_pro'):
+        raise ValueError('Invalid authoritative project selection')
+    project=safe(selected)
+    if not project.is_file():
+        raise ValueError('Authoritative KiCad project missing')
+    if action == 'status':
+        result={'status':'WORKSPACE_ACTIVE','project':selected,'project_sha256':shafile(project),
+                'checkpoint_count':len(list(checkpoint_root.iterdir())) if checkpoint_root.is_dir() else 0,
+                'report_count':len(list(reports.iterdir())) if reports.is_dir() else 0,
+                'release_count':len(list(release.iterdir())) if release.is_dir() else 0,
+                'history_deleted':False,'production_authorized':False}
+        if a.detailed:
+            result['design_files']=sorted(p.name for p in project.parent.glob(project.stem+'.kicad_*') if p.is_file())
+        return result
+    if action == 'inventory':
+        groups={'historical_project':[],'candidate_or_backup':[],
+                'configuration_bundle':[],'review_or_report':[],'unclassified':[]}
+        for item in sorted(root.iterdir()):
+            if item.name in ('CURRENT_PROJECT.json','01_WORKING','02_CHECKPOINTS','03_REPORTS','04_RELEASE'):
+                continue
+            name=item.name.lower()
+            kind=('historical_project' if item.suffix in ('.kicad_pro','.kicad_sch','.kicad_pcb')
+                  else 'candidate_or_backup' if any(x in name for x in ('candidate','backup','freeze','checkpoint'))
+                  else 'configuration_bundle' if any(x in name for x in ('control-','bundle-','snapshot'))
+                  else 'review_or_report' if any(x in name for x in ('review','report','g1-','g4-'))
+                  else 'unclassified')
+            groups[kind].append(item.name)
+        rows=[{'category':k,'name':name} for k,items in groups.items() for name in items]
+        return {'status':'HISTORY_CLASSIFIED_READ_ONLY','counts':{k:len(v) for k,v in groups.items()},
+                'total':len(rows),'items':rows[:a.limit],'truncated':len(rows)>a.limit,
+                'history_deleted':False,'production_authorized':False}
+    if action == 'checkpoint':
+        if not a.label or not re.fullmatch('[A-Za-z0-9][A-Za-z0-9_.-]{0,63}',a.label):
+            raise ValueError('Unique safe checkpoint label required')
+        dest=checkpoint_root/a.label
+        if dest.exists():raise ValueError('Immutable checkpoint already exists')
+        if a.apply:
+            if any(p.is_symlink() for p in project.parent.rglob('*')):
+                raise ValueError('Symlinks in active project are not accepted')
+            checkpoint_root.mkdir(exist_ok=True)
+            shutil.copytree(project.parent,dest)
+            details={'schema_version':1,'status':'CHECKPOINT_CREATED_NOT_APPROVED',
+                     'project':selected,'project_sha256':shafile(project),
+                     'files_sha256':{p.relative_to(dest).as_posix():shafile(p) for p in dest.rglob('*') if p.is_file()},
+                     'production_authorized':False}
+            with (dest/'checkpoint-manifest.json').open('x',encoding='utf-8') as f:
+                f.write(encoded(details))
+        return {'status':'CHECKPOINT_CREATED_NOT_APPROVED' if a.apply else 'PREVIEW',
+                'checkpoint':str(dest),'history_deleted':False,'production_authorized':False}
+    if action == 'register':
+        if a.stage not in ('G1','G2','G3','G4','ERC','DRC','DFX','RELEASE') or not a.artifact:
+            raise ValueError('Stage and artifact required')
+        artifact=safe(a.artifact)
+        required='04_RELEASE' if a.stage=='RELEASE' else '03_REPORTS'
+        if not artifact.is_file() or artifact.relative_to(root).parts[0]!=required:
+            raise ValueError('Evidence file must exist inside the declared evidence area')
+        target=reports/'index'/ (hashlib.sha256((a.stage+':'+a.artifact).encode('utf-8')).hexdigest()[:24]+'.json')
+        if target.exists():raise ValueError('Evidence already indexed; no overwriting')
+        if a.apply:
+            target.parent.mkdir(exist_ok=True)
+            with target.open('x',encoding='utf-8') as f:
+                f.write(encoded({'schema_version':1,'stage':a.stage,'artifact':a.artifact,
+                                 'artifact_sha256':shafile(artifact),
+                                 'project':selected,'project_sha256':shafile(project),
+                                 'production_authorized':False}))
+        return {'status':'EVIDENCE_INDEXED_NOT_APPROVED' if a.apply else 'PREVIEW',
+                'index':str(target),'history_deleted':False,'production_authorized':False}
+    raise ValueError('Unsupported workspace action')
+
+
+def compact_navigation(report):
+    findings=report.get('findings',[])
+    return {'status':report.get('status'),'scope':'navigation_only',
+            'findings_count':len(findings),'finding_preview':findings[:5],
+            'findings_truncated':len(findings)>5,
+            'unfilled_fields_count':len(report.get('unfilled_config_fields',[])),
+            'groups':[{'group':g['group'],'confirmation_status':g['confirmation_status']}
+                      for g in report.get('groups',[])],
+            'production_authorized':False,'full_evidence':'Use status --format json'}
+
+
+def report_brief(path, limit):
+    from collections import Counter
+    if not 1<=limit<=30:raise ValueError('Report limit must be 1..30')
+    p=Path(path).resolve()
+    if not p.is_file() or p.is_symlink() or p.suffix.lower()!='.json':
+        raise ValueError('Existing JSON report required')
+    report=read(p)
+    if not isinstance(report,dict):raise ValueError('Expected JSON report object')
+    issues=[]
+    for key in ('findings','preparation_issues','issues','checks','items','results'):
+        values=report.get(key)
+        if not isinstance(values,list):continue
+        for v in values:
+            if isinstance(v,dict):
+                status=str(v.get('status') or v.get('level') or v.get('severity') or 'UNKNOWN')
+                desc=str(v.get('description') or v.get('detail') or v.get('message') or v.get('task_id') or '')[:200]
+            else: status='ISSUE';desc=str(v)[:200]
+            issues.append({'status':status,'detail':desc,'origin':key})
+    counts=dict(Counter(v['status'] for v in issues))
+    issues.sort(key=lambda v:0 if any(x in v['status'].upper() for x in ('BLOCK','FAIL','ERROR')) else 1)
+    return {'status':report.get('status','REPORT_BRIEF'),'source':str(p),'issue_count':len(issues),
+            'by_status':counts,'issues':issues[:limit],'truncated':len(issues)>limit,
+            'production_authorized':False,'note':'Use complete disk evidence for engineering gates'}
+
+
 def summary(report):
     lines = ['工作流待办（阶段确认仅控制协作节奏，不替代工程门禁）']
     labels = ('环境', '需求/架构/资料', '原理图/封装', 'PCB规则/布局/布线', 'DFX/NPI/制造', '试产/ECO')
@@ -723,6 +892,19 @@ def main():
     selection = modules.add_mutually_exclusive_group()
     selection.add_argument('--module')
     selection.add_argument('--intent')
+    ws=sub.add_parser('workspace',help='Unique working project and immutable checkpoints')
+    ws.add_argument('project')
+    ws.add_argument('--action',choices=('init','status','inventory','checkpoint','register'),required=True)
+    ws.add_argument('--project-file')
+    ws.add_argument('--label')
+    ws.add_argument('--stage')
+    ws.add_argument('--artifact')
+    ws.add_argument('--limit',type=int,default=12)
+    ws.add_argument('--apply',action='store_true')
+    ws.add_argument('--detailed',action='store_true')
+    brief=sub.add_parser('report-brief')
+    brief.add_argument('input')
+    brief.add_argument('--limit',type=int,default=6)
     for cmd in ('init', 'build', 'status', 'plan', 'run', 'stage-prepare', 'stage-confirm', 'stage-check'):
         a = sub.add_parser(cmd)
         a.add_argument('project')
@@ -741,7 +923,7 @@ def main():
         if cmd == 'stage-confirm':
             a.add_argument('--engineer-review', required=True)
         if cmd == 'status':
-            a.add_argument('--format', choices=('text', 'json'), default='text')
+            a.add_argument('--format', choices=('text', 'json','compact'), default='text')
         if cmd in ('plan', 'run'):
             a.add_argument('--task', choices=TASKS, required=True)
             for key in ('output-dir', 'state', 'packet', 'ai-review', 'engineer-review', 'netlist', 'destination', 'candidate-dir', 'kicad-cli', 'board', 'resource-manifest', 'resource-lock', 'routing-request', 'after-attempt', 'route-problem', 'bridge-request', 'session-dir', 'sessions-root', 'python-executable', 'candidate-manifest', 'pcb-editor', 'runtime-dir', 'installation', 'high-speed-policy', 'device-cache', 'device-inventory', 'device-output', 'konnect-executable','konnect-config','konnect-enrollment','konnect-registry','konnect-tool','konnect-scope','konnect-toolset','source-board','arguments-json','expected-json'):
@@ -757,6 +939,12 @@ def main():
         if a.cmd == 'modules':
             from skill_modules import select
             print(encoded(select(a.module, a.intent)), end='')
+            return 0
+        if a.cmd == 'workspace':
+            print(encoded(workspace_action(a)),end='')
+            return 0
+        if a.cmd == 'report-brief':
+            print(encoded(report_brief(a.input,a.limit)),end='')
             return 0
         root = Path(a.project).resolve()
         if not root.is_dir():
@@ -797,6 +985,8 @@ def main():
                  'command': [sys.executable, '-B', str(flow.registry()[tool]), *args]}
         if a.cmd == 'status' and a.format == 'text':
             print(summary(r))
+        elif a.cmd == 'status' and a.format == 'compact':
+            print(encoded(compact_navigation(r)),end='')
         else:
             print(encoded(r), end='')
         return 2 if r['status'] in ('BLOCKED', 'NEEDS_INPUT', 'ENGINEER_REVIEW_PENDING') else 0

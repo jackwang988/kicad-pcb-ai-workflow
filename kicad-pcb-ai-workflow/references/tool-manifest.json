@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "package_kind": "universal_runtime",
-  "revision": "2026.11.17-R10-G1-G4-konnect-single-writer-migration-1",
+  "revision": "2026.11.17-R10-workspace-token-preview",
   "active": [
     {
       "file": "scripts/assembly_guard.py",
@@ -126,7 +126,7 @@
     },
     {
       "file": "scripts/freeze_candidate.py",
-      "sha256": "d3d5de670c7c5f5114a37bb9569ee5c4615993194cbd40dc38224d22e9af85ff",
+      "sha256": "c0e131d0337c1ddb5fb897e00345c0292cb5264cbf98b0634fbc17fbc49816c5",
       "version": "R10.0-alpha.3",
       "command": "python3 scripts/freeze_candidate.py --help",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -546,7 +546,7 @@
         "2": "BLOCKED or pending"
       },
       "validation_scope": "Offline G1 cache-bound review packet checks; existing KiCad integration must be validated on target setup.",
-      "sha256": "ba1e86fcad36ee8d84d9cfb75950e40a44ac15e2a382ec524059e5195d8791b1"
+      "sha256": "c4c9e2848bdfbd0e326b0ca8cedf3da434fb86e727b71fe76d00d47f11fa0a9e"
     },
     {
       "file": "scripts/static_review_gate.py",
@@ -591,7 +591,7 @@
     },
     {
       "file": "scripts/workflow.py",
-      "sha256": "75b3332e941946d124e035e6a4aee924b6371961a9f2297935f9f10aeb0dec1b",
+      "sha256": "86a8b378dafdcb14fc9f0907e936a9defb836cedeb8b4fe947fc19ae5c255b9a",
       "version": "R10.0-alpha.3-local.5+cache-first-1",
       "command": "python3 scripts/workflow.py --help (includes architecture.sources_resolve and architecture.sources_register tasks)",
       "input": "One shared master; immutable flow/static/npi bundles; explicit fixed task and typed arguments",
