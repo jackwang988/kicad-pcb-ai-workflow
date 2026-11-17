@@ -13,9 +13,9 @@ from mass_production_review import evaluate,write_report
 def validate(project,config,output,cli=None):
     project=Path(project).resolve();config=Path(config).resolve();output=Path(output).resolve()
     if output.exists():raise ValueError('Evidence output directory must be new')
-    cfg=json.loads(config.read_text());board=(project/cfg['inputs']['board']).resolve()
+    cfg=json.loads(config.read_text(encoding='utf-8-sig'));board=(project/cfg['inputs']['board']).resolve()
     if not board.is_relative_to(project):raise ValueError('Unsafe board input')
-    frozen=json.loads((project/'freeze-log.json').read_text())
+    frozen=json.loads((project/'freeze-log.json').read_text(encoding='utf-8-sig'))
     if frozen.get('operations')!=['copy','refill','save','reload'] or frozen.get('candidate_sha256')!=sha256(board):
         raise ValueError('Candidate changed since refill/save/reload; freeze again')
     result=evaluate(project,config,'mass_production','pre_export',cli,False,None)
@@ -36,5 +36,13 @@ def main():
     try:r=validate(a.project,a.config,a.output_dir,a.kicad_cli)
     except Exception as e:print(json.dumps({'status':'BLOCKED','reason':str(e)},ensure_ascii=False));return 2
     print(json.dumps(r,ensure_ascii=False,indent=2));return 0 if r['status']=='PASS' else 2
+
+if __name__ == '__main__':
+    # JSON/text CLI protocol is UTF-8 on every platform, including Windows.
+    import sys as _stdio_sys
+    for _stdio_stream in (_stdio_sys.stdout, _stdio_sys.stderr):
+        if hasattr(_stdio_stream, 'reconfigure'):
+            _stdio_stream.reconfigure(encoding='utf-8')
+
 
 if __name__=='__main__':raise SystemExit(main())

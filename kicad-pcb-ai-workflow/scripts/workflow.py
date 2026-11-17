@@ -28,19 +28,33 @@ GROUPS = {
 TASKS = {
     'environment.doctor': 'doctor', 'environment.setup': 'environment_start',
     'environment.check': 'environment_start', 'architecture.check': 'project_flow',
+    'architecture.sources_resolve': 'device_knowledge', 'architecture.sources_register': 'device_knowledge',
+    'environment.ipc_probe': 'kicad_ipc_probe', 'environment.ipc_snapshot': 'kicad_ipc_probe',
+    'environment.konnect_check': 'konnect_backend',
+    'environment.konnect_discover': 'konnect_capabilities',
+    'environment.konnect_assess': 'konnect_capabilities',
+    'environment.konnect_fixture': 'konnect_capabilities',
+    'environment.konnect_invoke': 'konnect_capabilities',
+    'environment.bridge_plugin': 'kicad_bridge', 'pcb.edit': 'kicad_bridge',
+    'environment.open_editor': 'kicad_bridge',
+    'pcb.edit_drc': 'kicad_bridge',
+    'schematic.resources_lock': 'resource_guard', 'schematic.resources_check': 'resource_guard',
     'schematic.prepare': 'static_review', 'schematic.gate': 'static_review_gate',
     'pcb.prepare': 'static_review', 'pcb.gate': 'static_review_gate',
     'pcb.placement_pre': 'placement_review', 'pcb.placement_final': 'placement_review',
     'pcb.rules_pre': 'design_intent_audit', 'pcb.rules_final': 'design_intent_audit',
+    'pcb.routing_preflight': 'routing_policy', 'pcb.routing_plan': 'routing_policy',
+    'pcb.route_search': 'script_route_search',
+    'pcb.high_speed_audit': 'high_speed',
     'manufacturing.precheck': 'mass_production_review',
     'manufacturing.export': 'manufacturing_export', 'manufacturing.release': 'npi_release',
     'lifecycle.check': 'project_flow',
 }
-WRITING = {'environment.setup', 'manufacturing.export', 'manufacturing.release'}
+WRITING = {'environment.konnect_fixture', 'environment.konnect_invoke', 'architecture.sources_resolve', 'architecture.sources_register', 'environment.setup', 'environment.bridge_plugin', 'environment.open_editor', 'pcb.edit', 'schematic.resources_lock', 'manufacturing.export', 'manufacturing.release'}
 FLAGS = ('require_device_knowledge', 'require_reserve_review', 'require_placement_review',
          'require_schematic_style', 'require_system_integration')
 METHODS = {
-    'environment': 'Run real target CLI/pcbnew setup or current environment check.',
+    'environment': 'Run KiCad CLI smoke and Konnect dynamic MCP discovery; legacy pcbnew optional.',
     'requirements': 'Agent and owner establish quantitative requirements and verification mappings.',
     'sources': 'Read actual manufacturer documents and verify project-specific source cards.',
     'reserve': 'Review default assembly, alternatives, risk and no-reserve rationale.',
@@ -134,6 +148,7 @@ def _stage_inputs(root, name, bundle, group, evidence):
 
 
 def validate_stage(root, name, bundle, group, visited=()):
+    root = local(Path(root), '.')
     if group in visited:
         raise ValueError('Cyclic approval chain')
     packet_path = _latest_packet(root, bundle, group)
@@ -169,6 +184,7 @@ def validate_stage(root, name, bundle, group, visited=()):
 
 
 def stage_prepare(root, name, bundle, group, evidence):
+    root = local(Path(root), '.')
     cfg = load_bundle(root, name, bundle)
     if confirmation_mode(cfg) != 'formal_engineering':
         raise ValueError('Stage packet is only used in formal_engineering mode')
@@ -195,6 +211,7 @@ def stage_prepare(root, name, bundle, group, evidence):
 
 
 def stage_confirm(root, name, bundle, group, engineer_review):
+    root = local(Path(root), '.')
     cfg = load_bundle(root, name, bundle)
     if confirmation_mode(cfg) != 'formal_engineering':
         raise ValueError('Formal stage approval must be explicitly configured')
@@ -239,7 +256,9 @@ def template():
     contract = flow.template()
     contract['confirmation_mode'] = 'dialogue'
     shared = {'inputs': npi['inputs'], 'documents': review['documents'], 'variant': None,
-              'design_intent': npi['design_intent'], 'engineering_profile': npi['engineering_profile']}
+              'design_intent': npi['design_intent'], 'engineering_profile': npi['engineering_profile'],
+              'resource_lock': None}
+    review['resource_lock'] = npi['resource_lock'] = ref('/shared/resource_lock')
     for key in ('device_knowledge', 'reserve_review', 'placement_review', 'schematic_style', 'system_integration'):
         shared[key] = copy.deepcopy(review[key])
         review[key] = ref('/shared/' + key)
@@ -316,7 +335,7 @@ def render(master, bundle_rel):
         for key in ('schematic', 'board', 'project'):
             if s['stages'][stage]['inputs'].get(key) != shared['inputs'].get(key):
                 raise ValueError('Conflicting static-review input')
-    for key in ('reserve_review', 'placement_review', 'schematic_style', 'system_integration', 'documents'):
+    for key in ('reserve_review', 'placement_review', 'schematic_style', 'system_integration', 'documents', 'resource_lock'):
         if n.get(key) != s.get(key) or s.get(key) != shared.get(key):
             raise ValueError('Conflicting shared policy/source: ' + key)
     if s.get('device_knowledge') != shared.get('device_knowledge'):
@@ -354,6 +373,8 @@ def compile_bundle(root, name, destination, apply=False):
     configs = render(read(source), out.relative_to(root))
     # Validate inventory even for preview; never execute stale or legacy tools.
     flow.registry()
+    from skill_modules import registry as component_registry, fingerprint as component_fingerprint
+    component_registry(ROOT)
     result = {'status': 'PREVIEW', 'scope': 'configuration_only', 'production_authorized': False,
               'bundle': str(out), 'files': [k + '.json' for k in configs],
               'note': 'Unfilled engineering values remain unresolved; building configs is not stage approval.'}
@@ -368,6 +389,8 @@ def compile_bundle(root, name, destination, apply=False):
         manifest = {'schema_version': 1, 'source': source.relative_to(root).as_posix(),
                     'source_sha256': source_hash,
                     'tool_manifest_sha256': sha256(ROOT / 'references/tool-manifest.json'),
+                    'component_manifest_sha256': sha256(ROOT / 'references/component-manifest.json'),
+                    'component_files_sha256': component_fingerprint(ROOT),
                     'files': {p.name: sha256(p) for p in out.iterdir()}}
         (out / 'bundle.json').write_text(encoded(manifest), encoding='utf-8')
         if sha256(source) != source_hash:
@@ -389,6 +412,11 @@ def load_bundle(root, name, bundle):
         raise ValueError('Master changed: build a NEW bundle and refresh affected reviews')
     if manifest.get('tool_manifest_sha256') != sha256(ROOT / 'references/tool-manifest.json'):
         raise ValueError('Toolchain changed: rebuild configuration snapshot')
+    if manifest.get('component_manifest_sha256') != sha256(ROOT / 'references/component-manifest.json'):
+        raise ValueError('Components changed: rebuild configuration snapshot')
+    from skill_modules import fingerprint as component_fingerprint
+    if manifest.get('component_files_sha256') != component_fingerprint(ROOT):
+        raise ValueError('Component instructions changed: rebuild configuration snapshot')
     configs = render(read(source), out.relative_to(root))
     expected = {k + '.json' for k in configs}
     if set(manifest.get('files', {})) != expected:
@@ -435,6 +463,7 @@ def status(root, name, bundle):
                        'confirmation_status': approval_status})
     return {'status': 'NEEDS_INPUT' if report['findings'] else 'DECLARED_INPUTS_READY_NOT_APPROVED',
             'scope': 'navigation_only', 'production_authorized': False,
+            'component_version': read(ROOT / 'references/component-manifest.json')['version'],
             'confirmation_mode': mode, 'groups': groups,
             'unfilled_config_fields': pending(cfg), 'findings': report['findings'],
             'note': 'Future missing files are pending work, not permission to skip gates. Feature N/A never disables a gate.'}
@@ -448,6 +477,124 @@ def command(root, name, bundle, task, options):
         raise ValueError('--apply is only valid for explicit candidate/setup writes')
     if options.get('cli_only') and task != 'environment.setup':
         raise ValueError('--cli-only only applies to environment.setup')
+    if options.get('require_ipc') and not task.startswith('environment.ipc_'):
+        raise ValueError('--require-ipc only applies to IPC discovery tasks')
+    if task in ('environment.bridge_plugin','environment.open_editor','pcb.edit'):
+        raise ValueError('LEGACY_WRITE_DISABLED: use Konnect MCP as the sole EDA writer; no silent kicad_bridge fallback')
+    if task == 'pcb.high_speed_audit':
+        flow.registry()
+        if not options.get('high_speed_policy'):
+            raise ValueError('High-speed audit requires --high-speed-policy; it is never an automatic connection check')
+        policy = local(root, options['high_speed_policy'])
+        if not policy.is_file():
+            raise ValueError('Existing high-speed policy required')
+        args = ['audit', str(root), '--policy', str(policy.relative_to(root))]
+        if options.get('output_dir'):
+            args += ['--output-dir', str(Path(options['output_dir']).absolute())]
+        return 'high_speed', args
+    if task.startswith('environment.konnect_') and task != 'environment.konnect_check':
+        flow.registry()
+        mode=task.removeprefix('environment.konnect_')
+        if mode in ('fixture', 'invoke') and not options.get('apply'):
+            raise ValueError('Konnect EDA mutation requires explicit --apply')
+        args=[mode,'--executable',options.get('konnect_executable') or '',
+              '--config',options.get('konnect_config') or '',
+              '--output-dir',options.get('output_dir') or '']
+        if not all(args[i] for i in (2,4,6)):
+            raise ValueError('Konnect capability task needs --konnect-executable, --konnect-config, --output-dir')
+        for opt,flag in (('konnect_enrollment','--enrollment'),('konnect_registry','--registry'),
+                         ('konnect_tool','--tool'),('konnect_scope','--scope'),
+                         ('arguments_json','--arguments'),('expected_json','--expected'),
+                         ('source_board','--source-board')):
+            if options.get(opt):args += [flag,options[opt]]
+        if options.get('konnect_toolset'):
+            for t in options['konnect_toolset'].split(','):
+                args+=['--toolset',t.strip()]
+        if options.get('konnect_all_toolsets'):args.append('--all-toolsets')
+        if options.get('save_after'):args.append('--save-after')
+        if mode in ('fixture', 'invoke'):args.append('--apply')
+        if options.get('board'):args+=['--board',str(local(root,options['board']))]
+        if options.get('kicad_cli'):args+=['--kicad-cli',options['kicad_cli']]
+        return 'konnect_capabilities',args
+    if task == 'environment.konnect_check':
+        flow.registry()
+        if not isinstance(options.get('output_dir'), str) or not options['output_dir'].strip():
+            raise ValueError('Konnect check needs explicit --output-dir')
+        args = ['--output-dir', str(Path(options['output_dir']).resolve())]
+        if options.get('installation'):
+            args += ['--installation', str(Path(options['installation']).resolve())]
+        if options.get('board'):
+            board = local(root, options['board'])
+            if not board.is_file() or board.suffix != '.kicad_pcb':
+                raise ValueError('Existing target PCB required')
+            args += ['--expected-board', str(board)]
+        return 'konnect_backend', args
+    if task in ('architecture.sources_resolve', 'architecture.sources_register'):
+        # Shared library intentionally lives outside the project/Skill repository.
+        # The project inventory/selected requirements must still be project-scoped.
+        flow.registry()  # enforce actual tool-manifest hash before dispatch
+        cache_option = options.get('device_cache')
+        inventory_option = options.get('device_inventory')
+        if not isinstance(cache_option, str) or not cache_option.strip():
+            raise ValueError('Knowledge lookup requires explicit --device-cache')
+        cache = Path(cache_option).resolve()
+        if not cache.is_dir():
+            raise ValueError('Existing shared device-cache directory required')
+        if not isinstance(inventory_option, str) or not inventory_option.strip():
+            raise ValueError('Knowledge lookup requires project-relative --device-inventory')
+        inventory = local(root, inventory_option)
+        if not inventory.is_file():
+            raise ValueError('Existing project inventory/verified requirements required')
+        operation = 'resolve' if task.endswith('resolve') else 'register'
+        args = ['--cache', str(cache), operation, '--requirements', str(inventory)]
+        if options.get('apply'):
+            if operation == 'resolve':
+                dest = options.get('device_output')
+                if not isinstance(dest, str) or not dest.strip():
+                    raise ValueError('Use --device-output for a NEW project-local file')
+                path = local(root, dest)
+                if path.exists():
+                    raise ValueError('Cannot overwrite existing resolved requirements')
+                args += ['--output', str(path)]
+            args.append('--apply')
+        return 'device_knowledge', args
+    if task == 'environment.bridge_plugin':
+        flow.registry()
+        if not options.get('destination') or not options.get('sessions_root'):
+            raise ValueError('Bridge plugin needs --destination and --sessions-root')
+        args = ['plugin', '--destination', options['destination'], '--sessions-root', options['sessions_root']]
+        if options.get('python_executable'):
+            args += ['--python-executable', options['python_executable']]
+        if options.get('apply'):
+            args.append('--apply')
+        return 'kicad_bridge', args
+    if task == 'environment.open_editor':
+        flow.registry()
+        if not all(options.get(k) for k in ('board','pcb_editor','runtime_dir')):
+            raise ValueError('Editor launch needs --board, --pcb-editor and --runtime-dir')
+        target = local(root,options['board'])
+        args = ['open-editor','--board',str(target),'--pcb-editor',options['pcb_editor'],
+                '--runtime-dir',options['runtime_dir']]
+        if options.get('apply'):
+            args.append('--apply')
+        return 'kicad_bridge',args
+    if task.startswith('environment.ipc_'):
+        flow.registry()
+        board = options.get('board')
+        if not isinstance(board, str) or not board.strip():
+            raise ValueError('IPC task needs explicit --board under the selected project')
+        target = local(root, board)
+        if target.suffix != '.kicad_pcb' or not target.is_file():
+            raise ValueError('Existing target PCB required')
+        args = ['snapshot' if task.endswith('snapshot') else 'probe', '--board', str(target)]
+        output = options.get('output_dir')
+        if task.endswith('snapshot') and not output:
+            raise ValueError('IPC snapshot needs --output-dir')
+        if output:
+            args += ['--output-dir', output]
+        if options.get('require_ipc'):
+            args.append('--require-ipc')
+        return 'kicad_ipc_probe', args
     if task == 'environment.doctor' and not bundle:
         flow.registry()
         args = ['--kicad-cli', options['kicad_cli']] if options.get('kicad_cli') else []
@@ -477,7 +624,18 @@ def command(root, name, bundle, task, options):
 
     stage = task.split('.')[0]
     args = [str(root)]
-    if task == 'environment.doctor':
+    if task == 'pcb.edit':
+        request = local(root, required('bridge_request'))
+        if not request.is_file():
+            raise ValueError('Existing project-local bridge request required')
+        args = ['request', '--session-dir', required('session_dir'), '--request', str(request)]
+        if options.get('apply'):
+            args.append('--apply')
+    elif task == 'pcb.edit_drc':
+        args = ['drc', '--board', input_file('board'),
+                '--candidate-manifest', str(local(root, required('candidate_manifest'))),
+                '--kicad-cli', required('kicad_cli'), '--output-dir', required('output_dir')]
+    elif task == 'environment.doctor':
         args = []
     elif task == 'environment.check':
         args = ['check', '--state', required('state')]
@@ -490,6 +648,24 @@ def command(root, name, bundle, task, options):
     elif task in ('architecture.check', 'lifecycle.check'):
         args += ['--contract', str(Path(bundle) / 'flow.json')]
         args.insert(0, 'check')
+    elif task == 'schematic.resources_lock':
+        args = ['lock', str(root), '--manifest', required('resource_manifest'),
+                '--output', required('resource_lock')]
+    elif task == 'schematic.resources_check':
+        args = ['check', str(root), '--lock', required('resource_lock'), '--review-config', config_file('static')]
+    elif task in ('pcb.routing_preflight', 'pcb.routing_plan'):
+        args = ['preflight' if task.endswith('preflight') else 'plan', str(root),
+                '--request', required('routing_request')]
+        if options.get('output_dir'):
+            args += ['--output-dir', options['output_dir']]
+        if options.get('after_attempt'):
+            if task != 'pcb.routing_plan':
+                raise ValueError('--after-attempt only applies to routing plan')
+            args += ['--after-attempt', options['after_attempt']]
+    elif task == 'pcb.route_search':
+        args = [str(root), '--problem', required('route_problem')]
+        if options.get('output_dir'):
+            args += ['--output-dir', options['output_dir']]
     elif task.endswith('.prepare'):
         args += ['--config', config_file('static'), '--stage', stage, '--output-dir', required('output_dir')]
     elif task.endswith('.gate'):
@@ -503,7 +679,7 @@ def command(root, name, bundle, task, options):
             raise ValueError('Fill shared.placement_review.policy')
         args += ['--policy', str(local(root, policy)), '--netlist', required('netlist'),
                  '--board', input_file('board'), '--phase', 'pre_route' if task.endswith('_pre') else 'final',
-                 '--output-dir', required('output_dir')]
+                 '--output-dir', required('output_dir'), '--review-config', config_file('static')]
     elif '.rules_' in task:
         intent = cfg['npi'].get('design_intent')
         if not isinstance(intent, str) or not intent.strip():
@@ -543,6 +719,10 @@ def summary(report):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest='cmd', required=True)
+    modules = sub.add_parser('modules', help='List task-specific reading modules without creating a project')
+    selection = modules.add_mutually_exclusive_group()
+    selection.add_argument('--module')
+    selection.add_argument('--intent')
     for cmd in ('init', 'build', 'status', 'plan', 'run', 'stage-prepare', 'stage-confirm', 'stage-check'):
         a = sub.add_parser(cmd)
         a.add_argument('project')
@@ -564,13 +744,20 @@ def main():
             a.add_argument('--format', choices=('text', 'json'), default='text')
         if cmd in ('plan', 'run'):
             a.add_argument('--task', choices=TASKS, required=True)
-            for key in ('output-dir', 'state', 'packet', 'ai-review', 'engineer-review', 'netlist', 'destination', 'candidate-dir', 'kicad-cli'):
+            for key in ('output-dir', 'state', 'packet', 'ai-review', 'engineer-review', 'netlist', 'destination', 'candidate-dir', 'kicad-cli', 'board', 'resource-manifest', 'resource-lock', 'routing-request', 'after-attempt', 'route-problem', 'bridge-request', 'session-dir', 'sessions-root', 'python-executable', 'candidate-manifest', 'pcb-editor', 'runtime-dir', 'installation', 'high-speed-policy', 'device-cache', 'device-inventory', 'device-output', 'konnect-executable','konnect-config','konnect-enrollment','konnect-registry','konnect-tool','konnect-scope','konnect-toolset','source-board','arguments-json','expected-json'):
                 a.add_argument('--' + key)
             a.add_argument('--mode', choices=('prototype', 'mass_production'), default='mass_production')
             a.add_argument('--apply', action='store_true')
             a.add_argument('--cli-only', action='store_true', help='CLI-only environment smoke; no pcbnew or manufacturing approval')
+            a.add_argument('--konnect-all-toolsets', action='store_true')
+            a.add_argument('--save-after', action='store_true')
+            a.add_argument('--require-ipc', action='store_true', help='Block an IPC-dependent task when the optional live connection is unavailable')
     a = p.parse_args()
     try:
+        if a.cmd == 'modules':
+            from skill_modules import select
+            print(encoded(select(a.module, a.intent)), end='')
+            return 0
         root = Path(a.project).resolve()
         if not root.is_dir():
             raise ValueError('Existing project directory required')
@@ -618,6 +805,14 @@ def main():
         print(encoded({'status': 'BLOCKED', 'production_authorized': False,
                        'findings': [blocking('WORKFLOW.INPUT', e)]}), end='')
         return 2
+
+
+if __name__ == '__main__':
+    # JSON/text CLI protocol is UTF-8 on every platform, including Windows.
+    import sys as _stdio_sys
+    for _stdio_stream in (_stdio_sys.stdout, _stdio_sys.stderr):
+        if hasattr(_stdio_stream, 'reconfigure'):
+            _stdio_stream.reconfigure(encoding='utf-8')
 
 
 if __name__ == '__main__':

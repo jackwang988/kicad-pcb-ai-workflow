@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "problem_id": "ordinary-single-connection-r1",
+  "scope": "ordinary_single_connection",
+  "net_category": "LOW_SPEED_DIGITAL",
+  "source_files": {
+    "board": {"file": "board.kicad_pcb", "sha256": null},
+    "rules": {"file": "board.kicad_dru", "sha256": null},
+    "normalization_basis": {"file": "grid-extraction-basis.json", "sha256": null}
+  },
+  "normalization": {
+    "grid_pitch_mm": null,
+    "origin_mm": [0, 0],
+    "trace_width_mm": null,
+    "clearance_mm": null,
+    "trace_envelope_inflated": false,
+    "via_envelope_all_layers_inflated": false
+  },
+  "grid": {"width": 32, "height": 32},
+  "layers": [
+    {"name": "F.Cu", "role": "signal", "signal_enabled": true,
+     "preferred_direction": "horizontal", "nonpreferred_penalty": 0.25},
+    {"name": "B.Cu", "role": "signal", "signal_enabled": true,
+     "preferred_direction": "vertical", "nonpreferred_penalty": 0.25}
+  ],
+  "allowed_signal_layers": ["F.Cu", "B.Cu"],
+  "protected_plane_layers": [],
+  "blocked_cells": {"F.Cu": [], "B.Cu": []},
+  "via_sites": [],
+  "via_cost": 10,
+  "bend_penalty": 0.25,
+  "start": {"x": 1, "y": 1, "layer": "F.Cu"},
+  "goal": {"x": 30, "y": 30, "layer": "F.Cu"},
+  "required_constraints": ["grid_clearance", "layer_restrictions", "protected_planes", "via_budget"],
+  "budgets": {"max_vias": 0, "max_expansions": 20000, "max_states": 40000, "max_seconds": 10}
+}

@@ -47,16 +47,16 @@ def validate(core):
         relative = p.relative_to(core)
         if p.name != 'SKILL.md' and relative.parts[0] == 'scripts' and (len(relative.parts) != 2 or p.suffix != '.py'):
             raise ValueError('Unexpected runtime script payload')
-        if relative.parts[0] == 'assets' and (len(relative.parts) != 2 or not p.name.endswith('.template.json')):
+        if relative.parts[0] == 'assets' and (len(relative.parts) != 2 or not (p.name.endswith('.template.json') or p.name.endswith('.example.json'))):
             raise ValueError('Only generic templates belong in runtime assets')
-        if relative.parts[0] == 'references' and (len(relative.parts) != 2 or p.suffix not in ('.md','.json')):
+        if relative.parts[0] == 'references' and ((len(relative.parts) < 2 or (len(relative.parts) > 2 and relative.parts[1] != 'high-speed') or p.suffix not in ('.md','.json'))):
             raise ValueError('Historical/build data in runtime references')
         if p.suffix == '.py':
             tree = ast.parse(p.read_bytes(), filename=str(p))
             for node in ast.walk(tree):
                 names = [a.name.split('.')[0] for a in node.names] if isinstance(node, ast.Import) else [node.module.split('.')[0]] if isinstance(node, ast.ImportFrom) and node.module else []
                 for name in names:
-                    if name in sys.stdlib_module_names or name in ('pcbnew','_pcbnew','ctypes'):
+                    if name in sys.stdlib_module_names or name in ('pcbnew','_pcbnew','ctypes','jsonschema'):
                         continue
                     if name not in tools:
                         raise ValueError('Unbundled runtime import: ' + name)

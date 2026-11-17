@@ -1,13 +1,14 @@
-name: Publish verified Skill installer
+name: Publish KiCad R10 RC1 prerelease (gated)
 
-# Publishing is only possible after main has passed fresh Python and actual
-# KiCad 10.0.8 native checks.  No pull request runs have write access.
+# Real KiCad verification is mandatory; Konnect live validation is explicitly
+# out of scope of this prerelease. Never publish from a pull request.
 on:
   push:
     branches: [main]
     paths:
       - 'README.md'
       - 'RELEASE_NOTES.md'
+      - 'R10_RELEASE_NOTES.md'
       - 'kicad-pcb-ai-workflow/**'
       - 'development/native_verify_kicad_1008.py'
       - '.github/workflows/publish-verified-skill.yml'
@@ -23,9 +24,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Software contracts and package integrity
+      - name: Verify legacy and R10 software contracts; preview isolated package
         run: |
           python -B -m unittest discover -s development/tests -v
+          python -B -m unittest discover -s development/r10_tests -v
           python -B development/build_release.py --output-dir /tmp/publish-preview
 
   verify-kicad-native:
@@ -37,7 +39,7 @@ jobs:
       QT_QPA_PLATFORM: offscreen
     steps:
       - uses: actions/checkout@v4
-      - name: Install genuine stable KiCad 10.0.8
+      - name: Install real KiCad 10.0.8
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y software-properties-common
@@ -46,50 +48,63 @@ jobs:
           sudo apt-get install -y --no-install-recommends kicad kicad-demos xvfb
           test "$(kicad-cli version)" = "10.0.8"
           /usr/bin/python3 -c 'import pcbnew; assert "10.0.8" in pcbnew.GetBuildVersion()'
-      - name: Native project, zone, manufacturing CLI compatibility
+      - name: Native project, copper fill, manufacturing CLI verification
         run: /usr/bin/python3 development/native_verify_kicad_1008.py
-      - name: Preserve real native evidence
+      - name: Save real KiCad evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: main-verified-kicad1008
+          name: R10-RC1-kicad1008-native-evidence
           path: /tmp/native-kicad-1008.json
           if-no-files-found: warn
           retention-days: 90
 
-  publish-r94:
+  publish-r10-rc1:
     needs: [verify-python, verify-kicad-native]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: true
-      - name: Build standalone ZIP and independently verify hash
+      - name: Build and independently verify R10 RC1 installer
         run: |
           mkdir -p "$RUNNER_TEMP/package"
           python3 development/build_release.py --output-dir "$RUNNER_TEMP/package/build" --apply
-          install -m 0644 "$RUNNER_TEMP/package/build/kicad-pcb-ai-workflow.zip" dist/kicad-pcb-ai-workflow-R9.4.zip
+          install -m 0644 "$RUNNER_TEMP/package/build/kicad-pcb-ai-workflow.zip" dist/kicad-pcb-ai-workflow-R10.0.0-rc.1.zip
           expected=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["zip_sha256"]["kicad-pcb-ai-workflow.zip"])' < "$RUNNER_TEMP/package/build/package-report.json")
           cd dist
-          printf '%s  %s\n' "$expected" kicad-pcb-ai-workflow-R9.4.zip | sha256sum -c -
-          sha256sum kicad-pcb-ai-workflow-R9.3.zip kicad-pcb-ai-workflow-R9.4.zip > SHA256SUMS
+          printf '%s  %s\n' "$expected" kicad-pcb-ai-workflow-R10.0.0-rc.1.zip | sha256sum -c -
+          sha256sum kicad-pcb-ai-workflow-R9.3.zip kicad-pcb-ai-workflow-R9.4.zip kicad-pcb-ai-workflow-R10.0.0-rc.1.zip > SHA256SUMS
+          grep -F '  kicad-pcb-ai-workflow-R10.0.0-rc.1.zip' SHA256SUMS > SHA256SUMS-R10.0.0-rc.1
           sha256sum -c SHA256SUMS
-      - name: Push R9.4 official installer to main only after both gates pass
+          sha256sum -c SHA256SUMS-R10.0.0-rc.1
+      - name: Commit verified installer and SHA-256 to main
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- dist/kicad-pcb-ai-workflow-R9.4.zip dist/SHA256SUMS
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- dist/kicad-pcb-ai-workflow-R10.0.0-rc.1.zip dist/SHA256SUMS dist/SHA256SUMS-R10.0.0-rc.1
           if git diff --cached --quiet; then
-            echo "Installer is already current"
+            echo 'Verified archive already current'
           else
-            git commit -m "release: R9.4 KiCad 10.0.8 native-verified installer and SHA-256"
+            git commit -m 'release: R10.0.0-rc.1 gated archive + SHA-256'
             git push origin HEAD:main
           fi
-      - name: Retain release archive and checksums in Actions
+      - name: Retain gated prerelease artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: R9.4-official-skill-installer
+          name: R10.0.0-rc.1-prerelease
           path: |
-            dist/kicad-pcb-ai-workflow-R9.4.zip
-            dist/SHA256SUMS
+            dist/kicad-pcb-ai-workflow-R10.0.0-rc.1.zip
+            dist/SHA256SUMS-R10.0.0-rc.1
           retention-days: 90
+      - name: Publish GitHub pre-release (not a production authorization)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view vR10.0.0-rc.1 >/dev/null 2>&1; then
+            echo 'vR10.0.0-rc.1 already exists; no overwrite performed'
+          else
+            gh release create vR10.0.0-rc.1 dist/kicad-pcb-ai-workflow-R10.0.0-rc.1.zip dist/SHA256SUMS-R10.0.0-rc.1 \
+              --target "$(git rev-parse HEAD)" --title 'KiCad PCB AI Skill R10.0.0-rc.1' \
+              --notes-file R10_RELEASE_NOTES.md --prerelease
+          fi

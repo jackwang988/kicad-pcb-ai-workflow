@@ -138,5 +138,13 @@ def main():
     return 0 if successful else 2
 
 
+if __name__ == '__main__':
+    # JSON/text CLI protocol is UTF-8 on every platform, including Windows.
+    import sys as _stdio_sys
+    for _stdio_stream in (_stdio_sys.stdout, _stdio_sys.stderr):
+        if hasattr(_stdio_stream, 'reconfigure'):
+            _stdio_stream.reconfigure(encoding='utf-8')
+
+
 if __name__ == "__main__":
     sys.exit(main())

@@ -5,6 +5,8 @@
     "project": null,
     "bom": null
   },
+  "require_high_speed_review": false,
+  "high_speed_policy": null,
   "variants": [],
   "variant_boms": {},
   "variant_consistency": [],

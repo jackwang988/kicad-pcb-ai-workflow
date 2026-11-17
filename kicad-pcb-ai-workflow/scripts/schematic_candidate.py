@@ -76,11 +76,19 @@ def materialize(draft_file,destination,apply=False,cli=None):
         if sha256(draft_file)!=before or sha256(basis_file)!=basis['sha256'] or hashes(dest,files)!=initial:raise ValueError('Draft/candidate changed during validation')
         record.update(status='NATIVE_CANDIDATE_CHECKED_NOT_APPROVED',environment=env,inputs_sha256=initial,pages=list(pages),evidence_sha256=hashes(dest,[str(p.relative_to(dest)) for p in (xml,pdf,erc)]))
     except Exception as e:
-        record.update(status='BLOCKED',reason=str(e),findings=[blocking('SCH.CANDIDATE',e)],commands=locals().get('commands',[]));(dest/'candidate-result.json').write_text(json.dumps(record,ensure_ascii=False,indent=2)+'\n');return record
-    record['commands']=commands;(dest/'candidate-result.json').write_text(json.dumps(record,ensure_ascii=False,indent=2)+'\n');return record
+        record.update(status='BLOCKED',reason=str(e),findings=[blocking('SCH.CANDIDATE',e)],commands=locals().get('commands',[]));(dest/'candidate-result.json').write_text(json.dumps(record,ensure_ascii=False,indent=2)+'\n', encoding='utf-8');return record
+    record['commands']=commands;(dest/'candidate-result.json').write_text(json.dumps(record,ensure_ascii=False,indent=2)+'\n', encoding='utf-8');return record
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--draft',required=True);p.add_argument('--destination',required=True);p.add_argument('--kicad-cli');p.add_argument('--apply',action='store_true');a=p.parse_args()
     try:r=materialize(a.draft,a.destination,a.apply,a.kicad_cli);print(json.dumps(r,ensure_ascii=False,indent=2));return 2 if r['status']=='BLOCKED' else 0
     except Exception as e:print(json.dumps({'status':'BLOCKED','reason':str(e),'production_authorized':False,'findings':[blocking('INPUT.CONTRACT',e)]},ensure_ascii=False));return 2
+if __name__ == '__main__':
+    # JSON/text CLI protocol is UTF-8 on every platform, including Windows.
+    import sys as _stdio_sys
+    for _stdio_stream in (_stdio_sys.stdout, _stdio_sys.stderr):
+        if hasattr(_stdio_stream, 'reconfigure'):
+            _stdio_stream.reconfigure(encoding='utf-8')
+
+
 if __name__=='__main__':raise SystemExit(main())

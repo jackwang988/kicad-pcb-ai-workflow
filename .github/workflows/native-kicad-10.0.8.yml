@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - feat/kicad10-patch-capability-gates
+      - docs/r10-architecture-preview-20261117
     paths:
       - development/native_verify_kicad_1008.py
       - development/fixtures/npi-demo/**

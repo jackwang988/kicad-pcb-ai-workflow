@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "preferred_profile": "konnect-eda-0.14.1-windows",
+  "automatic_fallback": false,
+  "profiles": [
+    {
+      "id": "konnect-eda-0.14.1-windows",
+      "server_name": "konnect",
+      "version": "0.14.1",
+      "build_commit": "af1d81b0b45c33d0185a21cca7747f7c3a64f476",
+      "executable_sha256": "2582b21ad6db171885bf34f2006fe630ebdf4592b3d9de7c24841f34a075fcf2",
+      "archive_sha256": "ac1a2d1fc549319b4d271a7c844848360db66b24d1bec6708aca5c14439b0902",
+      "official_asset_url": "https://github.com/Orchis-ai-LLC/Konnect-EDA/releases/download/v0.14.1/konnect-pcm-v0.14.1-windows.zip",
+      "license": "Konnect-EDA commercial beta; no redistribution",
+      "checksum_basis": "Official HTTPS asset downloaded and pinned locally; no separate publisher checksum obtained",
+      "build_commit_basis": "Reported by the staged binary; not an assertion that the closed source was inspected",
+      "eligible_kicad_versions": ["10.0.8"],
+      "native_acceptance": "See current machine validation receipt; profile eligibility alone grants no operation acceptance"
+    },
+    {
+      "id": "konnect-open-0.13.0-windows",
+      "server_name": "konnect",
+      "version": "0.13.0",
+      "build_commit": "6bbe3e4f890ba1d37c0e5d5f38ccd03d90958c9e",
+      "executable_sha256": "455fca4ec93523c270661c85f2d6e0003a1b82acd4722769d035ba68e2e91aaf",
+      "license": "AGPL-3.0",
+      "eligible_kicad_versions": ["10.0.8"],
+      "role": "explicit_manual_rollback_only; not an automatic fallback"
+    }
+  ]
+}

@@ -16,10 +16,10 @@ from npi_common import finite_tree,sha256,runtime_inventory
 
 STAGES=('environment','requirements','sources','reserve','schematic','schematic_review','footprints','stackup','placement','routing','pcb_review','npi','manufacturing','cam_release','prototype','eco')
 TOOLS={
- 'environment':['environment_start','doctor'],'requirements':[],'sources':['device_knowledge'],'reserve':['reserve_review'],
+ 'environment':['environment_start','doctor','kicad_ipc_probe','konnect_backend','konnect_capabilities'],'requirements':[],'sources':['device_knowledge'],'reserve':['reserve_review'],
  'schematic':['schematic_candidate','schematic_style','system_integration'],'schematic_review':['static_review','static_review_gate','system_integration'],
- 'footprints':['pad_audit'],'stackup':['design_intent','design_intent_audit'],'placement':['placement_review'],
- 'routing':['link_audit','freeze_candidate'],'pcb_review':['static_review','static_review_gate'],
+ 'footprints':['pad_audit','resource_guard'],'stackup':['design_intent','design_intent_audit'],'placement':['placement_review'],
+ 'routing':['routing_policy','script_route_search','link_audit','freeze_candidate','freerouting_adapter'],'pcb_review':['static_review','static_review_gate'],
  'npi':['mass_production_review','validate_frozen_candidate'],'manufacturing':['manufacturing_export','build_manifest'],
  'cam_release':['npi_release'],'prototype':[],'eco':['netlist_guard']}
 FEATURES=('power','differential','rf','high_speed','safety','thermal','testability','assembly_variants')
@@ -114,13 +114,21 @@ def main():
             out=Path(a.destination)
             if out.exists():raise ValueError('New control directory required')
             r={'status':'PREVIEW','destination':str(out),'files':['project-flow.json'],'production_authorized':False}
-            if a.apply:out.mkdir(parents=True,exist_ok=False);(out/'project-flow.json').write_text(json.dumps(template(),ensure_ascii=False,indent=2)+'\n');r['status']='UNCONFIGURED_TEMPLATE_CREATED'
+            if a.apply:out.mkdir(parents=True,exist_ok=False);(out/'project-flow.json').write_text(json.dumps(template(),ensure_ascii=False,indent=2)+'\n', encoding='utf-8');r['status']='UNCONFIGURED_TEMPLATE_CREATED'
         else:
             r=check(a.project,a.contract)
             if a.output_dir:
                 out=Path(a.output_dir)
                 if out.exists():raise ValueError('New report directory required')
-                out.mkdir(parents=True,exist_ok=False);(out/'flow-report.json').write_text(json.dumps(r,ensure_ascii=False,indent=2)+'\n')
+                out.mkdir(parents=True,exist_ok=False);(out/'flow-report.json').write_text(json.dumps(r,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
         print(json.dumps(r,ensure_ascii=False,indent=2));return 2 if r['status']=='BLOCKED' else 0
     except Exception as e:print(json.dumps({'status':'BLOCKED','reason':str(e),'production_authorized':False,'findings':[blocking('INPUT.CONTRACT',e)]},ensure_ascii=False));return 2
+if __name__ == '__main__':
+    # JSON/text CLI protocol is UTF-8 on every platform, including Windows.
+    import sys as _stdio_sys
+    for _stdio_stream in (_stdio_sys.stdout, _stdio_sys.stderr):
+        if hasattr(_stdio_stream, 'reconfigure'):
+            _stdio_stream.reconfigure(encoding='utf-8')
+
+
 if __name__=='__main__':raise SystemExit(main())

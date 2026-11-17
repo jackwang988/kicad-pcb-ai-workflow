@@ -1,0 +1,219 @@
+{
+  "registry_version": "1.0",
+  "copyright_policy": "仅登记书目、公开范围与链接；不收录书籍全文、付费标准全文或未经授权的插图/公式页面。",
+  "sources": [
+    {
+      "id": "BOOK-01",
+      "type": "book",
+      "title": "Signal and Power Integrity—Simplified, 3rd Edition",
+      "authors": "Eric Bogatin",
+      "publisher": "Pearson",
+      "year": 2018,
+      "isbn": "9780134513416",
+      "topics": [
+        "SI",
+        "PI",
+        "EMC",
+        "transmission lines",
+        "crosstalk",
+        "PDN",
+        "measurement"
+      ],
+      "url": "https://www.pearson.com/en-us/subject-catalog/p/redirected-product/P200000000140/9780134513416",
+      "notes": "Pearson/InformIT 书目信息；第三版 992 页。"
+    },
+    {
+      "id": "BOOK-02",
+      "type": "book",
+      "title": "High-Speed Digital Design: A Handbook of Black Magic",
+      "authors": "Howard Johnson; Martin Graham",
+      "publisher": "Prentice Hall / Pearson",
+      "year": 1993,
+      "isbn": "9780133957242",
+      "topics": [
+        "transmission lines",
+        "ground planes",
+        "terminations",
+        "vias",
+        "crosstalk",
+        "noise",
+        "measurement"
+      ],
+      "url": "https://www.pearson.com/en-us/subject-catalog/p/high-speed-digital-design-a-handbook-of-black-magic/P200000009388/9780133957242",
+      "notes": "经典基础书；书中案例和年代背景需结合现代接口规范更新。"
+    },
+    {
+      "id": "BOOK-03A",
+      "type": "book",
+      "title": "Right the First Time, Vol. 1: A Practical Handbook on High-Speed PCB and System Design",
+      "authors": "Lee W. Ritchey; John Zasio",
+      "publisher": "Speeding Edge",
+      "year": 2003,
+      "isbn": "0-9741936-0-7",
+      "topics": [
+        "high-speed PCB process",
+        "transmission lines",
+        "SI",
+        "power subsystem",
+        "materials",
+        "EMI"
+      ],
+      "url": "https://speedingedge.com/products/right-the-first-time/",
+      "notes": "官方页面说明需购买下载。"
+    },
+    {
+      "id": "BOOK-03B",
+      "type": "book",
+      "title": "Right the First Time, Vol. 2: A Practical Handbook on High-Speed PCB and System Design",
+      "authors": "Lee W. Ritchey; John Zasio",
+      "publisher": "Speeding Edge",
+      "year": 2007,
+      "isbn": "0-9741936-1-5",
+      "topics": [
+        "fabrication",
+        "materials",
+        "EMI/EMC",
+        "gigabit signaling",
+        "PDN",
+        "testing",
+        "simulation",
+        "vias"
+      ],
+      "url": "https://speedingedge.com/products/right-the-first-time/",
+      "notes": "官方页面列出第二卷主题；需购买下载。"
+    },
+    {
+      "id": "BOOK-04",
+      "type": "book",
+      "title": "High Speed Digital Design: Design of High Speed Interconnects and Signaling",
+      "authors": "Hanqiao Zhang; Steven Krooswyk; Jeffrey Ou",
+      "publisher": "Morgan Kaufmann / Elsevier",
+      "year": 2015,
+      "isbn": "9780124186637",
+      "topics": [
+        "high-speed interconnects",
+        "channel design",
+        "signaling",
+        "modeling",
+        "simulation"
+      ],
+      "url": "https://shop.elsevier.com/books/high-speed-digital-design/zhang/978-0-12-418663-7",
+      "notes": "出版社书目页。"
+    },
+    {
+      "id": "BOOK-05",
+      "type": "book",
+      "title": "PCB Design for Real-World EMI Control",
+      "authors": "Bruce R. Archambeault",
+      "publisher": "Springer",
+      "year": 2002,
+      "isbn": "9781402071300",
+      "topics": [
+        "EMI",
+        "return path",
+        "PCB layout",
+        "filters",
+        "electromagnetic compatibility"
+      ],
+      "url": "https://link.springer.com/book/10.1007/978-1-4757-3640-3",
+      "notes": "Springer 书目页；244 页。"
+    },
+    {
+      "id": "IPC-2141A",
+      "type": "standard_guide",
+      "title": "Design Guide for High-Speed Controlled Impedance Circuit Boards",
+      "publisher": "IPC",
+      "revision": "A",
+      "year": 2004,
+      "topics": [
+        "controlled impedance",
+        "microstrip",
+        "stripline",
+        "balanced lines",
+        "crosstalk",
+        "test coupons",
+        "DFM",
+        "materials"
+      ],
+      "url": "https://www.ipc.org/TOC/IPC-2141A.pdf",
+      "notes": "IPC 官方公开目录页；此文件是目录/前置信息，不等于标准全文。正式项目应核实适用版本和 errata。"
+    },
+    {
+      "id": "IPC-2152",
+      "type": "standard",
+      "title": "Design Standard for Determining Current-Carrying Capacity in Printed Board Design",
+      "publisher": "IPC",
+      "topics": [
+        "current carrying capacity",
+        "conductor size",
+        "temperature rise"
+      ],
+      "url": "https://quicksearch.dla.mil/qsDocDetails.aspx?ident_number=277660",
+      "notes": "DLA ASSIST 页面显示 Active，2021 reaffirmation；使用时应通过 IPC 核实正式版本。"
+    },
+    {
+      "id": "INTEL-AN958",
+      "type": "application_note",
+      "title": "AN 958: Board Design Guidelines",
+      "publisher": "Intel / Altera",
+      "date": "2023-06-26",
+      "topics": [
+        "PDN",
+        "target impedance",
+        "gigahertz channels",
+        "material loss",
+        "via optimization",
+        "stackup",
+        "differential routing",
+        "skew",
+        "termination",
+        "propagation delay",
+        "impedance",
+        "EMI",
+        "S-parameters"
+      ],
+      "url": "https://docs.altera.com/r/docs/683073/current/an-958-board-design-guidelines",
+      "pdf": "https://cdrdv2-public.intel.com/677286/an958-683073-677286.pdf",
+      "notes": "厂商指南，器件相关章节只适用于对应 Intel/Altera 器件系列；通用章节可作方法参考。"
+    },
+    {
+      "id": "KICAD-IPC-API",
+      "type": "software_documentation",
+      "title": "KiCad API Documentation for Add-on Developers",
+      "publisher": "KiCad",
+      "topics": [
+        "IPC API",
+        "version compatibility",
+        "plugin architecture"
+      ],
+      "url": "https://dev-docs.kicad.org/en/apis-and-binding/ipc-api/for-addon-developers/",
+      "notes": "官方文档说明 KiCad 9/10 IPC API 限制及 KiCad 11 能力变化。"
+    },
+    {
+      "id": "KICAD-PYTHON",
+      "type": "software_documentation",
+      "title": "KiCad PCB Python Bindings",
+      "publisher": "KiCad",
+      "topics": [
+        "pcbnew",
+        "SWIG",
+        "deprecation"
+      ],
+      "url": "https://dev-docs.kicad.org/en/apis-and-binding/pcbnew/",
+      "notes": "官方文档说明 SWIG pcbnew 自 KiCad 9 起弃用，计划 KiCad 11 移除。"
+    },
+    {
+      "id": "KICAD-CLI-10",
+      "type": "software_documentation",
+      "title": "KiCad 10 Command-Line Interface",
+      "publisher": "KiCad",
+      "topics": [
+        "PCB DRC",
+        "Gerber export",
+        "CLI automation"
+      ],
+      "url": "https://docs.kicad.org/10.0/en/cli/cli.html",
+      "notes": "本机参数以安装版本的 --help 输出为准。"
+    }
+  ]
+}

@@ -23,7 +23,9 @@ def release(project, config, candidate, destination, apply=False, cli=None):
     data=json.loads(Path(config).read_text(encoding='utf-8'))
     entries=sorted({f for files in data['delivery_manifest'].values() for f in files} | {'build-manifest.json'})
     # Include every validated log/review/freeze dependency in the final release.
-    entries=sorted(set(entries) | {str(Path(file).relative_to(candidate)) for file in report['inputs_sha256'] if Path(file).is_relative_to(candidate)})
+    # Windows may report the same file through an 8.3 alias and its long name.
+    # Compare canonical identities so validated nested evidence is not omitted.
+    entries=sorted(set(entries) | {str(Path(file).resolve().relative_to(candidate)) for file in report['inputs_sha256'] if Path(file).resolve().is_relative_to(candidate)})
     if not apply: return {'released':False,'preview':True,'blocked':False,'files':entries}
     # Revalidate all engineering input and candidate hashes immediately before publication.
     for p,digest in report['inputs_sha256'].items():
@@ -58,5 +60,13 @@ def main():
     except (OSError,ValueError,KeyError,TypeError) as e: p.exit(2,'禁止发布：'+str(e)+'\n')
     print(json.dumps(result,ensure_ascii=False,indent=2))
     return 2 if result['blocked'] else 0
+
+if __name__ == '__main__':
+    # JSON/text CLI protocol is UTF-8 on every platform, including Windows.
+    import sys as _stdio_sys
+    for _stdio_stream in (_stdio_sys.stdout, _stdio_sys.stderr):
+        if hasattr(_stdio_stream, 'reconfigure'):
+            _stdio_stream.reconfigure(encoding='utf-8')
+
 
 if __name__=='__main__': raise SystemExit(main())

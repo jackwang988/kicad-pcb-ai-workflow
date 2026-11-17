@@ -53,7 +53,7 @@ def citations(items,allowed,packet,folder):
     for c in items:
         key=(c.get('document_id'),c.get('locator'))
         if key not in allowed:raise ValueError('Citation does not match approved task source/location')
-        d=docs[key[0]];text=local(folder,d['text_file']).read_text();quote=c.get('quote')
+        d=docs[key[0]];text=local(folder,d['text_file']).read_text(encoding='utf-8-sig');quote=c.get('quote')
         if not isinstance(quote,str) or not 8<=len(quote)<=500 or folded(quote) not in folded(text):raise ValueError('Citation text absent in actual source')
         seen.add(key)
     if not allowed.issubset(seen):raise ValueError('Task source coverage incomplete')
@@ -64,7 +64,7 @@ def validate(root,packet_dir,ai_file=None,engineer_file=None):
         findings.append({'rule':code,'level':level,'location':location,'description':desc,
                          'reference':'产品规格、适用器件/原厂指南及静态评审契约','suggestion':fix})
     try:
-        packet_path=local(folder,'packet.json');packet=finite_tree(json.loads(packet_path.read_text()));inputs[str(packet_path)]=sha256(packet_path)
+        packet_path=local(folder,'packet.json');packet=finite_tree(json.loads(packet_path.read_text(encoding='utf-8-sig')));inputs[str(packet_path)]=sha256(packet_path)
         if packet.get('schema_version')!=1 or packet.get('scope')!='static_only':raise ValueError('Unsupported packet/scope')
         stage=packet['stage'];spec=validate_config(packet['config'],stage)
         if packet['config'].get('device_knowledge'):
@@ -72,6 +72,28 @@ def validate(root,packet_dir,ai_file=None,engineer_file=None):
             required=validate_bundle(root,packet['config']['device_knowledge'])
             if not set(required).issubset(packet['baseline']):raise ValueError('Device evidence missing from review baseline')
         mandatory={packet['facts_file'],packet['checks_file'],'commands.json','netlist.xml'}
+        if packet['config'].get('device_knowledge'):
+            if packet.get('device_knowledge_brief')!='device-knowledge-brief.json':
+                raise ValueError('G1/G4 packet must contain frozen device review brief')
+            from device_knowledge import project_review_cache, project_stage_brief
+            if stage=='schematic':
+                expected_brief,_=project_review_cache(root,packet['config']['device_knowledge'])
+            else:
+                expected_brief,_=project_stage_brief(root,packet['config']['device_knowledge'],'g4')
+                if expected_brief['coverage_gaps']:
+                    raise ValueError('G4 frozen source coverage has missing evidence')
+            current_brief=json.loads(local(folder,packet['device_knowledge_brief']).read_text(encoding='utf-8-sig'))
+            if current_brief!=expected_brief:
+                raise ValueError('G1/G4 cached device brief differs from frozen bundle')
+            mandatory.add(packet['device_knowledge_brief'])
+        if packet['config'].get('resource_lock'):
+            from resource_guard import check as resource_check
+            name=packet['config']['resource_lock'];resource_result=resource_check(root,local(root,name))
+            required={name,*resource_result['inputs_sha256']}
+            if not required.issubset(packet['baseline']):raise ValueError('Resource lock or files omitted from review baseline')
+            captured=json.loads(local(folder,'resource-check.json').read_text(encoding='utf-8-sig'))
+            if captured!=resource_result:raise ValueError('Resource review evidence is stale')
+            mandatory.add('resource-check.json')
         if packet['config'].get('require_system_integration') is True:mandatory.add('system-integration.json')
         mandatory.update((Path('inputs')/n).as_posix() for n in packet['baseline'])
         mandatory.update(d['text_file'] for d in packet['documents'])
@@ -90,7 +112,7 @@ def validate(root,packet_dir,ai_file=None,engineer_file=None):
         if provenance.get('xml_origin')!='native_export' or not cli_native_ready(env, env.get('kicad_cli')) or (stage=='pcb' and (not pair_compatible(env) or not patch_native_ready(env, env.get('kicad_cli')))):
             risk('STATIC.PROVENANCE','缺少目标版本原生导出来源；导入XML仅可作预评审')
         if provenance.get('xml_sha256')!=sha256(local(folder,'netlist.xml')):raise ValueError('XML origin hash mismatch')
-        facts=json.loads(local(folder,packet['facts_file']).read_text())
+        facts=json.loads(local(folder,packet['facts_file']).read_text(encoding='utf-8-sig'))
         if packet['config'].get('device_knowledge'):
             from device_knowledge import validate_project_binding
             validate_project_binding(root,packet['config'],stage,facts['netlist'])
@@ -115,12 +137,12 @@ def validate(root,packet_dir,ai_file=None,engineer_file=None):
         if stage=='schematic' and packet['config'].get('require_system_integration') is True:
             from system_integration import audit as system_audit
             system=system_audit(root,packet['config']['system_integration']['contract'],spec['inputs']['schematic'],facts['netlist'],packet['config']['documents'])
-            captured=json.loads(local(folder,'system-integration.json').read_text())
+            captured=json.loads(local(folder,'system-integration.json').read_text(encoding='utf-8-sig'))
             if captured!=system:raise ValueError('System architecture/interface audit differs from captured packet')
             if not set(Path(n).relative_to(root).as_posix() for n in system['inputs_sha256']).issubset(packet['baseline']):raise ValueError('System architecture/interface inputs missing from review baseline')
             for f in system['findings']:risk(f['rule'],f['description'],f['location'],f['level'],f['fix'])
         checks=[evaluate_rule(t,facts) for t in spec['tasks']]
-        saved=json.loads(local(folder,packet['checks_file']).read_text())
+        saved=json.loads(local(folder,packet['checks_file']).read_text(encoding='utf-8-sig'))
         if checks!=saved:raise ValueError('Deterministic results do not match captured facts/config')
         tasks={t['id']:t for t in spec['tasks']};issues=[];bycheck={c['task_id']:c for c in checks}
         for c in checks:
@@ -130,7 +152,7 @@ def validate(root,packet_dir,ai_file=None,engineer_file=None):
         if ai_file is None or not Path(ai_file).is_file():
             preexisting=any(f['level']=='阻断级' for f in findings)
             risk('STATIC.AI.PENDING','尚未完成AI逐项静态工程评审');return {'status':'BLOCKED' if preexisting else 'AI_REVIEW_PENDING','review_state':'ai_pending','stage':stage,'production_authorized':False,'findings':findings,'inputs_sha256':inputs}
-        ai_path=Path(ai_file).resolve();ai=finite_tree(json.loads(ai_path.read_text()));inputs[str(ai_path)]=sha256(ai_path)
+        ai_path=Path(ai_file).resolve();ai=finite_tree(json.loads(ai_path.read_text(encoding='utf-8-sig')));inputs[str(ai_path)]=sha256(ai_path)
         if ai.get('schema_version')!=1 or ai.get('scope')!='static_only' or ai.get('stage')!=stage or ai.get('packet_sha256')!=sha256(packet_path):raise ValueError('AI report stage/packet binding invalid')
         who=ai.get('reviewer',{})
         if who.get('type')!='ai' or not who.get('model'):raise ValueError('Actual AI model/reviewer identity required')
@@ -151,7 +173,7 @@ def validate(root,packet_dir,ai_file=None,engineer_file=None):
                 seen={o[key] for o in row['observations'] if key in o}
                 if not set(t['targets'].get(kind,[])).issubset(seen):raise ValueError('Task targets were not actually identified in observations')
             if t.get('category')=='system_integration':
-                report=json.loads(local(folder,'system-integration.json').read_text())
+                report=json.loads(local(folder,'system-integration.json').read_text(encoding='utf-8-sig'))
                 seen_refs={o['ref'] for o in row['observations'] if 'ref' in o};seen_nets={o['net'] for o in row['observations'] if 'net' in o};seen_views={o['view'] for o in row['observations'] if 'view' in o}
                 needed_refs={ref for refs in report['module_components'].values() for ref in refs}
                 needed_nets={net['net'] for net in report['checked_nets']}
@@ -198,7 +220,7 @@ def validate(root,packet_dir,ai_file=None,engineer_file=None):
             risk('STATIC.ENGINEER.PENDING','AI评审已提交，尚无硬件工程师对本版报告的最终确认')
             result_status='BLOCKED' if preexisting else 'ENGINEER_REVIEW_PENDING'
         else:
-            eng_path=Path(engineer_file).resolve();eng=finite_tree(json.loads(eng_path.read_text()));inputs[str(eng_path)]=sha256(eng_path)
+            eng_path=Path(engineer_file).resolve();eng=finite_tree(json.loads(eng_path.read_text(encoding='utf-8-sig')));inputs[str(eng_path)]=sha256(eng_path)
             if eng.get('schema_version')!=1 or eng.get('role')!='hardware_engineer' or eng.get('scope')!='static_only' or eng.get('decision')!='approve' or not eng.get('name') or not eng.get('reason'):
                 raise ValueError('Real hardware engineer approval record required')
             dt.date.fromisoformat(eng['date'])
@@ -242,5 +264,13 @@ CATEGORIES_NAMES=('schematic','pcb')
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('project');p.add_argument('--packet',required=True);p.add_argument('--ai-review');p.add_argument('--engineer-review');a=p.parse_args()
     r=validate(a.project,a.packet,a.ai_review,a.engineer_review);print(json.dumps(r,ensure_ascii=False,indent=2));return 0 if r['status']=='APPROVED_STATIC' else 2
+
+if __name__ == '__main__':
+    # JSON/text CLI protocol is UTF-8 on every platform, including Windows.
+    import sys as _stdio_sys
+    for _stdio_stream in (_stdio_sys.stdout, _stdio_sys.stderr):
+        if hasattr(_stdio_stream, 'reconfigure'):
+            _stdio_stream.reconfigure(encoding='utf-8')
+
 
 if __name__=='__main__':raise SystemExit(main())

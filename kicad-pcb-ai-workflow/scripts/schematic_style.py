@@ -113,7 +113,15 @@ def main():
         if a.output_dir:
             out=Path(a.output_dir)
             if out.exists():raise ValueError('New report directory required')
-            out.mkdir(parents=True);(out/'style-report.json').write_text(json.dumps(r,ensure_ascii=False,indent=2)+'\n')
+            out.mkdir(parents=True);(out/'style-report.json').write_text(json.dumps(r,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
         print(json.dumps(r,ensure_ascii=False,indent=2));return 2 if r['status']=='BLOCKED' else 0
     except Exception as e:print(json.dumps({'status':'BLOCKED','reason':str(e),'production_authorized':False,'findings':[blocking('INPUT.CONTRACT',e)]},ensure_ascii=False));return 2
+if __name__ == '__main__':
+    # JSON/text CLI protocol is UTF-8 on every platform, including Windows.
+    import sys as _stdio_sys
+    for _stdio_stream in (_stdio_sys.stdout, _stdio_sys.stderr):
+        if hasattr(_stdio_stream, 'reconfigure'):
+            _stdio_stream.reconfigure(encoding='utf-8')
+
+
 if __name__=='__main__':raise SystemExit(main())

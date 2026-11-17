@@ -14,7 +14,7 @@ from assembly_guard import read_bom,check_cpl
 CONTEXTS={'low_speed','high_speed','rf','power','clock','analog'}
 ROLES={'selection_link','series_tuning','shunt_tuning','power_link','architecture_option','diagnostic'}
 
-def read(p):return finite_tree(json.loads(Path(p).read_text()))
+def read(p):return finite_tree(json.loads(Path(p).read_text(encoding='utf-8-sig')))
 def need(row,keys):
     if any(not isinstance(row.get(k),str) or not row[k].strip() for k in keys):raise ValueError('Missing nonempty fields: '+','.join(keys))
 def number(n):
@@ -170,4 +170,12 @@ def main():
         if a.static_preview:result['native_geometry_verified']=False
         print(json.dumps(result,ensure_ascii=False,indent=2));return 2 if result['status']=='BLOCKED' else 0
     except Exception as e:print(json.dumps({'status':'BLOCKED','reason':str(e),'production_authorized':False}));return 2
+if __name__ == '__main__':
+    # JSON/text CLI protocol is UTF-8 on every platform, including Windows.
+    import sys as _stdio_sys
+    for _stdio_stream in (_stdio_sys.stdout, _stdio_sys.stderr):
+        if hasattr(_stdio_stream, 'reconfigure'):
+            _stdio_stream.reconfigure(encoding='utf-8')
+
+
 if __name__=='__main__':raise SystemExit(main())

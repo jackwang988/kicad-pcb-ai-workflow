@@ -55,13 +55,13 @@ def audit(root, intent_file, native=True, effective_provider=None, phase='final'
                          'description':description,'reference':'原厂设计指南、批准叠层/工艺；实际KiCad10.0.x规则',
                          'fix':fix,'method':'设计意图静态核对/原生API/人工证据'})
     try:
-        d=json.loads(intent_file.read_text());plan=compile_intent(root,d,verify=True);inputs.update(plan['inputs_sha256'])
+        d=json.loads(intent_file.read_text(encoding='utf-8-sig'));plan=compile_intent(root,d,verify=True);inputs.update(plan['inputs_sha256'])
         for name,expected in plan['proposed'].items():
             p=local(root,name)
-            same=p.is_file() and (json.loads(p.read_text())==json.loads(expected) if p.suffix=='.kicad_pro' else p.read_text(encoding='utf-8-sig')==expected)
+            same=p.is_file() and (json.loads(p.read_text(encoding='utf-8-sig'))==json.loads(expected) if p.suffix=='.kicad_pro' else p.read_text(encoding='utf-8-sig')==expected)
             if not same:risk('INTENT.NOT_APPLIED','设计意图尚未完整写入候选：'+name,name)
             if p.is_file():inputs[str(p)]=sha256(p)
-        pro=json.loads(local(root,d['project_file']).read_text());board=parse_sexpr(local(root,d['board_file']).read_text())
+        pro=json.loads(local(root,d['project_file']).read_text(encoding='utf-8-sig'));board=parse_sexpr(local(root,d['board_file']).read_text(encoding='utf-8-sig'))
         if d.get('demonstration_only'):risk('INTENT.DEMO','演示参数禁止用于生产')
         classes={c['name']:c for c in d['classes']};nets={n['name']:n for n in d['nets']}
         netnames={int(n[1]):n[2] for n in children(board,'net')}
@@ -159,7 +159,7 @@ def integrate(r,root,config):
     if not entry:
         r.risk('INTENT.MISSING','schematic','阻断级','缺少差分/电源/射频设计意图配置',fix='设置design_intent，声明完整关键网络、原厂依据与批准几何；不能由网络类存在推断正确。');return
     try:
-        path=local(root,entry);d=json.loads(path.read_text())
+        path=local(root,entry);d=json.loads(path.read_text(encoding='utf-8-sig'))
         if d.get('project_file')!=config.get('inputs',{}).get('project') or d.get('board_file')!=config.get('inputs',{}).get('board'):
             raise ValueError('Intent refers to another project/PCB')
         result=audit(root,path,True);r.inputs.update(result['inputs_sha256']);r.evidence.append({'design_intent':result})
@@ -172,5 +172,13 @@ def main():
     try:r=audit(a.project,a.intent,not a.static_preview,phase=a.phase)
     except Exception as e:r={'status':'BLOCKED','reason':str(e)}
     print(json.dumps(r,ensure_ascii=False,indent=2));return 0 if r['status']=='PASS' else 2
+
+if __name__ == '__main__':
+    # JSON/text CLI protocol is UTF-8 on every platform, including Windows.
+    import sys as _stdio_sys
+    for _stdio_stream in (_stdio_sys.stdout, _stdio_sys.stderr):
+        if hasattr(_stdio_stream, 'reconfigure'):
+            _stdio_stream.reconfigure(encoding='utf-8')
+
 
 if __name__=='__main__':raise SystemExit(main())

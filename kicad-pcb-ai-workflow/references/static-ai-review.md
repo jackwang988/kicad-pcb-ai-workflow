@@ -23,7 +23,7 @@ scripts/static_review_gate.py验证版本、覆盖、引用、确定性结果与
 
 ## 2. 输入、来源与逐项规则
 
-先执行[器件资料检查与补齐](device-knowledge.md)，新工程配置device_knowledge，原文、已核对资料卡与版本查询记录一起纳入基线。资料卡只生成逐项候选，须再判断项目适用性。
+原理图需求阶段先执行[器件知识库缓存优先查找与按需补齐](device-knowledge.md)的`resolve`：命中后直接复用已核对卡片/版本检查记录，并使用`brief`精简上下文；只有缺失或需要更新原厂版本时才联网。然后执行原有器件资料检查与补齐流程，新工程配置device_knowledge，原文、已核对资料卡与版本查询记录一起纳入基线。资料卡只生成逐项候选，须再判断项目适用性。
 
 使用assets/static-review.template.json。由Agent根据产品需求和实际器件准备规则，不使用示例的测试数值。
 
@@ -89,6 +89,12 @@ NOT_APPLICABLE或非阻断偏差要按当前item指纹逐项判断，gate输出i
 
 工程师记录校验只证明声明与文件绑定，组织仍需独立控制审批权限与真实性。APPROVED_STATIC仅表示这轮静态评审完成，**production_authorized始终false**，不授予EMC/认证/生产授权。
 
+### 节点6 / G1复用器件知识卡（强制缓存优先）
+
+对于设置了`device_knowledge`的原理图评审，节点3的项目冻结资料包是默认、唯一既有原厂依据入口。`static_review.py --stage schematic`自动执行离线资料卡/原厂原文哈希和时效检查，生成 `device-knowledge-brief.json`（也在`packet.json.device_knowledge_brief`标记）；Agent先按当前位号/型号/封装/应用条件阅读这些已审核知识卡候选，继而检查真实原理图网表及ERC。不能再次主动联网寻找、下载同型号手册或把整本文档扔给模型。若摘要截断、缺少参数、适用条件不同、涉及器件图表/时序/高风险接口，按章节打开**项目冻结包里的**原厂文件而不是网络。资料缺失/过期/身份不符需回节点3补充并重新冻结，相关G1审查不得假装完成。
+
+`documents`仍必须绑定原始原厂文件的当前SHA-256并关联 `component_sources`；G1复用已核验的`texts/`提取文本，避免重新解析原厂PDF；`text_origin`标明实际来源。`static_review_gate.py`要求缓存摘要存在、原始冻结依据及摘要未被篡改。所有知识卡属于**待验证到新电路的候选依据**，不产生G1自动PASS或取代工程师确认。历史缺少`device_knowledge`配置的工程应先按节点3建立绑定，不能悄悄把不完整资料当成已审核。
+
 ## 6. 命令、失效与验收边界
 
 ```bash
@@ -116,3 +122,8 @@ prepare退出0只代表资料包已准备，不代表检查通过。无CLI时可
 ## 项目化结构检查
 
 新配置require_schematic_style=true并绑定schematic_style.policy、schematic_style语义任务；任务如对应产品需求增加requirement_id，用project-flow映射。准备包捕获结构结果/策略/来源，gate复算及验哈希。人工图面项不虚构机器PASS。详见schematic-style.md与universal-workflow.md。
+
+
+## 新增：多阶段缓存复用与工程职责边界
+
+**G4缓存优先升级**：除了G1，PCB最终G4的`static_review.py --stage pcb`也会对已冻结器件资料重新核对并生成`device-knowledge-brief.json`，优先复用有原文SHA记录的已提取文字。`static_review_gate.py`在G4重新计算并比对卡片；卡不匹配、过期、缺少本阶段类别，先阻断返回节点3按需补齐。原生DRC、实际逐铜层AI评审、工程师签核不被跳过。详见[完整流程](latest-complete-workflow.md)。

@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "package_kind": "universal_runtime",
-  "revision": "2026.11-R9.3-forward-compat-candidate",
+  "revision": "2026.11.17-R10-G1-G4-konnect-single-writer-migration-1",
   "active": [
     {
       "file": "scripts/assembly_guard.py",
-      "sha256": "e9f03fa50eb4a21dee67c51a87869c3014b5fdf62881da179f86d51755fdd08c",
-      "version": "2026.10-R2",
+      "sha256": "d7219e6d5628a482dc826d58f82e513cadf8b8aaa5212e39f713202cd5d464a5",
+      "version": "R10.0-alpha.3",
       "command": "python3 scripts/assembly_guard.py --help",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
       "output": "JSON/Markdown declared-scope results; unavailable evidence must block",
@@ -15,11 +15,11 @@
         "1": "comparison/path FAIL where supported",
         "2": "BLOCKED/input/tool failure"
       },
-      "validation_scope": "Local counterexamples and syntax only; native KiCad10.0.7 not run"
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
     },
     {
       "file": "scripts/build_manifest.py",
-      "version": "2026.10-R2",
+      "version": "R10.0-alpha.3",
       "command": "python3 scripts/build_manifest.py --help or documented Python module",
       "input": "Explicit documented project/config/evidence contract",
       "output": "Declared-scope JSON/Markdown; no implicit production approval",
@@ -28,13 +28,52 @@
         "1": "FAIL where supported",
         "2": "BLOCKED"
       },
-      "validation_scope": "Local counterexample tests only; native target environment pending",
-      "sha256": "81f8c54a3f64e4e3f6931ff4fac1bfc684a286116dc554fdb63f8dec2d04a3d3"
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
+      "sha256": "c527f118a51def85f232ba323a3b1a9f4cec9e6333312d9fcec45b19993ce9a8"
+    },
+    {
+      "file": "scripts/design_intent.py",
+      "version": "R10.0-alpha.3",
+      "command": "python3 scripts/design_intent.py --help",
+      "input": "Explicit intent schema, approved sources and real project; see references/design-intent.md",
+      "output": "JSON plan/audit; no implicit production approval",
+      "exit_codes": {
+        "0": "Declared scope passed or preview only",
+        "2": "BLOCKED"
+      },
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
+      "sha256": "3de940b607d3096f4b0539f21d00a6a0b6d0a19aaed202ef2ca4069a6271430b"
+    },
+    {
+      "file": "scripts/design_intent_audit.py",
+      "version": "R10.0-alpha.3",
+      "command": "python3 scripts/design_intent_audit.py --help",
+      "input": "Explicit intent schema, approved sources and real project; see references/design-intent.md",
+      "output": "JSON plan/audit; no implicit production approval",
+      "exit_codes": {
+        "0": "Declared scope passed or preview only",
+        "2": "BLOCKED"
+      },
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
+      "sha256": "ff9d0274512f9fffc27e4345a408587246743d518cc26a2389e3bfd52d86e459"
+    },
+    {
+      "file": "scripts/device_knowledge.py",
+      "version": "R10.0-alpha.3-local.5+g1-cache-reuse-1",
+      "command": "python3 scripts/device_knowledge.py --help (register/resolve/brief/audit/bundle)",
+      "input": "Exact device inventory, explicit official hosts, source metadata and grounded verification records; see references/device-knowledge.md",
+      "output": "Immutable verified source registry; cache-first offline exact-MPN resolver; short grounded card briefs; original audit/bundle gates",
+      "exit_codes": {
+        "0": "Preview/source prepared or declared scope ready only",
+        "2": "BLOCKED/input or network failure"
+      },
+      "validation_scope": "Offline G1 cache-bound review packet checks; existing KiCad integration must be validated on target setup.",
+      "sha256": "0f0b05db18ebeb087992b45849211513f1ba59d2791a588879df89a143512de4"
     },
     {
       "file": "scripts/doctor.py",
-      "sha256": "e7dd279265622ba3d96141dcce5c15d6dbc59f3b4cbb6a32e22d4d56905241cc",
-      "version": "2026.10-R2",
+      "sha256": "351371da905cdf4d6dafefe8ffae46d5ea18d3caa096e43e315e1c69a37c0430",
+      "version": "R10.0-alpha.3",
       "command": "python3 scripts/doctor.py --help",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
       "output": "JSON/Markdown declared-scope results; unavailable evidence must block",
@@ -43,12 +82,12 @@
         "1": "comparison/path FAIL where supported",
         "2": "BLOCKED/input/tool failure"
       },
-      "validation_scope": "Software contract tests only; newer KiCad CLI-only/IPC native integration remains unverified"
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
     },
     {
       "file": "scripts/engineering_gate.py",
-      "sha256": "ba7690966ed7a98aefc9e8435fa10ce05694a55b677c0889e34489287ffa4c49",
-      "version": "2026.10-R9.3",
+      "sha256": "74875691d371df5bae92bb7a43d408735c2346e6634fa6295ecc9a339713a1cb",
+      "version": "R10.0-alpha.3",
       "command": "Python module imported by mass_production_review.py",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
       "output": "JSON/Markdown declared-scope results; unavailable evidence must block",
@@ -57,12 +96,38 @@
         "1": "comparison/path FAIL where supported",
         "2": "BLOCKED/input/tool failure"
       },
-      "validation_scope": "Python regression coverage; KiCad 10.0.x native smoke and KiCad 9 native compatibility are NOT yet verified"
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
+    },
+    {
+      "file": "scripts/environment_start.py",
+      "version": "R10.0-alpha.3",
+      "command": "python3 scripts/environment_start.py --help",
+      "input": "Explicit matching KiCad/Python and existing nonempty project; new external report directory; see environment-onboarding.md",
+      "output": "Environment-only first-run evidence or read-only daily result; never production authorization",
+      "exit_codes": {
+        "0": "PREVIEW or ENVIRONMENT_READY only",
+        "2": "BLOCKED or FULL_SETUP_REQUIRED"
+      },
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
+      "sha256": "17bfabd63bb6fdab8a137b33d739bd9548c246a7b933faa5dcebd52ae8a7b99b"
+    },
+    {
+      "file": "scripts/freerouting_adapter.py",
+      "sha256": "d525894b1d46c102d3c00f15f16a4a46d2d4a2da3be20ee920387e47646c75a6",
+      "version": "R10.0-alpha.3",
+      "command": "python3 scripts/freerouting_adapter.py --help",
+      "input": "User-approved v2.5.0 JAR, KiCad-exported DSN, new result directory",
+      "output": "SES and JSON; KiCad import and engineering approval required",
+      "exit_codes": {
+        "0": "preview/manual fallback/SES candidate only",
+        "2": "blocked or failure"
+      },
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
     },
     {
       "file": "scripts/freeze_candidate.py",
-      "sha256": "e8a0746b80093146ea9ebc20dea11f5a1dc70e3f01a378a4a18004565c6e375b",
-      "version": "2026.10-R2",
+      "sha256": "d3d5de670c7c5f5114a37bb9569ee5c4615993194cbd40dc38224d22e9af85ff",
+      "version": "R10.0-alpha.3",
       "command": "python3 scripts/freeze_candidate.py --help",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
       "output": "JSON/Markdown declared-scope results; unavailable evidence must block",
@@ -71,12 +136,122 @@
         "1": "comparison/path FAIL where supported",
         "2": "BLOCKED/input/tool failure"
       },
-      "validation_scope": "Python regression coverage; KiCad 10.0.x native smoke and KiCad 9 native compatibility are NOT yet verified"
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
+    },
+    {
+      "file": "scripts/high_speed.py",
+      "version": "R10.0-alpha.3-local.3",
+      "command": "python scripts/high_speed.py --help",
+      "input": "Explicit saved candidate, bound policy; optional isolated ngspice model request",
+      "output": "Declared specialist audit/preview only; no board write or engineering approval",
+      "exit_codes": {
+        "0": "Declared checks or preview only",
+        "1": "Review or sampled model exceeds target",
+        "2": "Blocked"
+      },
+      "validation_scope": "Software contracts and separately recorded native read-only checks; no full SI/PI or manufacturing certification",
+      "sha256": "09717f79794622791bdeb13578e398dd54f9b0f8fc5b18d99c7b925ab2c47f15"
+    },
+    {
+      "file": "scripts/hs_board_snapshot.py",
+      "version": "R10.0-alpha.3-local.3",
+      "command": "Module-only API; owned by high_speed",
+      "input": "Explicit saved PCB, native=True by default",
+      "output": "Read-only tracks/arcs/vias/pads/net inventory; static preview is never native proof",
+      "exit_codes": {
+        "0": "Declared checks or preview only",
+        "1": "Review or sampled model exceeds target",
+        "2": "Blocked"
+      },
+      "validation_scope": "Software contracts and separately recorded native read-only checks; no full SI/PI or manufacturing certification",
+      "sha256": "2f6a3d5876dcd906db42c404e6e4c7abcf26d2d089ba34beace57319d46d0e30"
+    },
+    {
+      "file": "scripts/hs_rule_engine.py",
+      "version": "R10.0-alpha.3-local.3",
+      "command": "Module-only API; owned by high_speed",
+      "input": "Typed project policy, actual board snapshot, bound 16-rule catalog and local sources",
+      "output": "Per-rule applicability, finite declared geometry and evidence checks; no SI/PI or production PASS",
+      "exit_codes": {
+        "0": "Declared checks or preview only",
+        "1": "Review or sampled model exceeds target",
+        "2": "Blocked"
+      },
+      "validation_scope": "Software contracts and separately recorded native read-only checks; no full SI/PI or manufacturing certification",
+      "sha256": "84d40c97db253e6a177e43e7063f35daa5e9ed3597d165924537e56906a93095"
+    },
+    {
+      "file": "scripts/hs_solver.py",
+      "version": "R10.0-alpha.3-local.3",
+      "command": "Module-only API; owned by high_speed",
+      "input": "Fixed passive RLC request and model source; explicit executable SHA/output/timeout for run",
+      "output": "Optional sampled ngspice model result only; no automatic installation or full-board PI proof",
+      "exit_codes": {
+        "0": "Declared checks or preview only",
+        "1": "Review or sampled model exceeds target",
+        "2": "Blocked"
+      },
+      "validation_scope": "Software contracts and separately recorded native read-only checks; no full SI/PI or manufacturing certification",
+      "sha256": "5c228839fae28e31be6c8df1de1e4db7fc31a8744b0ac164b2e070d3350aa974"
+    },
+    {
+      "file": "scripts/kicad_bridge.py",
+      "sha256": "1821f19e3521997acf1b0327591b17bd7fc11090e3e516093d961455aae84fc5",
+      "version": "R10.0-alpha.3",
+      "command": "python scripts/kicad_bridge.py --help",
+      "input": "Typed local requests, explicit session/candidate manifest; writes require --apply",
+      "output": "Declared connection/edit/readback/recovery state; no engineering approval",
+      "exit_codes": {
+        "0": "Preview/config/navigation readiness or child declared scope only",
+        "1": "Child comparison FAIL",
+        "2": "BLOCKED/pending required inputs"
+      },
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
+    },
+    {
+      "file": "scripts/kicad_ipc_probe.py",
+      "command": "python scripts/kicad_ipc_probe.py --help",
+      "input": "Explicit project-bound versioned request; declared scope only",
+      "output": "Structured preview, observation or unexecuted plan; no manufacturing authorization",
+      "exit_codes": {
+        "0": "Declared scope only; not engineering or manufacturing approval",
+        "1": "Search/comparison incomplete where documented",
+        "2": "BLOCKED or invalid input"
+      },
+      "sha256": "dd1d09f1dc519562352634f208fd186e00811aa50de4262a44e85ebea8455c03",
+      "version": "R10.0-alpha.3",
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
+    },
+    {
+      "file": "scripts/konnect_backend.py",
+      "command": "python scripts/konnect_backend.py --help",
+      "input": "Pinned executable/config or installation receipt; optional explicit target board; new output directory",
+      "output": "Read-only MCP and exact live-target evidence; no editing or release authorization",
+      "exit_codes": {
+        "0": "Declared connection/read scope verified",
+        "2": "BLOCKED"
+      },
+      "validation_scope": "MCP/live acceptance recorded separately; no hardware certification",
+      "version": "R10.0-alpha.3-local.5",
+      "sha256": "e8d09229dded80e13b5a18bd47aab6f579d0b13f8febbf109eef30667574fb3a"
+    },
+    {
+      "file": "scripts/konnect_capabilities.py",
+      "version": "R10-single-writer-migration-1",
+      "command": "python scripts/konnect_capabilities.py --help (discover/assess/fixture/invoke)",
+      "input": "Real locally pinned Konnect executable, current MCP tools, external acceptance registry; isolated engineering candidate required for mutations",
+      "output": "Risk-ranked dynamically discovered MCP tool inventory and scope-bound fixture acceptance/operation receipts",
+      "exit_codes": {
+        "0": "Discovery/read-only assessment or explicitly limited fixture/operation result; never manufacturing release",
+        "2": "BLOCKED/unverified tool, invalid backend, missing or conflicting evidence"
+      },
+      "validation_scope": "Offline fake-MCP unit tests; real KiCad GUI/Konnect integration and release gates not validated",
+      "sha256": "f5d9fc326ca2d71aea68f789c7a3d2bf05240277ed783a9a855258ee29d423ac"
     },
     {
       "file": "scripts/link_audit.py",
-      "sha256": "23f520cbc448226d944ef49b109171034513488e87cef64a52d09410d9fbebfa",
-      "version": "2026.10-R2",
+      "sha256": "39178798da73bec97cac19db336fc9f07e0794e2fbd484633e06ccc8d79aeea8",
+      "version": "R10.0-alpha.3",
       "command": "python3 scripts/link_audit.py --help",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
       "output": "JSON/Markdown declared-scope results; unavailable evidence must block",
@@ -85,12 +260,25 @@
         "1": "comparison/path FAIL where supported",
         "2": "BLOCKED/input/tool failure"
       },
-      "validation_scope": "Local counterexamples and syntax only; native KiCad10.0.7 not run"
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
+    },
+    {
+      "file": "scripts/manufacturing_export.py",
+      "version": "R10.0-alpha.3",
+      "command": "python3 scripts/manufacturing_export.py --help",
+      "input": "Explicit project contracts; no inferred circuit/process values",
+      "output": "Declared-scope reports or independent candidate; never implicit engineering approval",
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
+      "sha256": "a87aa89bd33237280c62c7d871eedc488ea96ba47e44dcced2d329a7f84f8a81",
+      "exit_codes": {
+        "0": "Declared scope complete/preview; never automatic approval",
+        "2": "BLOCKED; do not advance or manufacture"
+      }
     },
     {
       "file": "scripts/mass_production_review.py",
-      "sha256": "73f90673a6c974c9096f82ef8ad71c0f73541bd0032b8ec342e279a62088e85b",
-      "version": "2026.10-R2",
+      "sha256": "a01baa10358747ffcfce15bd6b040d69e4c6e5e7dcbfc44c24c648cc855b2b43",
+      "version": "R10.0-alpha.3",
       "command": "python3 scripts/mass_production_review.py --help",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
       "output": "JSON/Markdown declared-scope results; unavailable evidence must block",
@@ -99,11 +287,11 @@
         "1": "comparison/path FAIL where supported",
         "2": "BLOCKED/input/tool failure"
       },
-      "validation_scope": "Python regression coverage; KiCad 10.0.x native smoke and KiCad 9 native compatibility are NOT yet verified"
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
     },
     {
       "file": "scripts/native_report.py",
-      "version": "2026.10-R8-native-env1",
+      "version": "R10.0-alpha.3",
       "command": "python3 scripts/native_report.py --help or documented Python module",
       "input": "Explicit documented project/config/evidence contract",
       "output": "Declared-scope JSON/Markdown; no implicit production approval",
@@ -112,13 +300,13 @@
         "1": "FAIL where supported",
         "2": "BLOCKED"
       },
-      "validation_scope": "Software contract tests only; newer KiCad CLI-only/IPC native integration remains unverified",
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
       "sha256": "aa8395fbf9373f3e2080754af8f9b7cfea318a4efd6d45a3658c57d6725a9004"
     },
     {
       "file": "scripts/netlist_guard.py",
-      "sha256": "dad197366b9b2ae49fd05dc02a9a8088fad60c6928d74cd94d3319a569035a16",
-      "version": "2026.10-R2",
+      "sha256": "2584302c58ea56bcdf4597ce31bbfe27384df67689a255d7b8961005e96f2998",
+      "version": "R10.0-alpha.3",
       "command": "python3 scripts/netlist_guard.py --help",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
       "output": "JSON/Markdown declared-scope results; unavailable evidence must block",
@@ -127,12 +315,12 @@
         "1": "comparison/path FAIL where supported",
         "2": "BLOCKED/input/tool failure"
       },
-      "validation_scope": "Local counterexamples and syntax only; native KiCad10.0.7 not run"
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
     },
     {
       "file": "scripts/npi_common.py",
-      "sha256": "f096d7782c5ae89d4a8a36f0ce17c779dcd2a197486d8c867412fbf6dea3f7bd",
-      "version": "2026.10-R9.3",
+      "sha256": "fd05b21114393bca76831cd6bcff67e338472ab5a04de157bd03e53769a8926b",
+      "version": "R10.0-alpha.3",
       "command": "Python module imported by mass_production_review.py",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
       "output": "JSON/Markdown declared-scope results; unavailable evidence must block",
@@ -141,12 +329,12 @@
         "1": "comparison/path FAIL where supported",
         "2": "BLOCKED/input/tool failure"
       },
-      "validation_scope": "Software contract tests only; newer KiCad CLI-only/IPC native integration remains unverified"
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
     },
     {
       "file": "scripts/npi_geometry.py",
       "sha256": "5cece4d4ffbd86497495810c9a0ba74521c57fcd7b4390a1c74288cef7cce181",
-      "version": "2026.10-R2",
+      "version": "R10.0-alpha.3",
       "command": "Python module imported by mass_production_review.py",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
       "output": "JSON/Markdown declared-scope results; unavailable evidence must block",
@@ -155,12 +343,12 @@
         "1": "comparison/path FAIL where supported",
         "2": "BLOCKED/input/tool failure"
       },
-      "validation_scope": "Local counterexamples and syntax only; native KiCad10.0.7 not run"
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
     },
     {
       "file": "scripts/npi_release.py",
-      "sha256": "3d3e63a92a304841445195cc87b4f8be8463c2a5e66505188cdb101d99662caa",
-      "version": "2026.10-R2",
+      "sha256": "accc98d7826346f4ed64507077fb6d2a47c32f35a33212578cb15f27c71ce6ee",
+      "version": "R10.0-alpha.3",
       "command": "python3 scripts/npi_release.py --help",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
       "output": "JSON/Markdown declared-scope results; unavailable evidence must block",
@@ -169,12 +357,12 @@
         "1": "comparison/path FAIL where supported",
         "2": "BLOCKED/input/tool failure"
       },
-      "validation_scope": "Local counterexamples and syntax only; native KiCad10.0.7 not run"
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
     },
     {
       "file": "scripts/pad_audit.py",
       "sha256": "2dc777df4a8c3166555efa95050997ba756df4e04a790e2fe9046c9bbcd9e1da",
-      "version": "2026.10-R2",
+      "version": "R10.0-alpha.3",
       "command": "Python module imported by mass_production_review.py",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
       "output": "JSON/Markdown declared-scope results; unavailable evidence must block",
@@ -183,11 +371,24 @@
         "1": "comparison/path FAIL where supported",
         "2": "BLOCKED/input/tool failure"
       },
-      "validation_scope": "Local counterexamples and syntax only; native KiCad10.0.7 not run"
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
+    },
+    {
+      "file": "scripts/placement_review.py",
+      "version": "R10.0-alpha.3",
+      "command": "python3 scripts/placement_review.py --help",
+      "input": "Complete module/role inventory, exact named pad nets, source-backed limits and current pre-route/final review records; see references/placement-quality.md",
+      "output": "Read-only layout risks, geometry diagrams and evidence snapshots; never production approval",
+      "exit_codes": {
+        "0": "Declared supported static scope checked only",
+        "2": "BLOCKED/input/evidence failure"
+      },
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
+      "sha256": "f5c92e60963f9e97b42157d4051485ab548f70e2e784de43ef09b213e10dd0e3"
     },
     {
       "file": "scripts/production_contract.py",
-      "version": "2026.10-R2",
+      "version": "R10.0-alpha.3",
       "command": "python3 scripts/production_contract.py --help or documented Python module",
       "input": "Explicit documented project/config/evidence contract",
       "output": "Declared-scope JSON/Markdown; no implicit production approval",
@@ -196,118 +397,25 @@
         "1": "FAIL where supported",
         "2": "BLOCKED"
       },
-      "validation_scope": "Python regression coverage; KiCad 10.0.x native smoke and KiCad 9 native compatibility are NOT yet verified",
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
       "sha256": "c9679931bbba370da2612d98a2b428aa74a6eaad302fee65de0a2c4883b84445"
     },
     {
-      "file": "scripts/spice_precheck.py",
-      "sha256": "dcd30815edcdfda608091e01f095f369b870cc41cd45b3be5d91578a32ed3b3d",
-      "version": "2026.10-R2",
-      "command": "python3 scripts/spice_precheck.py --help",
-      "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
-      "output": "JSON/Markdown declared-scope results; unavailable evidence must block",
+      "file": "scripts/project_flow.py",
+      "version": "R10.0-alpha.3",
+      "command": "python3 scripts/project_flow.py --help",
+      "input": "Explicit project contracts; no inferred circuit/process values",
+      "output": "Declared-scope reports or independent candidate; never implicit engineering approval",
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
+      "sha256": "f21b9db686a0bfee7c09f0a988750084b47b3d3a018ab75b04628c0fb244b7e0",
       "exit_codes": {
-        "0": "declared scope passed or explicit preview only; not manufacturing authorization by itself",
-        "1": "comparison/path FAIL where supported",
-        "2": "BLOCKED/input/tool failure"
-      },
-      "validation_scope": "Software contract tests only; newer KiCad CLI-only/IPC native integration remains unverified"
-    },
-    {
-      "file": "scripts/validate_frozen_candidate.py",
-      "sha256": "8ef7d6b78acef40307b9fb7426bba63dce189f407b0151cf617e61f235413925",
-      "version": "2026.10-R2",
-      "command": "python3 scripts/validate_frozen_candidate.py --help",
-      "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
-      "output": "JSON/Markdown declared-scope results; unavailable evidence must block",
-      "exit_codes": {
-        "0": "declared scope passed or explicit preview only; not manufacturing authorization by itself",
-        "1": "comparison/path FAIL where supported",
-        "2": "BLOCKED/input/tool failure"
-      },
-      "validation_scope": "Local counterexamples and syntax only; native KiCad10.0.7 not run"
-    },
-    {
-      "file": "scripts/design_intent.py",
-      "version": "2026.10-R3",
-      "command": "python3 scripts/design_intent.py --help",
-      "input": "Explicit intent schema, approved sources and real project; see references/design-intent.md",
-      "output": "JSON plan/audit; no implicit production approval",
-      "exit_codes": {
-        "0": "Declared scope passed or preview only",
-        "2": "BLOCKED"
-      },
-      "validation_scope": "Local fixtures only; native10.0.7 integration pending",
-      "sha256": "9190092b3c07f019e6031b6e3f7401a95e00ef3dd2211d35d515521c3f06b9a7"
-    },
-    {
-      "file": "scripts/design_intent_audit.py",
-      "version": "2026.10-R3",
-      "command": "python3 scripts/design_intent_audit.py --help",
-      "input": "Explicit intent schema, approved sources and real project; see references/design-intent.md",
-      "output": "JSON plan/audit; no implicit production approval",
-      "exit_codes": {
-        "0": "Declared scope passed or preview only",
-        "2": "BLOCKED"
-      },
-      "validation_scope": "Python regression coverage; KiCad 10.0.x native smoke and KiCad 9 native compatibility are NOT yet verified",
-      "sha256": "a7ce7b0f0920939392ddfbc16844479ec3ee24f26793409af369a5a98e4000ff"
-    },
-    {
-      "file": "scripts/static_review.py",
-      "version": "2026.10-R4",
-      "command": "python3 scripts/static_review.py --help",
-      "input": "Explicit project, approved source documents and static-review contract; see references/static-ai-review.md",
-      "output": "Static evidence packet or review gate; never independent production authorization",
-      "exit_codes": {
-        "0": "Packet prepared or static review approved only",
-        "2": "BLOCKED or pending"
-      },
-      "validation_scope": "Python regression coverage; KiCad 10.0.x native smoke and KiCad 9 native compatibility are NOT yet verified",
-      "sha256": "2e8be9e3050661c27b629bc5939383445d1172e90e9fb7d4526106c2ea6745ed"
-    },
-    {
-      "file": "scripts/static_review_gate.py",
-      "version": "2026.10-R4",
-      "command": "python3 scripts/static_review_gate.py --help",
-      "input": "Explicit project, approved source documents and static-review contract; see references/static-ai-review.md",
-      "output": "Static evidence packet or review gate; never independent production authorization",
-      "exit_codes": {
-        "0": "Packet prepared or static review approved only",
-        "2": "BLOCKED or pending"
-      },
-      "validation_scope": "Software contract tests only; newer KiCad CLI-only/IPC native integration remains unverified",
-      "sha256": "f4d18b46d1441495a3331f24b3310f7f2a4bb889e526d31c517eafbb412f4cf0"
-    },
-    {
-      "file": "scripts/device_knowledge.py",
-      "version": "2026.10-R5",
-      "command": "python3 scripts/device_knowledge.py --help",
-      "input": "Exact device inventory, explicit official hosts, source metadata and grounded verification records; see references/device-knowledge.md",
-      "output": "Immutable source cache, draft cards, readiness audit or separate project bundle; no production approval",
-      "exit_codes": {
-        "0": "Preview/source prepared or declared scope ready only",
-        "2": "BLOCKED/input or network failure"
-      },
-      "validation_scope": "Local source/cache/card/bundle/integration tests; live official PDF transfer blocked by environment DNS",
-      "sha256": "f0c8835a8085e76195f0e35c231f8fa004d615d26350ca2e5bcdd6c2178c066a"
-    },
-    {
-      "file": "scripts/environment_start.py",
-      "version": "2026.10-R9.3",
-      "command": "python3 scripts/environment_start.py --help",
-      "input": "Explicit matching KiCad/Python and existing nonempty project; new external report directory; see environment-onboarding.md",
-      "output": "Environment-only first-run evidence or read-only daily result; never production authorization",
-      "exit_codes": {
-        "0": "PREVIEW or ENVIRONMENT_READY only",
-        "2": "BLOCKED or FULL_SETUP_REQUIRED"
-      },
-      "validation_scope": "Software contract tests only; newer KiCad CLI-only/IPC native integration remains unverified",
-      "sha256": "f8ce9157653318d235fbdaa6c85f205531e6fa6e8f93b14b339c8c2d4100357e"
+        "0": "Declared scope complete/preview; never automatic approval",
+        "2": "BLOCKED; do not advance or manufacture"
+      }
     },
     {
       "file": "scripts/reserve_review.py",
-      "version": "2026.10-R7",
+      "version": "R10.0-alpha.3",
       "command": "python3 scripts/reserve_review.py --help",
       "input": "Explicit risk decisions, variants, actual XML/PCB and selected manufacturing BOM/CPL; see references/reserve-options.md",
       "output": "Read-only declared-scope reserve/assembly risks, never production permission",
@@ -315,29 +423,57 @@
         "0": "Declared static scope complete only",
         "2": "BLOCKED or invalid input/evidence"
       },
-      "validation_scope": "Local matrix/evidence/BOM/CPL/static-packet tests and TEST Agent trial; real KiCad10.0.7 product pending",
-      "sha256": "23f40b6d0e09e846606fcae2a15c8d941aa0ac6ad1745040132fd5421aa66514"
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
+      "sha256": "102897728b586d98d1ae0cf72374f4005d5fb9449774b5a9ffd76fe76efcaed6"
     },
     {
-      "file": "scripts/placement_review.py",
-      "version": "2026.10-R8",
-      "command": "python3 scripts/placement_review.py --help",
-      "input": "Complete module/role inventory, exact named pad nets, source-backed limits and current pre-route/final review records; see references/placement-quality.md",
-      "output": "Read-only layout risks, geometry diagrams and evidence snapshots; never production approval",
+      "file": "scripts/resource_guard.py",
+      "command": "python scripts/resource_guard.py --help",
+      "input": "Explicit project-bound versioned request; declared scope only",
+      "output": "Structured preview, observation or unexecuted plan; no manufacturing authorization",
       "exit_codes": {
-        "0": "Declared supported static scope checked only",
-        "2": "BLOCKED/input/evidence failure"
+        "0": "Declared scope only; not engineering or manufacturing approval",
+        "1": "Search/comparison incomplete where documented",
+        "2": "BLOCKED or invalid input"
       },
-      "validation_scope": "Python regression coverage; KiCad 10.0.x native smoke and KiCad 9 native compatibility are NOT yet verified",
-      "sha256": "f8fd1927e3d9f78fe21e1446902510ac7d1f502d6e318bd9746343a8f00674e0"
+      "sha256": "6523cb33bb472e0fe9355e529a1f6ae4bd62c88bdde9cd31929ba5764e9a881c",
+      "version": "R10.0-alpha.3",
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
+    },
+    {
+      "file": "scripts/routing_policy.py",
+      "command": "python scripts/routing_policy.py --help",
+      "input": "Explicit project-bound versioned request; declared scope only",
+      "output": "Structured preview, observation or unexecuted plan; no manufacturing authorization",
+      "exit_codes": {
+        "0": "Declared scope only; not engineering or manufacturing approval",
+        "1": "Search/comparison incomplete where documented",
+        "2": "BLOCKED or invalid input"
+      },
+      "sha256": "761afeab46c13777b6056efa87496778075da828bf1cb315f9e49d5106445a14",
+      "version": "R10.0-alpha.3",
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
+    },
+    {
+      "file": "scripts/schematic_candidate.py",
+      "version": "R10.0-alpha.3",
+      "command": "python3 scripts/schematic_candidate.py --help",
+      "input": "Explicit project contracts; no inferred circuit/process values",
+      "output": "Declared-scope reports or independent candidate; never implicit engineering approval",
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
+      "sha256": "b61f79a29c239db65f584446e44e64600d6c1960d17dea59986775c9352ceb28",
+      "exit_codes": {
+        "0": "Declared scope complete/preview; never automatic approval",
+        "2": "BLOCKED; do not advance or manufacture"
+      }
     },
     {
       "file": "scripts/schematic_io.py",
-      "version": "2026.10-R9",
+      "version": "R10.0-alpha.3",
       "command": "Imported by schematic candidate/style tools",
       "input": "Explicit project contracts; no inferred circuit/process values",
       "output": "Declared-scope reports or independent candidate; never implicit engineering approval",
-      "validation_scope": "Local counterexamples and TEST native doubles; real native end-to-end pending",
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
       "sha256": "1b69a1d00497e1eae47a93121e7932b28a7abb128e0a878581ea43a6fb37d6a4",
       "exit_codes": {
         "0": "Declared scope complete/preview; never automatic approval",
@@ -346,60 +482,89 @@
     },
     {
       "file": "scripts/schematic_style.py",
-      "version": "2026.10-R9",
+      "version": "R10.0-alpha.3",
       "command": "python3 scripts/schematic_style.py --help",
       "input": "Explicit project contracts; no inferred circuit/process values",
       "output": "Declared-scope reports or independent candidate; never implicit engineering approval",
-      "validation_scope": "Local counterexamples and TEST native doubles; real native end-to-end pending",
-      "sha256": "8fb35799e121d2e35d41a07de82c5cca9accb301a9c9367b85097c6e81895f12",
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.",
+      "sha256": "272e85b728f043b4e39d01c725d8cb13e70565a1884c384e3e4c6aa0e42a21d4",
       "exit_codes": {
         "0": "Declared scope complete/preview; never automatic approval",
         "2": "BLOCKED; do not advance or manufacture"
       }
     },
     {
-      "file": "scripts/schematic_candidate.py",
-      "version": "2026.10-R9",
-      "command": "python3 scripts/schematic_candidate.py --help",
-      "input": "Explicit project contracts; no inferred circuit/process values",
-      "output": "Declared-scope reports or independent candidate; never implicit engineering approval",
-      "validation_scope": "Software contract tests only; newer KiCad CLI-only/IPC native integration remains unverified",
-      "sha256": "a880b25eb9ea394e284d4c75cac6171801a990c05f4da2c1fe3d04014ed0d5d6",
+      "file": "scripts/script_route_search.py",
+      "command": "python scripts/script_route_search.py --help",
+      "input": "Explicit project-bound versioned request; declared scope only",
+      "output": "Structured preview, observation or unexecuted plan; no manufacturing authorization",
       "exit_codes": {
-        "0": "Declared scope complete/preview; never automatic approval",
-        "2": "BLOCKED; do not advance or manufacture"
-      }
+        "0": "Declared scope only; not engineering or manufacturing approval",
+        "1": "Search/comparison incomplete where documented",
+        "2": "BLOCKED or invalid input"
+      },
+      "sha256": "4828307441521448fab20d3f4b8df14781cddc30a1b49325fae786b7793cb271",
+      "version": "R10.0-alpha.3",
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
     },
     {
-      "file": "scripts/project_flow.py",
-      "version": "2026.10-R9.3",
-      "command": "python3 scripts/project_flow.py --help",
-      "input": "Explicit project contracts; no inferred circuit/process values",
-      "output": "Declared-scope reports or independent candidate; never implicit engineering approval",
-      "validation_scope": "Standalone runtime inventory and fail-closed software contracts; native full-product acceptance remains project-specific.",
-      "sha256": "33ec94dfca83c26d848b71ab2bce542944280414fc07106ef768bb8d1dddf3a9",
+      "file": "scripts/skill_modules.py",
+      "command": "python scripts/skill_modules.py list",
+      "input": "Explicit project-bound versioned request; declared scope only",
+      "output": "Structured preview, observation or unexecuted plan; no manufacturing authorization",
       "exit_codes": {
-        "0": "Declared scope complete/preview; never automatic approval",
-        "2": "BLOCKED; do not advance or manufacture"
-      }
+        "0": "Declared scope only; not engineering or manufacturing approval",
+        "1": "Search/comparison incomplete where documented",
+        "2": "BLOCKED or invalid input"
+      },
+      "sha256": "fa9fea859eec45de731d5de4efd7519f95b7ff046bfb23792b2f35ccc77bd4a6",
+      "version": "R10.0-alpha.3",
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
     },
     {
-      "file": "scripts/manufacturing_export.py",
-      "version": "2026.10-R9",
-      "command": "python3 scripts/manufacturing_export.py --help",
-      "input": "Explicit project contracts; no inferred circuit/process values",
-      "output": "Declared-scope reports or independent candidate; never implicit engineering approval",
-      "validation_scope": "Python regression coverage; KiCad 10.0.x native smoke and KiCad 9 native compatibility are NOT yet verified",
-      "sha256": "743cc3d18c306b7e1c894a02646e0aefe8c1170349d12a5cab44a73c4acfd5c9",
+      "file": "scripts/spice_precheck.py",
+      "sha256": "80eee00d50aaced92875eb8867c24ec97d275ffc76be982d58b1fb1051cebf28",
+      "version": "R10.0-alpha.3",
+      "command": "python3 scripts/spice_precheck.py --help",
+      "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
+      "output": "JSON/Markdown declared-scope results; unavailable evidence must block",
       "exit_codes": {
-        "0": "Declared scope complete/preview; never automatic approval",
-        "2": "BLOCKED; do not advance or manufacture"
-      }
+        "0": "declared scope passed or explicit preview only; not manufacturing authorization by itself",
+        "1": "comparison/path FAIL where supported",
+        "2": "BLOCKED/input/tool failure"
+      },
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
+    },
+    {
+      "file": "scripts/static_review.py",
+      "version": "R10.0-alpha.3-local.5+g1-cache-reuse-1",
+      "command": "python3 scripts/static_review.py --help",
+      "input": "Explicit project, approved source documents and static-review contract; see references/static-ai-review.md",
+      "output": "Static evidence packet or review gate; never independent production authorization",
+      "exit_codes": {
+        "0": "Packet prepared or static review approved only",
+        "2": "BLOCKED or pending"
+      },
+      "validation_scope": "Offline G1 cache-bound review packet checks; existing KiCad integration must be validated on target setup.",
+      "sha256": "ba1e86fcad36ee8d84d9cfb75950e40a44ac15e2a382ec524059e5195d8791b1"
+    },
+    {
+      "file": "scripts/static_review_gate.py",
+      "version": "R10.0-alpha.3-local.5+g1-cache-reuse-1",
+      "command": "python3 scripts/static_review_gate.py --help",
+      "input": "Explicit project, approved source documents and static-review contract; see references/static-ai-review.md",
+      "output": "Static evidence packet or review gate; never independent production authorization",
+      "exit_codes": {
+        "0": "Packet prepared or static review approved only",
+        "2": "BLOCKED or pending"
+      },
+      "validation_scope": "Offline G1 cache-bound review packet checks; existing KiCad integration must be validated on target setup.",
+      "sha256": "c8cfff6050c05127bcef03ef70a8a5c70daf50363e9fd7efeb18dd7b68a3fd4b"
     },
     {
       "file": "scripts/system_integration.py",
-      "sha256": "ebed57b8d444890121387be472dcf6e26f3fdb2bb700dcfeedb1baab5abbb028",
-      "version": "2026.10-R9.1",
+      "sha256": "eb0e15f32f7560a51127881c0d2a40fb787db54409611eb0bf48d846e412c581",
+      "version": "R10.0-alpha.3",
       "command": "python3 scripts/system_integration.py --help",
       "input": "Project system-integration contract, current KiCad XML netlist, top-level schematic and source document records",
       "output": "Bound module/interface topology audit; never system design approval",
@@ -408,13 +573,27 @@
         "1": "Interface endpoint mismatch",
         "2": "Missing/invalid input or tool failure"
       },
-      "validation_scope": "Local regression tests; target KiCad10.0.7 full project not run"
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
+    },
+    {
+      "file": "scripts/validate_frozen_candidate.py",
+      "sha256": "6df022166e798b4bf6aaca7928c41f5c1d0c946903890a967830eec3dab16a08",
+      "version": "R10.0-alpha.3",
+      "command": "python3 scripts/validate_frozen_candidate.py --help",
+      "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
+      "output": "JSON/Markdown declared-scope results; unavailable evidence must block",
+      "exit_codes": {
+        "0": "declared scope passed or explicit preview only; not manufacturing authorization by itself",
+        "1": "comparison/path FAIL where supported",
+        "2": "BLOCKED/input/tool failure"
+      },
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
     },
     {
       "file": "scripts/workflow.py",
-      "sha256": "3410090fc8e76f40f09db68d922e67c5ebc8ce590b5a338854cbcd3faffb515e",
-      "version": "2026.10-R9.2",
-      "command": "python3 scripts/workflow.py --help",
+      "sha256": "75b3332e941946d124e035e6a4aee924b6371961a9f2297935f9f10aeb0dec1b",
+      "version": "R10.0-alpha.3-local.5+cache-first-1",
+      "command": "python3 scripts/workflow.py --help (includes architecture.sources_resolve and architecture.sources_register tasks)",
       "input": "One shared master; immutable flow/static/npi bundles; explicit fixed task and typed arguments",
       "output": "Six-group navigation/config snapshot or unchanged child checker result; no implicit approval",
       "exit_codes": {
@@ -422,20 +601,7 @@
         "1": "Child comparison FAIL",
         "2": "BLOCKED/pending required inputs"
       },
-      "validation_scope": "Software contract tests only; newer KiCad CLI-only/IPC native integration remains unverified"
-    },
-    {
-      "file": "scripts/freerouting_adapter.py",
-      "sha256": "dc8a9ba1ec2a4c3cf8f4c6b468bd5339a5e5b30c7940bb0fa2be5d58213d6d76",
-      "version": "2026.10-experimental-v2.5.0",
-      "command": "python3 scripts/freerouting_adapter.py --help",
-      "input": "User-approved v2.5.0 JAR, KiCad-exported DSN, new result directory",
-      "output": "SES and JSON; KiCad import and engineering approval required",
-      "exit_codes": {
-        "0": "preview/manual fallback/SES candidate only",
-        "2": "blocked or failure"
-      },
-      "validation_scope": "Software tests only; actual KiCad10/Freerouting integration pending"
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
     }
   ]
 }

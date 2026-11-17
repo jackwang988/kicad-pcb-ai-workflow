@@ -361,8 +361,8 @@ def evaluate(project, config_path, mode='mass_production', phase='pre_export', c
         if paths['schematic']: schematic_structure(r,paths['schematic'],project)
         native_checks(r,env,project,paths['schematic'],paths['board'])
         if not pair_compatible(env):
-            r.risk('ENV.PCBNEW','layout','阻断级','未验证匹配的KiCad 10.0.x CLI/pcbnew；静态预览不能用于生产放行',
-                   fix='使用与CLI同一KiCad 10.0.x构建的pcbnew Python；不要pip安装同名第三方包。',method='环境自检')
+            r.risk('ENV.PCBNEW','layout','阻断级','Konnect迁移尚无已核实的完整原生几何/规则数据等价接口；不能仅凭静态解析进入量产预审',
+                   fix='迁移期可使用匹配的pcbnew只读检查（不写入）；待Konnect原生几何、NetClass及适配器完成真实等价验收后取消此阻断。',method='当前能力门禁')
         board=None
         if paths['board'] and paths['board'].is_file():
             try:
@@ -446,5 +446,13 @@ def main():
         p.exit(2,'评审失败（禁止放行）：'+str(e)+'\n')
     print(json.dumps({'blocked':report['blocked'],'release_allowed':report['release_allowed'],'counts':report['counts']},ensure_ascii=False))
     return 2 if report['blocked'] else 0
+
+if __name__ == '__main__':
+    # JSON/text CLI protocol is UTF-8 on every platform, including Windows.
+    import sys as _stdio_sys
+    for _stdio_stream in (_stdio_sys.stdout, _stdio_sys.stderr):
+        if hasattr(_stdio_stream, 'reconfigure'):
+            _stdio_stream.reconfigure(encoding='utf-8')
+
 
 if __name__=='__main__': raise SystemExit(main())

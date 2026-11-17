@@ -1,4 +1,30 @@
-# KiCad PCB AI 工作流 · R9.4
+# KiCad PCB AI 工作流 · R9.4稳定版 / R10.0.0-rc.1预发布版
+
+> **🧪 R10.0.0-rc.1 预发布（保持R9.4为已验证稳定版）**
+>
+> R10候选重点是 **器件知识卡跨G1–G4复用、Konnect MCP统一EDA写入、动态工具发现/风险分级/按需验收、KiCad原生独立复验**。已通过319项原有回归、33项R10新增测试和KiCad 10.0.8原生工具链验收；**Konnect商业MCP在用户Windows主机上的实际编辑/覆铜尚未通过本轮端到端测试**，因此发布为RC预发布，不宣称全自动PCB或生产授权；**R9.4仍为稳定版**。
+>
+> 📦 **[下载R10.0.0-rc.1完整Skill预发布安装包](dist/kicad-pcb-ai-workflow-R10.0.0-rc.1.zip)** · [SHA-256校验](dist/SHA256SUMS-R10.0.0-rc.1) · [R10预发布说明](R10_RELEASE_NOTES.md)\n>\n> 📘 **[R10详细架构与5份图文导航](docs/r10/README.md)** · [系统总架构图](docs/r10/01-system-architecture.md) · [16节点主流程图与每节点规则](docs/r10/02-16-node-workflow.md) · [器件知识库复用图](docs/r10/03-device-knowledge-reuse.md) · [Konnect动态能力与单写入图](docs/r10/04-konnect-capability-and-single-writer.md) · [验收边界](docs/r10/05-release-readiness.md)
+
+```mermaid
+flowchart LR
+ A["需求/器件资料"] --> B["AI决策+项目规则"] --> C["Python规划与审计"] --> D["Konnect MCP单写入"] --> E["KiCad原生ERC/DRC"] --> F["G1–G4/工程师审核"]
+ K[("原厂知识卡共享库")] --> B
+ T[("MCP工具能力库")] --> D
+ F -->|"风险未关闭"| B
+```
+
+**R10可视化架构图（候选版）**
+
+![R10系统总体架构](docs/r10/figures/01-system-architecture.svg)
+
+<details><summary>展开16节点运行主线</summary>
+
+![R10 16节点运行流程](docs/r10/figures/02-16-node-mainline.svg)
+
+</details>
+
+---
 
 **从器件原厂手册的推荐电路出发，让 AI 按工程流程设计与评审，用 KiCad 检查、版本证据和工程师确认推进每一步。**
 

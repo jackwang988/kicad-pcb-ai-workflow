@@ -76,7 +76,7 @@ def setup(project,schematic,board,project_file,output,cli=None,apply=False,cli_o
             target=out/(kind+'.json');args=[exe,sub,kind,'--format','json','--severity-all','--exit-code-violations','--output',str(target)]
             if kind=='drc':args+=['--schematic-parity']
             invoke(args+[str(src)],target,True)
-            report=json.loads(target.read_text())
+            report=json.loads(target.read_text(encoding='utf-8-sig'))
             # Startup validates tool/report compatibility, not project acceptance.
             # Production calls keep extract's default fail-closed ignored policy.
             design_issues[kind]=len(extract(kind,report,str(src),allow_ignored=True,expected_version=env['cli_version']))
@@ -94,11 +94,11 @@ def setup(project,schematic,board,project_file,output,cli=None,apply=False,cli_o
                'design_checks_complete':False,'commands':commands,'production_authorized':False,
                 'compatibility_tier':env.get('compatibility_tier'),'verified_native_patch':env.get('cli_version'),
                'manual_checks_remaining':['Agent can actually read PDF/figures','GUI symbol/footprint libraries and external dependencies','Project-specific rules and production checks']}
-        (out/'startup-state.json').write_text(json.dumps(state,ensure_ascii=False,indent=2)+'\n')
+        (out/'startup-state.json').write_text(json.dumps(state,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
         return state
     except Exception as e:
         r={'status':'BLOCKED','scope':'environment_only','reason':str(e),'commands':commands,'production_authorized':False}
-        (out/'failed-setup.json').write_text(json.dumps(r,ensure_ascii=False,indent=2)+'\n');return r
+        (out/'failed-setup.json').write_text(json.dumps(r,ensure_ascii=False,indent=2)+'\n', encoding='utf-8');return r
 
 def check(state_file,cli=None,max_age_days=7):
     if not isinstance(max_age_days,int) or not 0<=max_age_days<=365:raise ValueError('max-age-days must be 0..365')
@@ -107,7 +107,7 @@ def check(state_file,cli=None,max_age_days=7):
     if not cli_compatible(env):return {**result,'status':'BLOCKED','reason':'Current CLI unavailable or unstable'}
     p=Path(state_file).resolve()
     if not p.is_file():return {**result,'reason':'No successful first-run record'}
-    s=json.loads(p.read_text())
+    s=json.loads(p.read_text(encoding='utf-8-sig'))
     cli_only=s.get('scope')=='environment_cli_only'
     expected_status='ENVIRONMENT_CLI_READY' if cli_only else 'ENVIRONMENT_READY'
     if not cli_only and not pair_compatible(env):return {**result,'status':'BLOCKED','reason':'Full native setup requires matching KiCad 10.x CLI/pcbnew'}
@@ -126,12 +126,20 @@ def check(state_file,cli=None,max_age_days=7):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);sub=p.add_subparsers(dest='cmd',required=True)
-    a=sub.add_parser('setup');a.add_argument('--project',required=True);a.add_argument('--schematic',required=True);a.add_argument('--board',required=True);a.add_argument('--project-file',required=True);a.add_argument('--report-dir',required=True);a.add_argument('--apply',action='store_true');a.add_argument('--cli-only',action='store_true');a.add_argument('--kicad-cli')
+    a=sub.add_parser('setup');a.add_argument('--project',required=True);a.add_argument('--schematic',required=True);a.add_argument('--board',required=True);a.add_argument('--project-file',required=True);a.add_argument('--report-dir',required=True);a.add_argument('--apply',action='store_true');a.add_argument('--cli-only',action='store_true',help='Default: native CLI checks without requiring pcbnew');a.add_argument('--legacy-pcbnew-smoke',action='store_true',help='Optional old-version compatibility test; not a default writer');a.add_argument('--kicad-cli')
     a=sub.add_parser('check');a.add_argument('--state',required=True);a.add_argument('--kicad-cli');a.add_argument('--max-age-days',type=int,default=7)
     a=p.parse_args()
     try:
-        if a.cmd=='setup':r=setup(a.project,a.schematic,a.board,a.project_file,a.report_dir,a.kicad_cli,a.apply,a.cli_only)
+        if a.cmd=='setup':r=setup(a.project,a.schematic,a.board,a.project_file,a.report_dir,a.kicad_cli,a.apply,not a.legacy_pcbnew_smoke)
         else:r=check(a.state,a.kicad_cli,a.max_age_days)
         print(json.dumps(r,ensure_ascii=False,indent=2));return 0 if r['status'] in ('PREVIEW','ENVIRONMENT_READY','ENVIRONMENT_CLI_READY') else 2
     except Exception as e:print(json.dumps({'status':'BLOCKED','scope':'environment_only','reason':str(e),'production_authorized':False},ensure_ascii=False));return 2
+if __name__ == '__main__':
+    # JSON/text CLI protocol is UTF-8 on every platform, including Windows.
+    import sys as _stdio_sys
+    for _stdio_stream in (_stdio_sys.stdout, _stdio_sys.stderr):
+        if hasattr(_stdio_stream, 'reconfigure'):
+            _stdio_stream.reconfigure(encoding='utf-8')
+
+
 if __name__=='__main__':raise SystemExit(main())

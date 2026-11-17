@@ -289,7 +289,7 @@ def compile_intent(root, intent, verify=False):
             for g in c['geometry']:
                 rules.append(f'(rule {q("DI_PAIR_CLEARANCE_"+name+"_"+g["layer"])} (severity error) (condition {q(cond+" && AB.isCoupledDiffPair()")}) (layer {g["layer"]}) (constraint clearance (min {g["min_gap_mm"]}mm)))')
     rules.append('# END DESIGN INTENT R3')
-    dru=pro.with_suffix('.kicad_dru');key=str(dru.relative_to(root));original=dru.read_text() if dru.exists() else '(version 1)\n'
+    dru=pro.with_suffix('.kicad_dru');key=str(dru.relative_to(root));original=dru.read_text(encoding='utf-8-sig') if dru.exists() else '(version 1)\n'
     generated_rules='\n'.join(rules)+'\n'
     if '# BEGIN DESIGN INTENT' in original:
         if not verify or original.count('# BEGIN DESIGN INTENT R3')!=1 or not original.endswith(generated_rules):raise ValueError('Existing generated rules conflict or duplicate append')
@@ -330,7 +330,7 @@ def compile_intent(root, intent, verify=False):
 def prepare(root, intent_file, destination, apply=False):
     root=Path(root).resolve();intent_file=Path(intent_file).resolve();dest=Path(destination).resolve()
     if dest.exists() or dest.is_relative_to(root) or root.is_relative_to(dest):raise ValueError('New independent candidate directory required')
-    intent=json.loads(intent_file.read_text());plan=compile_intent(root,intent)
+    intent=json.loads(intent_file.read_text(encoding='utf-8-sig'));plan=compile_intent(root,intent)
     source_files=[p for p in root.rglob('*') if p.is_file()]
     if any(p.is_symlink() for p in root.rglob('*')):raise ValueError('Source tree contains symlinks')
     before={str(p.relative_to(root)):sha256(p) for p in source_files}
@@ -345,12 +345,12 @@ def prepare(root, intent_file, destination, apply=False):
         for name,content in plan['proposed'].items():local(dest,name).write_text(content,encoding='utf-8')
         evidence=dest/'design-intent-source.json'
         if evidence.exists():raise ValueError('Reserved candidate evidence already exists')
-        evidence.write_text(json.dumps(intent,ensure_ascii=False,indent=2)+'\n')
+        evidence.write_text(json.dumps(intent,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
         result['status']='CANDIDATE_UNVERIFIED';result['source_sha256']=before
         result['output_sha256']={name:sha256(local(dest,name)) for name in plan['proposed']}
         marker=dest/'design-intent-compile.json'
         if marker.exists():raise ValueError('Reserved compile record exists')
-        marker.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+        marker.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
         if any(not local(root,n).is_file() or sha256(local(root,n))!=h for n,h in before.items()):raise ValueError('Source changed during compile')
     except Exception:
         if owned:shutil.rmtree(dest)
@@ -362,5 +362,13 @@ def main():
     try:r=prepare(a.project,a.intent,a.destination,a.apply)
     except Exception as e:print(json.dumps({'status':'BLOCKED','reason':str(e)},ensure_ascii=False));return 2
     print(json.dumps(r,ensure_ascii=False,indent=2));return 0
+
+if __name__ == '__main__':
+    # JSON/text CLI protocol is UTF-8 on every platform, including Windows.
+    import sys as _stdio_sys
+    for _stdio_stream in (_stdio_sys.stdout, _stdio_sys.stderr):
+        if hasattr(_stdio_stream, 'reconfigure'):
+            _stdio_stream.reconfigure(encoding='utf-8')
+
 
 if __name__=='__main__':raise SystemExit(main())

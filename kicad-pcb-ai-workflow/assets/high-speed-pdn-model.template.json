@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "kind": "pdn_rlc_ac",
+  "board_sha256": null,
+  "rail": null,
+  "voltage_v": null,
+  "ripple_percent": null,
+  "transient_current_a": null,
+  "frequency_start_hz": null,
+  "frequency_stop_hz": null,
+  "points_per_decade": null,
+  "vrm": {"r_ohm": null, "l_h": null},
+  "capacitors": [{"ref": null, "c_f": null, "esr_ohm": null, "esl_h": null}],
+  "model_source": {"file": null, "sha256": null, "locator": null}
+}

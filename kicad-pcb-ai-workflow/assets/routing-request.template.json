@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "request_id": "route-r1",
+  "phase": "incremental",
+  "strategy": "script_planned",
+  "runtime": {
+    "platform": "windows",
+    "kicad_version": null,
+    "api_version": null
+  },
+  "inputs": {
+    "board": {"file": "board.kicad_pcb", "sha256": null},
+    "netlist": {"file": "current.xml", "sha256": null},
+    "stackup": {"file": "routing-stackup.json", "sha256": null},
+    "rules": {"file": "board.kicad_dru", "sha256": null},
+    "protected_objects": {"file": "routing-protection.json", "sha256": null}
+  },
+  "networks": [
+    {"name": "REPLACE_WITH_ACTUAL_NET", "categories": ["LOW_SPEED_DIGITAL"]}
+  ],
+  "pending_connections": [
+    {"id": "connection-1", "net": "REPLACE_WITH_ACTUAL_NET", "endpoints": [
+      {"ref": "U1", "pin": "1"}, {"ref": "R1", "pin": "1"}
+    ]}
+  ],
+  "target_connection_ids": ["connection-1"],
+  "constraints": [
+    {"id": "clearance", "kind": "copper_clearance", "nets": ["REPLACE_WITH_ACTUAL_NET"],
+     "parameters": {"min_mm": null},
+     "source": {"file": "design-intent.json", "sha256": null, "locator": null}},
+    {"id": "width", "kind": "track_width", "nets": ["REPLACE_WITH_ACTUAL_NET"],
+     "parameters": {"min_mm": null, "max_mm": null},
+     "source": {"file": "design-intent.json", "sha256": null, "locator": null}},
+    {"id": "edge", "kind": "board_edge_clearance", "nets": ["REPLACE_WITH_ACTUAL_NET"],
+     "parameters": {"min_mm": null},
+     "source": {"file": "fabrication.json", "sha256": null, "locator": null}},
+    {"id": "keepout", "kind": "keepout", "nets": ["REPLACE_WITH_ACTUAL_NET"],
+     "parameters": {"respect_all_board_keepouts": true},
+     "source": {"file": "fabrication.json", "sha256": null, "locator": null}}
+  ],
+  "allowed_signal_layers": ["F.Cu"],
+  "reroutable_uuids": [],
+  "required_capabilities": [],
+  "budgets": {"total_seconds": 300, "max_iterations": 5, "max_vias": 0, "seed": 42},
+  "acceptance_max_age_days": 90,
+  "backends": []
+}

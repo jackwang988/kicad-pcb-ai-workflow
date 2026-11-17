@@ -1,4 +1,24 @@
-# 通用运行接口 · R9.3
+> 本地修订：先读[主流程与执行修订](design-execution-local.md)。下文六组/16节点与G5/G6为历史兼容资料；当前AI设计主线删除第六阶段，截止DESIGN_PACKAGE_READY_FOR_REVIEW。外部制造/样机/ECO仅按另行任务调用；既有安全门禁保留。
+
+# 通用运行接口 · R10.0-alpha.1
+
+## R10按需模块与新增任务
+
+先用 `python scripts/workflow.py modules --intent routing` 查看所需模块/参考文档和真实工具；也可按 `--module resources` 选择。发现模块不创建项目、不执行工具、不安装外部候选。模块使用同一六组/16节点与G1–G6，状态仍由真实工程证据决定。
+
+| 新任务 | 参数 | 范围 |
+|---|---|---|
+| environment.ipc_probe | --board PROJECT_RELATIVE_PCB，可选--require-ipc | 无需bundle，只读匹配当前GUI实例；缺可选依赖不影响离线任务 |
+| environment.ipc_snapshot | --board、--output-dir NEW_EXTERNAL_DIR | 无需bundle，保存内存/磁盘状态，不编辑 |
+| schematic.resources_lock | --resource-manifest、--resource-lock NEW_FILE，显式--apply写锁 | 需要bundle；真实解析与一致性，非原厂/工程批准 |
+| schematic.resources_check | --resource-lock | 需要bundle；离线重新核对全部锁定输入 |
+| pcb.routing_preflight | --routing-request，可选--output-dir | 需要bundle；真实输入/网络/层/保护/规则前置核对 |
+| pcb.routing_plan | --routing-request，可选--after-attempt、--output-dir | 需要bundle；脚本优先且依后端验收选择，仅规划 |
+| pcb.route_search | --route-problem，可选--output-dir | 需要bundle；只搜索显式归一化普通单连接网格，不写PCB |
+
+资源锁定后可将项目相对路径填入shared.resource_lock并新建bundle。它会展开到static/npi，相关静态资料包绑定锁和资源源文件，gate/NPI重新检查；保持None的旧配置不虚构已执行资源锁定。
+
+新bundle同时绑定工具清单、组件清单、SKILL入口和安装包全部references；规则/模块更新后重建快照并按变更影响复验。实验路径搜索另见[路径搜索](script-route-search.md)，它不是已验证执行后端。其余历史专题入口继续兼容。
 
 ## 目录
 
@@ -53,7 +73,7 @@ python3 scripts/workflow.py status /path/project --bundle control-r1 --format js
 
 control-r1必须是项目内部、父目录已存在的新目录；写入flow.json、static.json、npi.json和绑定清单。编译只展开明确引用并检查一致性，不证明模板中未填写的工程值有效。status默认简短待办，JSON可看全部缺项。状态NEEDS_INPUT退出2表示仍有待办；可先处理环境/需求，不表示必须先造出未来PCB。已声明输入齐备同样不等于任何门禁通过。
 
-主配置、工具清单或生成文件变化后，旧快照拒绝运行。修改主配置后创建control-r2等新目录，并为变化影响的评审重新生成资料包、AI评审和本人确认。原签核不能复制到新快照充当通过。资料原文和工程改变也仍由原脚本的哈希/基线门禁检测。
+主配置、工具/组件/规则清单或生成文件变化后，旧快照拒绝运行。修改主配置后创建control-r2等新目录，并为变化影响的评审重新生成资料包、AI评审和本人确认。原签核不能复制到新快照充当通过。资料原文和工程改变也仍由原脚本的哈希/基线门禁检测。
 
 ### 3. 用固定任务执行，先plan可预览
 

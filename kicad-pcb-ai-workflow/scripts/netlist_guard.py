@@ -101,9 +101,17 @@ def main():
     p.add_argument('--mode',choices=['preserve','eco'],default='preserve');p.add_argument('--topology',action='store_true')
     p.add_argument('--allow-zero-nets',action='store_true');p.add_argument('--eco',type=Path)
     a=p.parse_args()
-    try: result=compare(a.before,a.after,a.mode,a.topology,json.loads(a.eco.read_text()) if a.eco else None,a.allow_zero_nets)
+    try: result=compare(a.before,a.after,a.mode,a.topology,json.loads(a.eco.read_text(encoding='utf-8-sig')) if a.eco else None,a.allow_zero_nets)
     except (OSError,ValueError,TypeError,KeyError) as e:
         print(json.dumps({'status':'BLOCKED','reason':str(e)},ensure_ascii=False));return 2
     print(json.dumps(result,ensure_ascii=False,indent=2));return 0 if result['status']=='PASS' else 1
+
+if __name__ == '__main__':
+    # JSON/text CLI protocol is UTF-8 on every platform, including Windows.
+    import sys as _stdio_sys
+    for _stdio_stream in (_stdio_sys.stdout, _stdio_sys.stderr):
+        if hasattr(_stdio_stream, 'reconfigure'):
+            _stdio_stream.reconfigure(encoding='utf-8')
+
 
 if __name__=='__main__':raise SystemExit(main())

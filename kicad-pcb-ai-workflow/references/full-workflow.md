@@ -1,3 +1,5 @@
+> 本地修订：先读[主流程与执行修订](design-execution-local.md)。下文六组/16节点与G5/G6为历史兼容资料；当前AI设计主线删除第六阶段，截止DESIGN_PACKAGE_READY_FOR_REVIEW。外部制造/样机/ECO仅按另行任务调用；既有安全门禁保留。
+
 # KiCad PCB AI Workflow：完整系统运行流程 · R9.3
 
 运行包提供通用入口、共享配置及独立核心库存，以下16节点及G1–G6全部保留。日常优先用`workflow.py`的六组待办和固定任务入口；公共字段写一次，编译为原脚本可读的新配置快照。原生、AI、工程师及生产放行门禁仍实时执行，不以缓存代替。操作方法见[统一入口](universal-workflow.md)。
@@ -70,6 +72,8 @@
 每项需求具备ID、来源、量化验收条件和方法。没有依据的参数保持未决；EOL/NRND与降额无外部数据库时输出人工查询清单，不声称自动查完。实际安全要求按产品和市场判断，不采用全行业统一距离或测试数值。
 
 ### 节点3：资料检查与复用
+
+**新增实际执行优先级**：新项目收集制造商/完整MPN/封装/应用后，调用 `device_knowledge.py resolve` 精确查询跨项目知识库；命中后`brief`按需读取知识条目，直接生成项目卡片绑定，不重新下载/全文解析。若`MISS`则只处理缺失kind，`STALE`时检查官方版本和勘误，`AMBIGUOUS/INVALID_CACHE_ENTRY`阻断。已审核的器件要求通过`register --apply`索引，可被下一项目复用。保留原有`audit`及`bundle`以及项目适用性G1/G2门禁。详见[器件资料缓存优先增强](device-knowledge.md)。
 
 根据完整MPN/制造商/封装查缓存，缺资料由Agent确认原厂URL并获取datasheet/errata/指南/应用笔记；失败阻断或导入真实离线原件。device_knowledge按原文SHA去重和版本留存，draft仅生成未核对卡。Agent实际读相关全文、表格、脚注和图，关键内容经核对后与证据绑定；latest_checks保存实际原厂当前版本查询。
 

@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "id": "local-verified-konnect-build",
+  "approved_for_local_use": false,
+  "executable_sha256": "REPLACE_WITH_REAL_LOCAL_SHA256_AFTER_INDEPENDENT_DOWNLOAD_AND_LICENSE_REVIEW",
+  "version": "REPLACE_WITH_ACTUAL_SERVER_VERSION",
+  "build_commit": "REPLACE_WITH_ACTUAL_BUILD_COMMIT",
+  "eligible_kicad_versions": ["REPLACE_WITH_ACTUALLY_VERIFIED_KICAD_VERSION"]
+}

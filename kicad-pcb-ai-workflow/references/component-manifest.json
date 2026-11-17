@@ -1,0 +1,316 @@
+{
+  "schema_version": 1,
+  "skill_name": "kicad-pcb-ai-workflow",
+  "version": "R10.0-alpha.3-local.5+G1-G4+konnect-single-writer-migration-1",
+  "release_channel": "alpha",
+  "engineering_gates": [
+    "G1",
+    "G2",
+    "G3",
+    "G4",
+    "G5",
+    "G6"
+  ],
+  "execution_policy": {
+    "single_project_writer": true,
+    "project_writes": "konnect_only_in_independent_candidate_after_acceptance",
+    "routing_strategy": "script_planned",
+    "preferred_router": "native_script_after_profile_acceptance",
+    "fallback_router": "freerouting_after_rule_fidelity_and_profile_acceptance",
+    "external_skills_auto_install": false,
+    "native_ipc_write_backend": "experimental_not_default_live_edit_acceptance_incomplete",
+    "schematic_incremental_editor": "not_integrated",
+    "schematic_to_pcb_sync": "native_or_independently_verified_adapter_required",
+    "single_project_writer_scope": "OS lease among bridges sharing sessions_root; GUI/third-party writers are not locked",
+    "preferred_execution_backend": "konnect_mcp_dynamic_discovery_scope_acceptance",
+    "missing_execution_backend": "block_live_mutations_no_automatic_backend_switch",
+    "integration_installer": "official_commercial_backend_separate_local_migration",
+    "legacy_kicad_bridge_write": "disabled",
+    "native_pcbnew_write": "disabled_in_default_freeze",
+    "pcbnew_read": "optional_migration_compatibility_only",
+    "capability_registry": "external_build_schema_kicad_scope_bound_fixture_receipts",
+    "native_export": "remains_blocked_until_independently_verified_geometry_and_freeze_equivalence"
+  },
+  "modules": [
+    {
+      "id": "environment",
+      "label": "环境与KiCad连接",
+      "state": "implemented",
+      "intents": [
+        "onboard",
+        "connect",
+        "diagnose"
+      ],
+      "groups": [
+        "environment"
+      ],
+      "references": [
+        "references/module-environment.md",
+        "references/environment-onboarding.md",
+        "references/ipc-backend.md",
+        "references/konnect-backend.md",
+        "references/konnect-capability-migration.md"
+      ],
+      "tools": [
+        "doctor",
+        "environment_start",
+        "kicad_ipc_probe",
+        "konnect_backend",
+        "konnect_capabilities"
+      ]
+    },
+    {
+      "id": "requirements",
+      "label": "需求、架构与器件依据",
+      "state": "implemented",
+      "intents": [
+        "requirements",
+        "architecture",
+        "datasheets"
+      ],
+      "groups": [
+        "architecture"
+      ],
+      "references": [
+        "references/module-requirements.md",
+        "references/device-knowledge.md",
+        "references/system-integration.md",
+        "references/reserve-options.md"
+      ],
+      "tools": [
+        "project_flow",
+        "device_knowledge",
+        "system_integration",
+        "reserve_review"
+      ]
+    },
+    {
+      "id": "resources",
+      "label": "符号、封装与项目资源",
+      "state": "implemented",
+      "intents": [
+        "parts",
+        "libraries",
+        "footprints"
+      ],
+      "groups": [
+        "schematic"
+      ],
+      "references": [
+        "references/module-resources.md",
+        "references/project-resources.md"
+      ],
+      "tools": [
+        "resource_guard",
+        "pad_audit"
+      ]
+    },
+    {
+      "id": "schematic",
+      "label": "原理图与PCB衔接",
+      "state": "implemented",
+      "intents": [
+        "schematic",
+        "sync"
+      ],
+      "groups": [
+        "schematic"
+      ],
+      "references": [
+        "references/module-schematic.md",
+        "references/schematic-style.md",
+        "references/schematic-ai-layout-rules.md",
+        "references/static-ai-review.md"
+      ],
+      "tools": [
+        "schematic_candidate",
+        "schematic_io",
+        "schematic_style",
+        "system_integration",
+        "static_review",
+        "static_review_gate"
+      ]
+    },
+    {
+      "id": "pcb",
+      "label": "规则、布局与脚本优先布线",
+      "state": "experimental",
+      "intents": [
+        "pcb",
+        "placement",
+        "routing"
+      ],
+      "groups": [
+        "pcb"
+      ],
+      "references": [
+        "references/module-pcb.md",
+        "references/design-intent.md",
+        "references/placement-quality.md",
+        "references/constraint-routing.md",
+        "references/script-route-search.md",
+        "references/freerouting-adapter.md",
+        "references/konnect-backend.md"
+      ],
+      "tools": [
+        "design_intent",
+        "design_intent_audit",
+        "placement_review",
+        "routing_policy",
+        "script_route_search",
+        "freerouting_adapter",
+        "freeze_candidate",
+        "link_audit"
+      ]
+    },
+    {
+      "id": "manufacturing",
+      "label": "工程评审与制造候选",
+      "state": "implemented",
+      "intents": [
+        "review",
+        "manufacturing",
+        "release"
+      ],
+      "groups": [
+        "manufacturing"
+      ],
+      "references": [
+        "references/module-manufacturing.md",
+        "references/static-ai-review.md",
+        "references/dfx-npi.md"
+      ],
+      "tools": [
+        "static_review",
+        "static_review_gate",
+        "mass_production_review",
+        "manufacturing_export",
+        "build_manifest",
+        "npi_release"
+      ]
+    },
+    {
+      "id": "lifecycle",
+      "label": "样机、ECO与归档",
+      "state": "implemented",
+      "intents": [
+        "prototype",
+        "eco"
+      ],
+      "groups": [
+        "lifecycle"
+      ],
+      "references": [
+        "references/module-lifecycle.md",
+        "references/full-workflow.md"
+      ],
+      "tools": [
+        "project_flow",
+        "netlist_guard"
+      ]
+    }
+  ],
+  "external_candidates": [
+    {
+      "name": "Konnect-EDA",
+      "repository": "https://github.com/Orchis-ai-LLC/Konnect-EDA",
+      "ref": "v0.14.1",
+      "license": "Commercial beta; no redistribution",
+      "role": "preferred_external_execution_backend_after_local_acceptance",
+      "state": "bounded_native_acceptance_passed_windows_kicad_10.0.8",
+      "profile": "konnect-eda-0.14.1-windows",
+      "validation_reference": "references/konnect-eda-validation.md"
+    },
+    {
+      "name": "Konnect",
+      "repository": "https://github.com/mixelpixx/Konnect",
+      "ref": "v0.13.0",
+      "license": "AGPL-3.0",
+      "role": "explicit_manual_rollback_only",
+      "state": "installer_and_mcp_probe_implemented",
+      "local_acceptance": "live_read_move_rotate_batch_restore_save_passed_10.0.8; remaining_tests_separate",
+      "archive_status": "archived_2026-11-02"
+    },
+    {
+      "name": "kicad-happy",
+      "repository": "https://github.com/aklofas/kicad-happy",
+      "license": "MIT",
+      "role": "optional_datasheet_and_independent_review",
+      "state": "not_integrated"
+    },
+    {
+      "name": "Potapovrg-kicad-skill",
+      "repository": "https://github.com/Potapovrg/kicad-skill",
+      "license": "MIT_wrapper_with_separate_converter_license",
+      "role": "library_checker_reference",
+      "state": "not_integrated"
+    },
+    {
+      "name": "kistack",
+      "repository": "https://github.com/BackplaneWorks/kistack",
+      "license": "custom_terms_review_required",
+      "role": "optional_symbol_and_footprint_workflow",
+      "state": "not_integrated"
+    },
+    {
+      "name": "J-Kreisel-kicad-autorouter",
+      "repository": "https://github.com/J-Kreisel/kicad-autorouter",
+      "license": "MIT",
+      "role": "experimental_script_router_candidate",
+      "state": "not_integrated"
+    },
+    {
+      "name": "rjwalters-kicad-tools",
+      "repository": "https://github.com/rjwalters/kicad-tools",
+      "license": "MIT",
+      "role": "experimental_constrained_offline_router_candidate",
+      "state": "not_integrated"
+    },
+    {
+      "name": "easyeda2kicad",
+      "repository": "https://github.com/uPesy/easyeda2kicad.py",
+      "license": "AGPL-3.0",
+      "role": "optional_external_converter",
+      "state": "not_integrated"
+    }
+  ],
+  "validation_scope": "Release software tests and separate live reports define scope. No hardware or manufacturing authorization.",
+  "specialist_routes": {
+    "high_speed": {
+      "module": "pcb",
+      "references": [
+        "references/module-high-speed.md"
+      ],
+      "tools": [
+        "high_speed",
+        "hs_board_snapshot",
+        "hs_rule_engine",
+        "hs_solver"
+      ]
+    },
+    "si": {
+      "module": "pcb",
+      "references": [
+        "references/module-high-speed.md"
+      ],
+      "tools": [
+        "high_speed",
+        "hs_board_snapshot",
+        "hs_rule_engine",
+        "hs_solver"
+      ]
+    },
+    "pi": {
+      "module": "pcb",
+      "references": [
+        "references/module-high-speed.md"
+      ],
+      "tools": [
+        "high_speed",
+        "hs_board_snapshot",
+        "hs_rule_engine",
+        "hs_solver"
+      ]
+    }
+  }
+}
