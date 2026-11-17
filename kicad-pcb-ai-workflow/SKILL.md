@@ -52,3 +52,5 @@ python scripts/workflow.py report-brief /project/03_REPORTS/G1/checks.json --lim
 
 日常检查连接成功即止，不创建测试板、不默认截图、不自动执行全部工程检查。所有写入遵循预览和实际授权。PCB布线必须先检查工艺、网络分类、关键网，再通过已验收Konnect执行、保存重载、原生DRC、G4确认。布线算法规划、布局检查器和参数推测都不能冒充已写入、已检查或可投产。
 制造预检与导出仍必须显式使用 `--mode mass_production`，该模式不会绕过NPI、工程签核或工厂授权；`--mode prototype` 只允许非量产诊断。
+
+DFX/NPI流程细则：[制造评审规范](references/dfx-npi.md)。最终生产放行仍由 `npi_release.py` 依据真实工程证据和独立工厂授权执行，不因精简上下文而减少检查。
