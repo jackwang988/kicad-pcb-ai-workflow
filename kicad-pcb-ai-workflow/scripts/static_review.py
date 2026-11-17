@@ -393,7 +393,7 @@ def prepare(root,config_file,stage,output,cli=None):
         (out/'review-request.md').write_text(request, encoding='utf-8')
         if any(sha256(local(root,n))!=h for n,h in raw_before.items()):raise ValueError('Engineering input changed while preparing packet')
         return {'status':'PACKET_READY_FOR_AI','stage':stage,'native_ready':native_ready,'device_knowledge_brief': 'device-knowledge-brief.json' if device_review_brief is not None else None, 'preparation_issues':issues,
-                'checks_summary':{s:sum(x.get('status')==s for x in results) for s in ('PASS','FAIL','BLOCKED','AI_REQUIRED')},'checks_total':len(results),'checks_file':str(out/'checks.json'),'packet':str(out/'packet.json'),'production_authorized':False}
+                'checks_summary':{s:sum(x.get('status')==s for x in results) for s in ('PASS','FAIL','BLOCKED','AI_REQUIRED')},'checks':results,'checks_total':len(results),'checks_file':str(out/'checks.json'),'packet':str(out/'packet.json'),'production_authorized':False}
     except Exception:
         if created:shutil.rmtree(out)
         raise
@@ -402,7 +402,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('project');p.add_argument('--config',required=True);p.add_argument('--stage',choices=list(CATEGORIES),required=True);p.add_argument('--output-dir',required=True);p.add_argument('--kicad-cli');a=p.parse_args()
     try:r=prepare(a.project,a.config,a.stage,a.output_dir,a.kicad_cli)
     except Exception as e:print(json.dumps({'status':'BLOCKED','reason':str(e)},ensure_ascii=False));return 2
-    print(json.dumps(r,ensure_ascii=False,indent=2));return 0
+    print(json.dumps({k:v for k,v in r.items() if k!='checks'},ensure_ascii=False,indent=2));return 0
 
 if __name__ == '__main__':
     # JSON/text CLI protocol is UTF-8 on every platform, including Windows.

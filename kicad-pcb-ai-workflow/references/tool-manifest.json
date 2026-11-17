@@ -546,7 +546,7 @@
         "2": "BLOCKED or pending"
       },
       "validation_scope": "Offline G1 cache-bound review packet checks; existing KiCad integration must be validated on target setup.",
-      "sha256": "c4c9e2848bdfbd0e326b0ca8cedf3da434fb86e727b71fe76d00d47f11fa0a9e"
+      "sha256": "ebe8282e72cb4e4c60242dbb029949ec5421bc00b598e29ad1e5ae64da30b631"
     },
     {
       "file": "scripts/static_review_gate.py",
