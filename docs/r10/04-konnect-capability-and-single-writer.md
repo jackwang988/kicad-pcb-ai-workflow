@@ -1,5 +1,7 @@
 # R10 · Konnect工具动态发现与单写入执行闭环
 
+![Konnect动态工具发现与单写入闭环](figures/04-konnect-capabilities.svg)
+
 [返回导航](README.md) · [系统架构](01-system-architecture.md)
 
 ```mermaid

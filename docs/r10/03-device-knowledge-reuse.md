@@ -1,5 +1,7 @@
 # R10 · 芯片知识库跨项目、跨G1–G4复用
 
+![器件知识库跨G1-G4复用图](figures/03-device-knowledge.svg)
+
 [返回导航](README.md) · [16节点](02-16-node-workflow.md)
 
 ```mermaid

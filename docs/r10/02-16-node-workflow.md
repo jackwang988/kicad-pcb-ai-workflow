@@ -1,5 +1,9 @@
 # R10 · 16节点完整主线与处理规则
 
+![R10 16节点流程图](figures/02-16-node-mainline.svg)
+
+![R10逐项节点规则](figures/05-16-node-details.svg)
+
 [返回R10导航](README.md) · [系统总架构](01-system-architecture.md)
 
 > **节点01–13为AI设计主线**；14–16是外部工厂与实际研发流程的扩展，不能当作AI已自动完成的生产活动。

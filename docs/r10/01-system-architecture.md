@@ -1,5 +1,7 @@
 # R10 · 系统总体架构
 
+![R10系统总体架构图](figures/01-system-architecture.svg)
+
 [返回R10导航](README.md) · [16节点](02-16-node-workflow.md) · [验收状态](05-release-readiness.md)
 
 ```mermaid

@@ -14,8 +14,17 @@ flowchart LR
  F -->|"风险未关闭"| B
 ```
 
----
+**R10可视化架构图（候选版）**
 
+![R10系统总体架构](docs/r10/figures/01-system-architecture.svg)
+
+<details><summary>展开16节点运行主线</summary>
+
+![R10 16节点运行流程](docs/r10/figures/02-16-node-mainline.svg)
+
+</details>
+
+---
 
 **从器件原厂手册的推荐电路出发，让 AI 按工程流程设计与评审，用 KiCad 检查、版本证据和工程师确认推进每一步。**
 

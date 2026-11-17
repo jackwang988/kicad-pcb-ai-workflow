@@ -1,5 +1,17 @@
 # R10 系统架构与运行流程（候选版）
 
+## 五张可直接查看或另存为SVG的流程图
+
+![系统总体架构](figures/01-system-architecture.svg)
+
+![16节点运行主线](figures/02-16-node-mainline.svg)
+
+| 图 | 作用 |
+|---|---|
+| [器件知识库跨阶段复用](figures/03-device-knowledge.svg) | 节点3→G1/G2/G3/G4 |
+| [Konnect动态能力与单写入闭环](figures/04-konnect-capabilities.svg) | 动态发现→按需验收→回读→原生DRC |
+| [16节点逐项详细规则](figures/05-16-node-details.svg) | 每节点的工作重点 |
+
 > **仓库当前正式版本仍是 R9.4。** 本目录介绍 2026-11-17 的 R10 独立候选 Skill：器件知识卡跨项目/跨G1–G4复用、Konnect MCP单写入、动态能力发现及风险分级。**这些文档不意味着 R10 源码或安装包已发布到 main**；详见 [迁移与验收状态](05-release-readiness.md)。
 
 ## 从哪里开始看
