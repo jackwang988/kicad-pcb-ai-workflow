@@ -591,7 +591,7 @@
     },
     {
       "file": "scripts/workflow.py",
-      "sha256": "86a8b378dafdcb14fc9f0907e936a9defb836cedeb8b4fe947fc19ae5c255b9a",
+      "sha256": "4def30a649ed669fa84bd4ef28ff3115fc9d27538ac3d9ab8813b9978a75d2a2",
       "version": "R10.0-alpha.3-local.5+cache-first-1",
       "command": "python3 scripts/workflow.py --help (includes architecture.sources_resolve and architecture.sources_register tasks)",
       "input": "One shared master; immutable flow/static/npi bundles; explicit fixed task and typed arguments",

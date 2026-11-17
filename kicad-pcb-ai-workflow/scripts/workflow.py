@@ -744,11 +744,11 @@ def workspace_action(a):
         project = safe(a.project_file)
         if project.suffix != '.kicad_pro' or not project.is_file() or project.relative_to(root).parts[0] != '01_WORKING':
             raise ValueError('Select existing .kicad_pro under 01_WORKING')
-        if index.exists():
-            raise ValueError('CURRENT_PROJECT.json already exists; never overwrite')
+        if index.exists() or index.is_symlink():
+            raise ValueError('CURRENT_PROJECT.json already exists or is symlinked; never overwrite')
         if a.apply:
             for d in (checkpoint_root,reports,release):
-                if d.exists() and not d.is_dir():
+                if d.is_symlink() or (d.exists() and not d.is_dir()):
                     raise ValueError('Workspace directory path occupied by a file')
             for d in (checkpoint_root,reports,release):
                 d.mkdir(exist_ok=True)
@@ -801,6 +801,8 @@ def workspace_action(a):
         if not a.label or not re.fullmatch('[A-Za-z0-9][A-Za-z0-9_.-]{0,63}',a.label):
             raise ValueError('Unique safe checkpoint label required')
         dest=checkpoint_root/a.label
+        if checkpoint_root.is_symlink() or dest.is_symlink():
+            raise ValueError('Symlinked checkpoint destination forbidden')
         if dest.exists():raise ValueError('Immutable checkpoint already exists')
         if a.apply:
             if any(p.is_symlink() for p in project.parent.rglob('*')):
@@ -823,6 +825,8 @@ def workspace_action(a):
         if not artifact.is_file() or artifact.relative_to(root).parts[0]!=required:
             raise ValueError('Evidence file must exist inside the declared evidence area')
         target=reports/'index'/ (hashlib.sha256((a.stage+':'+a.artifact).encode('utf-8')).hexdigest()[:24]+'.json')
+        if reports.is_symlink() or (reports/'index').is_symlink() or target.is_symlink():
+            raise ValueError('Symlinked evidence index destination refused')
         if target.exists():raise ValueError('Evidence already indexed; no overwriting')
         if a.apply:
             target.parent.mkdir(exist_ok=True)

@@ -56,6 +56,23 @@ class WorkspaceTokenTest(unittest.TestCase):
         self.assertTrue(old.exists())
         self.assertFalse(result['history_deleted'])
 
+    def test_symlinked_checkpoint_and_evidence_index_refused(self):
+        self.prepare()
+        external=self.root/'outside'
+        external.mkdir()
+        target=self.root/'02_CHECKPOINTS'
+        target.rmdir()
+        target.symlink_to(external,target_is_directory=True)
+        with self.assertRaisesRegex(ValueError,'Symlinked'):
+            workflow.workspace_action(self.args('checkpoint',label='X',apply=True))
+        target.unlink()
+        target.mkdir()
+        (self.root/'03_REPORTS'/'index').symlink_to(external,target_is_directory=True)
+        report=self.root/'03_REPORTS'/'g1.json'
+        report.write_text('{}')
+        with self.assertRaisesRegex(ValueError,'Symlinked'):
+            workflow.workspace_action(self.args('register',stage='G1',artifact='03_REPORTS/g1.json',apply=True))
+
     def test_bounded_report_prioritizes_failures(self):
         source=self.root/'report.json'
         source.write_text(json.dumps({'status':'NEEDS_EVIDENCE','checks':
