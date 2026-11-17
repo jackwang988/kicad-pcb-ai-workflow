@@ -319,7 +319,7 @@
     },
     {
       "file": "scripts/npi_common.py",
-      "sha256": "5d9b0d4302787c414597a01e0f082b8e1af4480b809913e18af071222e5894aa",
+      "sha256": "79505815cda945d5f2403b5f2f316f31b2b707789e1e2b964e11fd82090695de",
       "version": "R10.0-alpha.3",
       "command": "Python module imported by mass_production_review.py",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",

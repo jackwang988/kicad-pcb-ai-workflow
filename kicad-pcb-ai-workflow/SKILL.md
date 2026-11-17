@@ -51,4 +51,4 @@ python scripts/workflow.py report-brief /project/03_REPORTS/G1/checks.json --lim
 
 For connection checks, perform one sufficient read; no automatic test boards. Writes require authorization and target validation. For routing: fab rules → net classes → critical nets → Konnect batches → saved readback → native DRC → G4. Planning is not execution.
 
-Manufacturing uses guarded `--mode mass_production` and [DFX/NPI](references/dfx-npi.md); `--mode prototype` cannot authorize release. Independent CAM/factory and human sign-off remain mandatory.
+Manufacturing uses guarded `--mode mass_production` and [DFX/NPI](references/dfx-npi.md); `--mode prototype` cannot authorize release. `npi_release.py` requires current CAM/factory evidence and engineer sign-off; no context optimization bypasses release gates.

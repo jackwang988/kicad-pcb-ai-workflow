@@ -122,7 +122,7 @@ class GuardTests(unittest.TestCase):
     def test_nonempty_fake_gerber_is_not_accepted(self):
         candidate,_=self.build();r=Review({},'mass_production','release')
         eg.inspect_production(r,self.p/'source',{'delivery_manifest':{'gerber':['a.gbr']}},{},candidate)
-        self.assertTrue(any('Gerber结构' in x['description'] for x in r.findings))
+        self.assertTrue(any('Gerber structural marker' in x['description'] for x in r.findings))
     def test_d0_cannot_publish_as_d2(self):
         candidate,manifest=self.build();manifest['level']='D0';(candidate/'build-manifest.json').write_text(json.dumps(manifest))
         r=Review({},'mass_production','release');eg.inspect_production(r,self.p/'source',{}, {},candidate)
