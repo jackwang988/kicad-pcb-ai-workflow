@@ -75,6 +75,29 @@ class CompTest(unittest.TestCase):
   self.assertEqual(plan_partition(base)['recommended_mode'],'hierarchical')
  def test_plan_requires_title_reserve(self):
   with self.assertRaises(ValueError):plan_partition({'schema_version':1,'paper':'A4','modules':[{'id':'A','estimated_box_mm':[10,10]}]})
+ def test_pwr_flag_does_not_substitute_for_rail(self):
+  self.doc.write_text(self.doc.read_text().replace('power:+12V','power:PWR_FLAG'))
+  r=self.go();self.assertIn('POWER_SYMBOL_POLICY.MISSING',[x['rule'] for x in r['findings']])
+ def test_two_real_hierarchical_pages_pass_declared_screening(self):
+  self.doc.write_text(self.doc.read_text().removesuffix(')') +
+    ' (sheet (property "Sheetfile" "child.kicad_sch") (pin "DATA") (uuid "s1")))')
+  child=self.root/'child.kicad_sch'
+  child.write_text('(kicad_sch (paper "A4") (hierarchical_label "DATA" (uuid "hl1")))')
+  self.boxes.append({'uuid':'s1','kind':'sheet','bbox_mm':[140,85,190,110]})
+  def amend(policy,geometry):
+   geometry['pages']['child.kicad_sch']={
+    'schematic_sha256':sha256(child),'sheet_mm':[297,210],
+    'complete_object_inventory':True,'visible_fields_included':True,
+    'protected_regions':[{'id':'title','kind':'title_block','bbox_mm':[220,175,291,207]}],
+    'objects':[{'uuid':'hl1','kind':'hierarchical_label','bbox_mm':[20,22,36,30]}]}
+   gfile=self.root/'geometry.json';gfile.write_text(json.dumps(geometry))
+   policy['geometry']['sha256']=sha256(gfile)
+   policy['partition']={'mode':'hierarchical','max_occupancy':0.75,
+                        'modules':[{'id':'overview','page':'main.kicad_sch'},
+                                   {'id':'child','page':'child.kicad_sch'}]}
+  r=self.go(amend)
+  self.assertEqual(r['findings'],[])
+  self.assertEqual(len([x for x in r['checks'] if x.get('rule')=='TITLE_BLOCK_CLEAR']),2)
  def test_preserve_legacy_mode(self):
   (self.root/'style.json').write_text(json.dumps({'schema_version':1,'pages':{}}));r=audit(self.root,self.doc.name,'style.json');self.assertEqual(r['status'],'DECLARED_STRUCTURE_CHECKS_COMPLETE');self.assertEqual(r['checks'][-1]['status'],'NOT_CONFIGURED_LEGACY_REVIEW_REQUIRED')
 
