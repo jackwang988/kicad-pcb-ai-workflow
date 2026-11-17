@@ -13,6 +13,10 @@ description: KiCad PCB/schematic Skill: G1–G4 knowledge reuse, Konnect single 
 4. **Independent engineering gates.** Never invent electrical, SI/PI or fab parameters. Check each actual design and current rule. Native ERC/DRC, sourced AI review and engineer approval are independent; changed inputs invalidate affected evidence. Manufacturing output remains `EXPORTED_NOT_RELEASED`; CAM/factory EQ, prototype tests and ECO require separate external authority. Do not delete historical projects or evidence.
 5. **Context-efficient reading without reduced checks.** Load only the current task's module. Start with `status --format compact`, knowledge `brief` or `report-brief`; expand relevant exceptions and cited figures only. Preserve full disk evidence; gates validate full files, never summaries.
 
+## Schematic composition checks (new designs)
+
+Before placing symbols, use `schematic_style.py --plan-input page-plan.json` to choose one sheet with functional frames or a hierarchical root plus child sheets. Reserve the actual worksheet title block and note regions. Use native KiCad power-library symbols for explicit positive/ground rails; do not replace these with ordinary rail labels. A new schematic's G1 style policy must opt into `composition.required=true` and bind actual rendered geometry and a complete object inventory. The `schematic_style.py` gate screens keep-outs, rail symbols and sheet hierarchy, but no geometry screen proves visual quality without a real page review. Do not generate unverified layout geometry or claim automatic placement. See [composition checks](references/schematic-composition-gates.md).
+
 ## Task-based reference routing
 
 | Requested task | Read first |

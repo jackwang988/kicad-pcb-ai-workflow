@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "paper": "A4",
+  "portrait": false,
+  "protected_regions": [
+    {
+      "id": "title",
+      "bbox_mm": [
+        220,
+        165,
+        292,
+        207
+      ]
+    }
+  ],
+  "modules": [
+    {
+      "id": "input",
+      "estimated_box_mm": [
+        55,
+        40
+      ]
+    },
+    {
+      "id": "controller",
+      "estimated_box_mm": [
+        80,
+        60
+      ]
+    },
+    {
+      "id": "output",
+      "estimated_box_mm": [
+        60,
+        45
+      ]
+    }
+  ],
+  "cross_module_connections": 5,
+  "max_single_sheet_cross_connections": 12,
+  "max_occupancy": 0.72,
+  "routing_text_allowance": 1.35
+}

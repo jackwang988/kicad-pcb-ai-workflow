@@ -119,3 +119,7 @@ Completion requires independently established topology equal to native export, d
 ## 10. Integration and adversarial test requirements
 
 Read this specification for new schematic drawing, rearrangement and static visual review. Existing `schematic_style.py` and `schematic_candidate.py` do not acquire new capability merely because this document exists. New geometry engines need positive and negative fixtures covering: shorting inside a symbol, mirrored label anchor, body-crossing wires, long cross-block links, reference/value overlap, title-block incursion, false series/parallel depiction, off-center drawing, and post-edit netlist changes. Include legal counterexamples to avoid false positives.
+
+## Executable R10 composition extension
+
+[Professional schematic composition checks](schematic-composition-gates.md) implement evidence-bound title-block/notes collision screening, native power-symbol policy and read-only page planning/partition screening. Use them on new projects, while preserving existing L0–L5 priorities. These checks require a verified rendered-bounds manifest and **do not** implement a complete autonomous KiCad symbol placement, wire routing, worksheet geometry extractor or automated text collision solver. Unavailable measurements must remain unapproved.

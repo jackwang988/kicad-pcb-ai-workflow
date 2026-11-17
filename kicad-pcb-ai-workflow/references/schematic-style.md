@@ -5,3 +5,7 @@ Keep functional signal flow legible. Use modular sheets based on actual system a
 A visually organized page is not an electrically correct circuit. Independently export and check real KiCad XML netlist/ERC, inspect page PDF and compare manufacturer recommendations and current project requirements. Verifier scripts cover only explicitly supported structural/geometry predicates; human visual inspection and G1 approval remain mandatory. Preserve original symbol UUID/net identity across authorized incremental edits and ensure the current engineering revision is correctly bound to all review evidence.
 
 See [topology-first rules](schematic-ai-layout-rules.md) and [schematic review](static-ai-review.md).
+
+## Checkable page composition
+
+When creating a new design, use [executable schematic composition gates](schematic-composition-gates.md) for title-block clearance, power-symbol policy, single-sheet functional frames and adaptive hierarchy. The bound geometry is measured from the actual KiCad view and still requires human visual review. Existing legacy policies without `composition` remain readable but cannot claim these checks have passed.
