@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "package_kind": "universal_runtime",
-  "revision": "2026.11.17-R10-workspace-token-efficient-english-preview",
+  "revision": "2026.11.17-R10-schematic-preplacement-v1-draft",
   "active": [
     {
       "file": "scripts/assembly_guard.py",
@@ -319,7 +319,7 @@
     },
     {
       "file": "scripts/npi_common.py",
-      "sha256": "79505815cda945d5f2403b5f2f316f31b2b707789e1e2b964e11fd82090695de",
+      "sha256": "3546b56ae7d04a0d4bd7c449b771fb85b3880fa774eb61a4aa00a4eec7170ed7",
       "version": "R10.0-alpha.3",
       "command": "Python module imported by mass_production_review.py",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -591,7 +591,7 @@
     },
     {
       "file": "scripts/workflow.py",
-      "sha256": "90dac7c22ed9d7701f08d6f698b4cd440e1aec90607ee100d3b785e2523c4172",
+      "sha256": "10ee325c1ef7907f164ab6855a5c8de895199387ed6cd6810a794ade2174fb30",
       "version": "R10.0-alpha.3-local.5+cache-first-1",
       "command": "python3 scripts/workflow.py --help (includes architecture.sources_resolve and architecture.sources_register tasks)",
       "input": "One shared master; immutable flow/static/npi bundles; explicit fixed task and typed arguments",
@@ -602,6 +602,71 @@
         "2": "BLOCKED/pending required inputs"
       },
       "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
+    },
+    {
+      "file": "scripts/schematic_geometry.py",
+      "sha256": "89347854170829cc7b44775012e4c1b374c449e4a781b926f258c130ef2fd584",
+      "version": "R10-preplacement-v1-preview",
+      "command": "Python library: schematic_geometry",
+      "input": "Existing source-bound geometry, independently authored topology, exact project state; no guessed dimensions.",
+      "output": "Read-only bounded pre-placement plan or pre-write receipt validation; no KiCad edits.",
+      "exit_codes": {
+        "0": "Scoped read-only candidate validation only",
+        "2": "BLOCKED: no write permitted"
+      },
+      "validation_scope": "Offline software fixtures; actual KiCad rendering and Konnect write enforcement require live acceptance."
+    },
+    {
+      "file": "scripts/schematic_space_map.py",
+      "sha256": "bcf768d9216bfdd258be6a7d6b2a7271980a7d86f5f1dda612c6943d15c805a5",
+      "version": "R10-preplacement-v1-preview",
+      "command": "Python library: schematic_space_map",
+      "input": "Existing source-bound geometry, independently authored topology, exact project state; no guessed dimensions.",
+      "output": "Read-only bounded pre-placement plan or pre-write receipt validation; no KiCad edits.",
+      "exit_codes": {
+        "0": "Scoped read-only candidate validation only",
+        "2": "BLOCKED: no write permitted"
+      },
+      "validation_scope": "Offline software fixtures; actual KiCad rendering and Konnect write enforcement require live acceptance."
+    },
+    {
+      "file": "scripts/schematic_preplacement.py",
+      "sha256": "7f674aaf06cc72803bd9095b67521af9cb5d85cfb6f54b265a291bec474a9501",
+      "version": "R10-preplacement-v1-preview",
+      "command": "python scripts/schematic_preplacement.py /project --request REQUEST",
+      "input": "Existing source-bound geometry, independently authored topology, exact project state; no guessed dimensions.",
+      "output": "Read-only bounded pre-placement plan or pre-write receipt validation; no KiCad edits.",
+      "exit_codes": {
+        "0": "Scoped read-only candidate validation only",
+        "2": "BLOCKED: no write permitted"
+      },
+      "validation_scope": "Offline software fixtures; actual KiCad rendering and Konnect write enforcement require live acceptance."
+    },
+    {
+      "file": "scripts/schematic_wire_planner.py",
+      "sha256": "c61d66c0f5367f789f03c14e52e066901b04c3498bcaa37b99c4e66758cffbcc",
+      "version": "R10-preplacement-v1-preview",
+      "command": "Python library: schematic_wire_planner",
+      "input": "Existing source-bound geometry, independently authored topology, exact project state; no guessed dimensions.",
+      "output": "Read-only bounded pre-placement plan or pre-write receipt validation; no KiCad edits.",
+      "exit_codes": {
+        "0": "Scoped read-only candidate validation only",
+        "2": "BLOCKED: no write permitted"
+      },
+      "validation_scope": "Offline software fixtures; actual KiCad rendering and Konnect write enforcement require live acceptance."
+    },
+    {
+      "file": "scripts/schematic_incremental_gate.py",
+      "sha256": "0484c7ad1afae3b521ef8be8dcc8b12b5f18bc29c370c27338a1a787a3f50bd0",
+      "version": "R10-preplacement-v1-preview",
+      "command": "python scripts/schematic_incremental_gate.py /project --request REQUEST --receipt RECEIPT",
+      "input": "Existing source-bound geometry, independently authored topology, exact project state; no guessed dimensions.",
+      "output": "Read-only bounded pre-placement plan or pre-write receipt validation; no KiCad edits.",
+      "exit_codes": {
+        "0": "Scoped read-only candidate validation only",
+        "2": "BLOCKED: no write permitted"
+      },
+      "validation_scope": "Offline software fixtures; actual KiCad rendering and Konnect write enforcement require live acceptance."
     }
   ]
 }

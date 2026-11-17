@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "skill_name": "kicad-pcb-ai-workflow",
-  "version": "R10.0-alpha.3-local.5+G1-G4+konnect-single-writer-migration-1",
+  "version": "R10.0-alpha.3-local.5+G1-G4+konnect-single-writer-migration-1+schematic-preplacement-v1-preview",
   "release_channel": "alpha",
   "engineering_gates": [
     "G1",
@@ -120,7 +120,8 @@
         "references/module-schematic.md",
         "references/schematic-style.md",
         "references/schematic-ai-layout-rules.md",
-        "references/static-ai-review.md"
+        "references/static-ai-review.md",
+        "references/schematic-preplacement.md"
       ],
       "tools": [
         "schematic_candidate",
@@ -128,7 +129,12 @@
         "schematic_style",
         "system_integration",
         "static_review",
-        "static_review_gate"
+        "static_review_gate",
+        "schematic_geometry",
+        "schematic_space_map",
+        "schematic_preplacement",
+        "schematic_wire_planner",
+        "schematic_incremental_gate"
       ]
     },
     {

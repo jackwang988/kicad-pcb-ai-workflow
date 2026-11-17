@@ -38,6 +38,8 @@ TASKS = {
     'environment.bridge_plugin': 'kicad_bridge', 'pcb.edit': 'kicad_bridge',
     'environment.open_editor': 'kicad_bridge',
     'pcb.edit_drc': 'kicad_bridge',
+    'schematic.preplacement_plan': 'schematic_preplacement',
+    'schematic.preplacement_check': 'schematic_incremental_gate',
     'schematic.resources_lock': 'resource_guard', 'schematic.resources_check': 'resource_guard',
     'schematic.prepare': 'static_review', 'schematic.gate': 'static_review_gate',
     'pcb.prepare': 'static_review', 'pcb.gate': 'static_review_gate',
@@ -481,6 +483,19 @@ def command(root, name, bundle, task, options):
         raise ValueError('--require-ipc only applies to IPC discovery tasks')
     if task in ('environment.bridge_plugin','environment.open_editor','pcb.edit'):
         raise ValueError('LEGACY_WRITE_DISABLED: use Konnect MCP as the sole EDA writer; no silent kicad_bridge fallback')
+    if task in ('schematic.preplacement_plan', 'schematic.preplacement_check'):
+        if not options.get('preplacement_request'):
+            raise ValueError('Schematic pre-placement needs --preplacement-request')
+        request=local(root,options['preplacement_request'])
+        args=[str(root),'--request',str(request.relative_to(root))]
+        if task=='schematic.preplacement_plan':
+            if options.get('preplacement_receipt'):
+                args+=['--output',str(Path(options['preplacement_receipt']).resolve())]
+            return 'schematic_preplacement',args
+        if not options.get('preplacement_receipt'):
+            raise ValueError('Schematic pre-placement check needs --preplacement-receipt')
+        args+=['--receipt',str(Path(options['preplacement_receipt']).resolve())]
+        return 'schematic_incremental_gate',args
     if task == 'pcb.high_speed_audit':
         flow.registry()
         if not options.get('high_speed_policy'):
@@ -931,7 +946,7 @@ def main():
             a.add_argument('--format', choices=('text', 'json','compact'), default='text')
         if cmd in ('plan', 'run'):
             a.add_argument('--task', choices=TASKS, required=True)
-            for key in ('output-dir', 'state', 'packet', 'ai-review', 'engineer-review', 'netlist', 'destination', 'candidate-dir', 'kicad-cli', 'board', 'resource-manifest', 'resource-lock', 'routing-request', 'after-attempt', 'route-problem', 'bridge-request', 'session-dir', 'sessions-root', 'python-executable', 'candidate-manifest', 'pcb-editor', 'runtime-dir', 'installation', 'high-speed-policy', 'device-cache', 'device-inventory', 'device-output', 'konnect-executable','konnect-config','konnect-enrollment','konnect-registry','konnect-tool','konnect-scope','konnect-toolset','source-board','arguments-json','expected-json'):
+            for key in ('output-dir', 'state', 'packet', 'ai-review', 'engineer-review', 'netlist', 'destination', 'candidate-dir', 'kicad-cli', 'board', 'resource-manifest', 'resource-lock', 'routing-request', 'after-attempt', 'route-problem', 'bridge-request', 'session-dir', 'sessions-root', 'python-executable', 'candidate-manifest', 'pcb-editor', 'runtime-dir', 'installation', 'high-speed-policy', 'device-cache', 'device-inventory', 'device-output', 'konnect-executable','konnect-config','konnect-enrollment','konnect-registry','konnect-tool','konnect-scope','konnect-toolset','source-board','arguments-json','expected-json','preplacement-request','preplacement-receipt'):
                 a.add_argument('--' + key)
             a.add_argument('--mode', choices=('prototype', 'mass_production'), default='mass_production')
             a.add_argument('--apply', action='store_true')
