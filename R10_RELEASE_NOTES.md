@@ -27,11 +27,12 @@
 | PR #7 软件回归/包预览 | [通过](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44287952061) |
 | 历史 KiCad 10.0.8 原生工具链烟测 | [通过](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44015065144)，**不涵盖此新七阶段全链** |
 | Windows/Konnect 实机 | 维护者报告于2026-11-18验收通过；本次仓库无独立现场记录，范围不能自动扩大到Freerouting各种工程 |
-| 新 Freerouting 2.5.0 DSN→SES→KiCad 保存回读专用CI | [独立工作流](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44286105239)，截至记录时无已确认的最终PASS，需查看最新状态 |
+| 新 Freerouting 2.5.0 DSN→SES→KiCad 保存回读专用CI | [独立工作流](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44286105239)，**FAILED / BLOCKED**：实际DSN/SES已生成，但KiCad导入后检测到GND走线，错误 `GND_AUTOROUTED_DESPITE_EXCLUSION`；不能认定七阶段布线验收通过 |
 | 多块实际2/4层混合高速/电源/锁铜PCB、生产CAM/EQ | 没有通用制造资格认定，逐项目G1–G4和外部签核仍必须执行 |
 
 ## 安装包、兼容与保留
 
+- [R10.0.0-rc.2 预发布页面](https://github.com/jackwang988/kicad-pcb-ai-workflow/releases/tag/R10.0.0-rc.2) 已有对应发布标签，**现阶段自动布线不能作为生产默认路径**，必须先解决GND保护失效并重跑原生验收。
 - 发布工作流 [publish-r10-rc2.yml](.github/workflows/publish-r10-rc2.yml) 在`main`上执行软件回归，重新从 `kicad-pcb-ai-workflow/` 生成独立ZIP及SHA-256，只有测试通过才尝试创建 **R10.0.0-rc.2 GitHub Pre-release**。绝不把旧RC1 ZIP重命名为新版本。
 - [GitHub Release 页面](https://github.com/jackwang988/kicad-pcb-ai-workflow/releases)可核对新资产是否真正发布。发布成功后应下载 `kicad-pcb-ai-workflow-R10.0.0-rc.2.zip`，按配套 `SHA256SUMS-R10.0.0-rc.2` 验证，而非从旧RC1压缩包安装。
 - 也可直接从`main`的 [Skill子目录](kicad-pcb-ai-workflow/) 获取最新源文件。不要把仓库根目录当作Skill安装；旧目录不要与新脚本混合。
