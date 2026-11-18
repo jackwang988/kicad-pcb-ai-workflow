@@ -394,7 +394,7 @@ class RoutingSevenStageAuditTests(unittest.TestCase):
             (layer "F.Cu") (at 10 10)
             (property "Reference" "U1") (property "Value" "TEST")
             (pad "1" smd rect (at 0 0) (size 0.6 0.6)
-              (layers "F.Cu") (net 1 "GND") (uuid "pad1")))
+              (layers "F.Cu" "F.Paste" "F.Mask") (net 1 "GND") (uuid "pad1")))
           (via (at 5 15) (size 0.6) (drill 0.3)
             (layers "F.Cu" "B.Cu") (net 1) (uuid "via1")))'''
         native = '''(kicad_pcb (version 20260206)
@@ -402,7 +402,7 @@ class RoutingSevenStageAuditTests(unittest.TestCase):
             (layer "F.Cu") (at 10.0 10.000)
             (property "Reference" "U1") (property "Value" "TEST")
             (pad "1" smd rect (at 0.0 0.0) (size 0.600 0.6)
-              (layers "F.Cu") (net "GND") (uuid "pad1")))
+              (layers "F.Cu" "F.Mask" "F.Paste") (net "GND") (uuid "pad1")))
           (via (at 5 15.0) (size 0.600) (drill 0.300)
             (layers "F.Cu" "B.Cu") (net "GND") (uuid "via1")))'''
         oldfile = self.root / 'legacy-semantic.kicad_pcb'
