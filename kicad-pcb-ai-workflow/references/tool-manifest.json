@@ -647,7 +647,7 @@
         "1": "Search/comparison incomplete where documented",
         "2": "BLOCKED or invalid input"
       },
-      "sha256": "fa9fea859eec45de731d5de4efd7519f95b7ff046bfb23792b2f35ccc77bd4a6",
+      "sha256": "babb2a4cd494fd75d16774d4b2e2644ad98e0c449bb94ebd57e6b0d507b546a2",
       "version": "R10.0-alpha.3",
       "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
     },
