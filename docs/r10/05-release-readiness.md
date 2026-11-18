@@ -8,13 +8,13 @@
 |---|---|---|
 | **R10 GND 铺铜阶段执行顺序** | 维护者于 2026-11-18 在对话中明确确认 Skill 验证通过；[PR #10](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/10) 合并提交 [`86b363f4408a`](https://github.com/jackwang988/kicad-pcb-ai-workflow/commit/86b363f4408af9b5cbd9a9eb7a972f9f65739555) | **维护者验收 PASS，源码已合并 main** |
 | 受控 GND 流程 | P0–P3 路由 → 首次各批准地层 GND 填铜 → 连通/孤岛分析 → 必要且经批准的缝合过孔 → 再次填铜 → 保存回读 → ground audit → 全板原生 DRC → G4 | **流程规则已纳入 R10；G3 不执行最终全板 DRC** |
-| 软件回归 | [PR #10 software CI #44321219956](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44321219956) | **PASS**（软件合同与合成数据测试） |
+| 软件回归 | [PR #12 software CI #44331681880](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44331681880) | **PASS**（包含 KiCad 10 名称式网络、原生板几何规范化及拒绝冲突/未知网络测试） |
 | 既有真实 Freerouting 路由验证 | [PR #10 native CI #44321220007](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44321220007)，路由子步骤 | **PASS_NOT_G4**（KiCad 10.0.8 / Freerouting 2.5.0，8 条普通网走线、0 条 GND 走线） |
-| **首次 GND 填铜→缝合地孔→最终填铜**的独立原生测试 | [Native CI #44321220007](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44321220007)，[Issue #11](https://github.com/jackwang988/kicad-pcb-ai-workflow/issues/11) | **BLOCKED**：KiCad CLI 第一次填铜保存成功，但读取保存板时报 `BOARD_NETS_MISSING`；未证明后续地孔/二次填铜/最终 DRC。维护者 PASS 不能替代这项证据 |
+| **首次 GND 填铜→批准缝合地孔→再次填铜→原生 DRC** | [PR #12](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/12) · [KiCad 10/Freerouting 2.5.0 原生 CI #44331681459](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44331681459) | **PASS_NOT_G4**：F.Cu/B.Cu 原生实际铺铜、1 颗批准 GND 地孔、二次填铜、保存回读、SHA 绑定的 ground gate 与原生 DRC 成功执行；该合成测试板 DRC 尚有 **13 项违规、3 项未连接**，不能放行制造 |
 | 产品级 G4、制造审批 | 需实际 PCB 的完整覆铜后原生 DRC、未连接项、SI/PI/热与工程师批准、厂方 CAM/EQ | **未自动放行** |
-| 版本分发 | 当前 main 已包含 PR #10；历史 `R10.0.0` 标签指向 PR #10 之前的内容 | **不声称旧 ZIP 已包含本次修复；要重新打包须创建新版本，勿改写历史标签** |
+| 版本分发 | 当前 main 已包含 PR #10、#12；历史 `R10.0.0` 标签早于这些变更 | **不声称旧 ZIP 已包含本次修复；要重新打包须创建新版本，勿改写历史标签** |
 
-验收口径：这里的“R10 正式验收通过”特指**维护者对本次 Skill 流程修改的验收**，不代表 GitHub 原生铺铜 CI 全绿或具体 PCB 可投产。相关自动化缺陷保持公开追踪；`main` 的软件功能与原生测试证据必须分别披露。
+验收口径：这里的“R10 正式验收通过”含 **维护者对 Skill 流程的验收**与已独立通过的 **KiCad 10/Freerouting/GND 顺序互操作原生 CI**，但不代表合成样板 DRC 零违规或具体 PCB 可投产。旧版 CI 失败是 KiCad 10 名称式网络、空白属性、层排序与 `.6` 数值规范化误报，已由 [PR #12](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/12) 修复；R10 的软件/互操作/G4/量产授权证据必须分别披露。
 
 ## Acceptance status (do not combine tiers)
 
@@ -29,7 +29,7 @@
 
 ## Latest scope
 
-The integrated main Skill source registers **54 SHA-pinned runtime Python tools**, with `routing_seven_stage.py` as a read-only plan/SES-candidate geometry audit and `freerouting_adapter.py` as a bounded external CLI candidate generator. Those code paths cannot by themselves perform native KiCad SES import, GND pour, complete DRC or engineering G4 signoff. PR #6, #7, #9 and #10 have been merged into `main`. The historical `R10.0.0-rc.1` ZIP remains unchanged, and release packaging must use the merged source, not the old archive. This is a software integration milestone, not automatic production routing certification. R10.0.0 stable software publication uses separate gated [CI](../../.github/workflows/release-r10-stable.yml); verify the actual tag and published checksum before claiming a release.
+The integrated main Skill source registers **54 SHA-pinned runtime Python tools**, with `routing_seven_stage.py` as a read-only plan/SES-candidate geometry audit and `freerouting_adapter.py` as a bounded external CLI candidate generator. Those code paths cannot by themselves perform native KiCad SES import, GND pour, complete DRC or engineering G4 signoff. PR #6, #7, #9, #10 and #12 have been merged into `main`. The historical `R10.0.0-rc.1` ZIP remains unchanged, and release packaging must use the merged source, not the old archive. This is a software integration milestone, not automatic production routing certification. R10.0.0 stable software publication uses separate gated [CI](../../.github/workflows/release-r10-stable.yml); verify the actual tag and published checksum before claiming a release.
 
 ## Before designating Freerouting as a production default
 
