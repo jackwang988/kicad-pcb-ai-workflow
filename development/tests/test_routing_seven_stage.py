@@ -198,9 +198,11 @@ class RoutingSevenStageAuditTests(unittest.TestCase):
             'stitched_board': self.bind('stitched.kicad_pcb'),
             'final_refilled_board': self.bind('last-fill.kicad_pcb'),
             'gnd_zone_layers': {'GND': ['F.Cu', 'B.Cu']},
+            'copper_layer_stack': ['F.Cu', 'B.Cu'],
             'approved_stitching_vias': [{
                 'uuid': 'gnd-stitch-1', 'net': 'GND', 'at_mm': [2, 3],
                 'layers': ['F.Cu', 'B.Cu'],
+                'ground_contact_layers': ['F.Cu', 'B.Cu'],
                 'min_diameter_mm': 0.5, 'min_drill_mm': 0.25,
                 'purpose': 'Connect isolated reference layers',
             }] if add_stitch else [],
