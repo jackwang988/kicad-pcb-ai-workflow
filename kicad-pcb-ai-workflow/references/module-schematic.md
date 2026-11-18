@@ -22,3 +22,5 @@ Before calling Konnect for symbol insertion, verify independent pin-to-net topol
 ## Two-stage planning and execution
 
 Preflight hard electrical, title-block, collision and pin/label constraints. Automatically test declared legal 0/90/180/270-degree rotations and score candidate layouts. Occupancy, trial wire length/bends and A* resource limits are soft: unresolved routes require review and prohibit unverified wiring, but should not block a geometrically safe symbol-only batch. Validate existing plan receipt hashes without rerunning A*. L1/L2 Konnect tools may execute first-use bounded writes on protected candidates followed by saved-state checks; L3 destructive operations need isolated acceptance. Unknown outcomes stop for inspection, never automatic retry. Avoid new project copies for ordinary editing.
+
+**Native pre-placement geometry:** read real KiCad symbol graphics, pins and existing instance transforms with `schematic_native_geometry.py` and `geometry_mode=native_auto`. Do not hand-author symbol rectangles. Actual text glyphs and worksheet title regions still need render/worksheet evidence. See [native geometry](schematic-native-geometry.md).

@@ -1,8 +1,8 @@
-"""Read-only, source-bound KiCad schematic spatial evidence for pre-placement.
+"""Source-bound KiCad schematic geometry evidence for pre-placement.
 
-This is NOT a KiCad symbol/worksheet geometry extractor. Geometry measurements
-must originate from an independently checked current KiCad view; hashes only
-bind submitted evidence, not its measurement correctness.
+Two modes: historic externally measured manifest, and native-auto where symbol
+primitives, pin geometry and placed objects are decoded directly from KiCad
+S-expressions. Native font outlines/worksheet keepouts require separate review.
 """
 import hashlib
 import json
@@ -50,13 +50,22 @@ def evidence(root, request):
     sch = bounded(root, top)
     if sha(sch) != request.get('schematic_sha256'):
         raise ValueError('Schematic changed: recapture geometry before pre-placement')
-    g = bounded(root, request.get('geometry_manifest'))
-    if sha(g) != request.get('geometry_sha256'):
-        raise ValueError('Geometry manifest changed')
-    view = bounded(root, request.get('render_file'))
-    if not view.stat().st_size or sha(view) != request.get('render_sha256'):
-        raise ValueError('Rendered view evidence changed')
-    data = json.loads(g.read_text(encoding='utf-8-sig'))
+    native_mode=request.get('geometry_mode')=='native_auto'
+    if native_mode:
+        from schematic_native_geometry import snapshot
+        regions=request.get('protected_regions_by_page')
+        if not isinstance(regions,dict):
+            raise ValueError('Native extraction needs one project worksheet title-block region contract')
+        data=snapshot(root,top,regions)
+        g=view=None
+    else:
+        g = bounded(root, request.get('geometry_manifest'))
+        if sha(g) != request.get('geometry_sha256'):
+            raise ValueError('Geometry manifest changed')
+        view = bounded(root, request.get('render_file'))
+        if not view.stat().st_size or sha(view) != request.get('render_sha256'):
+            raise ValueError('Rendered view evidence changed')
+        data = json.loads(g.read_text(encoding='utf-8-sig'))
     trees = sheets(root, top)
     pages = data.get('pages')
     if data.get('schema_version') != 1 or not isinstance(pages, dict) or set(pages) != set(trees):
@@ -97,11 +106,16 @@ def evidence(root, request):
             # The bounding rectangle of a functional frame encloses its content.
             # Treat frame edges separately rather than forbidding its interior.
             if o.get('kind') != 'polyline':
-                obstacles.append((str(o['uuid']),box))
+                for index,part in enumerate(o.get('collision_boxes_mm',[list(box)])):
+                    obstacles.append((str(o['uuid'])+':'+str(index),rect(part)))
         normalized[name] = {'dims': dims, 'obstacles': obstacles, 'existing_uuids': expected}
     page = request.get('page')
     if page not in normalized:
         raise ValueError('Target page is not in the verified schematic hierarchy')
-    return {'page': normalized[page], 'files_sha256': {str(p.relative_to(root)): sha(p) for p in (sch,g,view)},
+    used=[sch] if native_mode else [sch,g,view]
+    import hashlib
+    native_hash=hashlib.sha256(json.dumps(data,sort_keys=True,ensure_ascii=True).encode()).hexdigest() if native_mode else sha(g)
+    return {'page': normalized[page], 'geometry_sha256':native_hash, 'files_sha256': {str(p.relative_to(root)): sha(p) for p in used},
             'all_sheet_sha256': {name: sha(bounded(root,name)) for name in trees},
-            'evidence_level': 'DECLARED_SOURCE_BOUND_GEOMETRY_REQUIRES_RENDER_VERIFICATION'}
+            'evidence_level': ('NATIVE_PRIMITIVES_AUTO; CONSERVATIVE_TEXT_REQUIRES_RENDER_VERIFICATION'
+                               if native_mode else 'DECLARED_SOURCE_BOUND_GEOMETRY_REQUIRES_RENDER_VERIFICATION')}

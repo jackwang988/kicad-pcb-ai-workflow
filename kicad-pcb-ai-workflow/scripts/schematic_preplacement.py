@@ -122,14 +122,41 @@ def layout(root, plan):
         raise ValueError('Unique component reference designators required')
     if any(s.get('ref') in pg['existing_uuids'] for s in syms):
         raise ValueError('Use incremental move contract, not new placement, for existing UUID')
+    # Native auto mode derives body, pins and field dimensions from the actual KiCad
+    # .kicad_sch embedded cache or an explicitly named .kicad_sym library.
+    external_bindings={}
+    native_source_bindings={}
+    if plan.get('geometry_mode')=='native_auto':
+        from schematic_native_geometry import prospective_geometry
+        native=[]
+        for s in syms:
+            if not isinstance(s,dict):raise ValueError('Invalid symbol request')
+            if s.get('geometry') is not None:
+                raise ValueError('native_auto must not trust caller-supplied symbol body/pin geometry')
+            built=prospective_geometry(root,bounded(root,plan['schematic']),s,topo,pin_escape)
+            src=built['source']
+            if src.get('external_file'):
+                external_bindings[src['external_file']]=src['sha256']
+            elif src.get('file'):
+                native_source_bindings[src['file']]=src['sha256']
+            native.append({**s,'geometry':built})
+        syms=native
     # Every candidate's exact pins must match independently authored expected net membership.
     all_new=set();labels_by_pin=set()
     for s in syms:
         g=s.get('geometry')
         if not isinstance(g,dict):raise ValueError('Every symbol needs real bounding and pin geometry')
         src=g.get('source',{})
-        if not src.get('file') or not src.get('sha256') or not src.get('locator') or sha(bounded(root,src['file']))!=src['sha256']:
-            raise ValueError('Symbol geometry must be bound to measured library/source evidence')
+        if not src.get('sha256') or not src.get('locator'):
+            raise ValueError('Symbol geometry requires source evidence')
+        if src.get('file'):
+            if sha(bounded(root,src['file']))!=src['sha256']:
+                raise ValueError('Missing or changed source evidence: '+str(src['file']))
+        elif src.get('external_file') and plan.get('geometry_mode')=='native_auto':
+            if sha(Path(src['external_file']))!=src['sha256']:
+                raise ValueError('External KiCad symbol library changed')
+        else:
+            raise ValueError('Symbol geometry must be bound to native source evidence')
         rect(g.get('body_bbox_mm'))
         pins=g.get('pins')
         if not isinstance(pins,list) or not pins:raise ValueError('Symbol pin list required')
@@ -280,8 +307,15 @@ def layout(root, plan):
         all_boxes.extend(c['escapes'].values())
     occupied=union_area(all_boxes)
     occupancy=occupied/free_area if free_area>0 else float('inf')
+    src_symbols={s['ref']:s for s in syms}
     for ref,c in selected.items():
-        selected_boxes[ref]={'position_mm':list(c['origin']),'rotation_deg':c['rotation'],
+        spec=src_symbols[ref]
+        selected_boxes[ref]={'lib_id':spec.get('lib_id',spec['geometry'].get('lib_id')),
+                             'unit':int(spec.get('unit',1)),
+                             'value':spec.get('value'),
+                             'pin_anchors_mm':{n:list(v['at']) for n,v in c['pins'].items()},
+                             'text_render_exact':False if plan.get('geometry_mode')=='native_auto' else None,
+                             'position_mm':list(c['origin']),'rotation_deg':c['rotation'],
                              'object_bbox_mm':{name:list(box) for name,box in c['objects']},
                              'reserved_labels':[{'pin':n,'bbox_mm':list(box),'kind':d['kind']} for n,box,d in c['labels']],
                              'pin_escape_mm':{n:list(box) for n,box in c['escapes'].items()}}
@@ -291,16 +325,23 @@ def layout(root, plan):
     if attempts>=budget:warnings.append('SEARCH_BUDGET_REACHED: better candidate may exist; selected layout is not proven optimal')
     status=('PREPLACEMENT_FEASIBLE_FOR_DECLARED_GEOMETRY' if routes_result is not None
             else 'PREPLACEMENT_GEOMETRY_READY_ROUTE_REVIEW_REQUIRED')
+    engine_dir=Path(__file__).resolve().parent
+    engine_hashes={name:sha(engine_dir/name) for name in
+                   ('schematic_native_geometry.py','schematic_preplacement.py',
+                    'schematic_space_map.py','schematic_wire_planner.py')}
     return {'schema_version':1,'status':status,
+            'solver_hashes':engine_hashes,
             'page':plan['page'],'schematic':plan['schematic'],'schematic_sha256':plan['schematic_sha256'],
-            'geometry_sha256':plan['geometry_sha256'],'topology_sha256':plan['topology_sha256'],
-            'bindings':{**ev['files_sha256'],**ev['all_sheet_sha256'],plan['topology_file']:plan['topology_sha256']},
+            'geometry_sha256':ev['geometry_sha256'],'topology_sha256':plan['topology_sha256'],
+            'geometry_mode':plan.get('geometry_mode','manifest'),
+            'external_bindings':external_bindings,
+            'bindings':{**ev['files_sha256'],**ev['all_sheet_sha256'],**native_source_bindings,plan['topology_file']:plan['topology_sha256']},
             'placements':selected_boxes,'trial_routes':routes_result,'attempted':attempts,
             'scored_solutions':solutions,'selection_score':list(best['score']),
             'estimated_occupancy':round(occupancy,4),'threshold':max_occupancy,'warnings':warnings,
             'route_note':best['route_note'],
-            'scope':'hard geometry checked; route/density are soft and require post-write verification',
-            'limitations':['Geometry and current worksheet/text bounds are supplied and source-bound, not extracted or authenticated by this planner.',
+            'scope':'native_geometry='+str(plan.get('geometry_mode')=='native_auto')+'; hard primitive geometry checked; conservative text/route/density require post-write review',
+            'limitations':['In native_auto mode symbol primitives/pins come from real KiCad files; font boxes are conservative estimates, not measured glyph extents. Worksheet title-block keepout must still be sourced.',
                            'Trial routes are not actual KiCad wires; label anchors and native wire connectivity require readback.',
                            'Existing pins and net identity require independent native-netlist comparison after execution.',
                            'Konnect direct calls outside this wrapper cannot be prevented by this standalone script.'],

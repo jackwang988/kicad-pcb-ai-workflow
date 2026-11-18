@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "skill_name": "kicad-pcb-ai-workflow",
-  "version": "R10.0-alpha.3-local.5+G1-G4+konnect-single-writer-migration-1+schematic-preplacement-v1-preview",
+  "version": "R10.0-alpha.3-local.5+G1-G4+konnect-single-writer-migration-1+schematic-preplacement-v1+native-geometry-auto-preview",
   "release_channel": "alpha",
   "engineering_gates": [
     "G1",
@@ -19,7 +19,7 @@
     "fallback_router": "freerouting_after_rule_fidelity_and_profile_acceptance",
     "external_skills_auto_install": false,
     "native_ipc_write_backend": "experimental_not_default_live_edit_acceptance_incomplete",
-    "schematic_incremental_editor": "read_only_preplacement_and_receipt_gate; live_konnect_host_postwrite_not_integrated",
+    "schematic_incremental_editor": "native_read_only_symbol_geometry_and_receipt_gate; live_Konnect_schematic_write_not_integrated",
     "schematic_to_pcb_sync": "native_or_independently_verified_adapter_required",
     "single_project_writer_scope": "OS lease among bridges sharing sessions_root; GUI/third-party writers are not locked",
     "preferred_execution_backend": "konnect_mcp_dynamic_discovery_l1_l2_first_use_postcheck_l3_fixture",
@@ -121,7 +121,8 @@
         "references/schematic-style.md",
         "references/schematic-ai-layout-rules.md",
         "references/static-ai-review.md",
-        "references/schematic-preplacement.md"
+        "references/schematic-preplacement.md",
+        "references/schematic-native-geometry.md"
       ],
       "tools": [
         "schematic_candidate",
@@ -134,7 +135,8 @@
         "schematic_space_map",
         "schematic_preplacement",
         "schematic_wire_planner",
-        "schematic_incremental_gate"
+        "schematic_incremental_gate",
+        "schematic_native_geometry"
       ]
     },
     {

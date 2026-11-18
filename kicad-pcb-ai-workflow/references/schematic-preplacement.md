@@ -1,8 +1,10 @@
 # Schematic Pre-placement: Topology → Space Reservation → Trial Routes → Gate
 
-**Scope:** read-only candidate planning for new components on an existing KiCad sheet, anchored to the current immutable native-file hashes. This implements a conservative, *bounded* pre-placement feasibility screen. It **does not** extract arbitrary symbol fonts/worksheet geometry from KiCad, calculate exact real-world component positions for every complex schematic, edit `.kicad_sch`, or guarantee a perfect orthogonal route in a dense design. If required geometry is missing, the preflight **blocks rather than inventing coordinates**.
+**Scope:** read-only candidate planning for new components on an existing KiCad sheet, anchored to the current immutable native-file hashes. This implements a conservative, *bounded* pre-placement feasibility screen. With `geometry_mode=native_auto`, native KiCad symbol graphics, pins, placed symbol instances and current sheet entities are extracted directly from `.kicad_sch` / `.kicad_sym` before any new component is placed. Pixel-exact font glyphs and custom worksheet title-blocks are not automatically measured; KiCad rendered review remains independent. See [native geometry](schematic-native-geometry.md).
 
 ## Required order before any new symbol placement
+
+**Preferred native path:** set `geometry_mode: "native_auto"` with real `lib_id`, value, reference and independent pin/net graph. Source KiCad symbol primitives replace hand-authored component `body_bbox_mm` and pin positions; the worksheet protected-region policy is declared once per project. Legacy manually measured geometry remains available for compatibility.
 
 1. Independently establish the **expected exact pin-to-net graph** from approved requirements and manufacturer guidance. Provide a design-basis file, SHA-256, and precise locator; do not derive expected connections from the generated schematic.
 2. Select the current authoritative `01_WORKING/` schematic and target hierarchy sheet. Run the existing sheet planner first (`schematic_style.py --plan-input`) and split an overcrowded module into a real reachable child sheet before attempting placement.

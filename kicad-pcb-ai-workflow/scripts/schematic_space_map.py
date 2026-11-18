@@ -4,11 +4,12 @@ from schematic_geometry import rect, inside, intersects
 
 
 def transform(xy, angle):
+    # KiCad screen coordinates: +Y down; +90 means counterclockwise.
     x, y = xy
     if angle == 0: return (x,y)
-    if angle == 90: return (-y,x)
+    if angle == 90: return (y,-x)
     if angle == 180: return (-x,-y)
-    if angle == 270: return (y,-x)
+    if angle == 270: return (-y,x)
     raise ValueError('Rotations must be 0,90,180,270 (verified coordinates)')
 
 
@@ -51,7 +52,8 @@ def placements(symbol, at, angle, pin_escape, width):
     if not fields or not {'Reference','Value'}.issubset({f.get('name') for f in fields}):
         raise ValueError('Visible Reference and Value field geometry required for '+symbol['ref'])
     for f in fields:
-        obbs.append(('field:'+f['name'],box_at(f['bbox_mm'],at,angle)))
+        if not f.get('hidden',False):
+            obbs.append(('field:'+f['name'],box_at(f['bbox_mm'],at,angle)))
     pins={};escapes={};labels=[]
     for pin in geom['pins']:
         num=str(pin['number'])

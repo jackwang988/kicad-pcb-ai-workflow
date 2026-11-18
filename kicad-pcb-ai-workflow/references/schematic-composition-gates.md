@@ -108,3 +108,7 @@ The example object inventory is **deliberately incomplete** and cannot be used a
 ## Verification and upgrade compatibility
 
 The `schematic_style.audit()` entrypoint runs under the existing G1 `static_review.prepare()` path when a schematic style policy is bound. The static review packet freezes the composition policy, geometry manifest and rendered view with hashes in its evidence baseline. New project policies opt into full composition checks; old policies remain functional but cannot claim those checks were performed. This staged adoption avoids breaking older projects or weakening existing approval gates.
+
+## Native geometry migration boundary
+
+`geometry_mode=native_auto` now derives real KiCad symbol graphics/pins and current placed-instance geometry during pre-placement rather than requiring hand-authored per-component rectangles. Text extents are conservative, not font-exact; the G1 `schematic_style.py` audit still requires a separately reviewed rendered view/worksheet geometry manifest. Pre-placement screening alone does not grant G1 approval. See [native symbol geometry](schematic-native-geometry.md).

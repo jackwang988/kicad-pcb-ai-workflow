@@ -17,6 +17,8 @@ description: KiCad PCB/schematic Skill: G1–G4 knowledge reuse, Konnect single 
 
 Before placing symbols, use `schematic_style.py --plan-input page-plan.json` to choose one sheet with functional frames or a hierarchical root plus child sheets. Reserve the actual worksheet title block and note regions. Use native KiCad power-library symbols for explicit positive/ground rails; do not replace these with ordinary rail labels. A new schematic's G1 style policy must opt into `composition.required=true` and bind actual rendered geometry and a complete object inventory. The `schematic_style.py` gate screens keep-outs, rail symbols and sheet hierarchy, but no geometry screen proves visual quality without a real page review. Do not generate unverified layout geometry or claim automatic placement. See [composition checks](references/schematic-composition-gates.md).
 
+Before any new symbol-placement batch, prefer `geometry_mode=native_auto` and extract genuine KiCad symbol graphics, pins, fields and current instance positions via [`schematic_native_geometry.py`](references/schematic-native-geometry.md). Do not invent per-symbol rectangles. Worksheet title-block regions require project-specific source evidence and conservative font bounds still need KiCad render review. Reuse geometry/source SHA hashes at the fast second gate without rerunning A*.
+
 ## Task-based reference routing
 
 | Requested task | Read first |
