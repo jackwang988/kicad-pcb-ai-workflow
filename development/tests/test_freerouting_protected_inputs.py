@@ -101,7 +101,7 @@ class FreeroutingProtectedInputsTests(unittest.TestCase):
             root = Path(temp)
             (root / "board.dsn").write_text(
                 '(pcb demo (network (net GND (pins J1-1)) '
-                '(class kicad_default GND GPIO (rule (width 200))) '
+                '(net GPIO (pins J1-2)) (class kicad_default GND GPIO (rule (width 200))) '
                 '(class GND (rule (width 200)))))')
             self.assertEqual(router.specctra_netclass_members(root / "board.dsn")["GND"],
                              "kicad_default")
