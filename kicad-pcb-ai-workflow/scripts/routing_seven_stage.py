@@ -118,7 +118,7 @@ def plan(root, config_path):
         '04_FREEROUTING_2_5_0_ORDINARY_DSN_SES',
         '05_ISOLATED_SES_IMPORT_AND_GEOMETRY_AUDIT',
         '06_BOUNDED_REPAIR_WITHOUT_RULE_RELAXATION',
-        '07_GND_ZONE_FILL_SAVE_RELOAD_NATIVE_DRC_G4',
+        '07_GND_FIRST_FILL_REVIEW_STITCH_REFILL_GATE_THEN_NATIVE_DRC_G4',
     ]
     return {
         'status': 'PLAN_READY_NOT_EXECUTED', 'production_authorized': False,
@@ -135,7 +135,8 @@ def plan(root, config_path):
             'Critical traces and all protected-object snapshots before external routing',
             'Approved Freerouting v2.5.0/JAR/DSN/rules versions and source hashes',
             'Konnect-only isolated SES import, save and reloaded board readback',
-            'Native DRC, actual connectivity, zone fill, G4 and engineer sign-off'
+            'Ground pre-DRC audit: actual first GND fill per layer, approved stitching vias, final refill, native saved board',
+            'Only after the GND gate: full native DRC/unconnected review, G4 and engineer sign-off'
         ],
         'warning': 'A source-bound mapping is not proof of native tool provenance. '
                    'This plan cannot authorize unattended writes or G4 release.'
@@ -315,8 +316,10 @@ def ground_audit(root, config_path):
     # No unapproved pad/footprint, trace, via or net change is permitted.
     # Fill polygon changes are expected between snapshots; DRC tests whether
     # each via actually contacts each intended plane and whether islands remain.
-    require(not approved or paths['stitched_board'] != paths['final_refilled_board'],
-            'GND_REFILL_CHECKPOINT_MISSING', 'Refill after adding GND vias is mandatory')
+    require(not approved or (paths['stitched_board'] != paths['final_refilled_board']
+                            and sha(paths['stitched_board']) != sha(paths['final_refilled_board'])),
+            'GND_REFILL_CHECKPOINT_MISSING',
+            'Refill/re-save changed copper after adding GND vias is mandatory')
     return {
         'status': 'GROUND_FILLED_STITCHING_AUDITED_READY_FOR_NATIVE_DRC',
         'production_authorized': False, 'g4_approved': False,
