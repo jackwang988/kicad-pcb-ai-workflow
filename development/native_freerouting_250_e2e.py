@@ -141,6 +141,8 @@ def main():
             command = ["java", "-jar", str(JAR),
                        "-de", str(dsn), "-do", str(ses),
                        "-inc", "GND", "-mp", "25", "-mt", "1",
+                       "--router.fanout.enabled=false",
+                       "--router.optimizer.enabled=false",
                        "--gui.enabled=false", "-da"]
             result = run(command, timeout=600)
             evidence["steps"]["freerouting"] = result
