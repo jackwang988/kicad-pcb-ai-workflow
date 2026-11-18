@@ -18,7 +18,7 @@
 | [Konnect动态能力与单写入闭环](figures/04-konnect-capabilities.svg) | 动态发现→按需验收→回读→原生DRC |
 | [16节点逐项详细规则](figures/05-16-node-details.svg) | 每节点的工作重点 |
 
-> **2026-11-18：PR #6、#7 已合入 main，七阶段 Freerouting 代码及最新流程图已经位于主分支。** 旧版五张 SVG 保留历史参考，其箭头不代表当前七阶段布线顺序。Windows/Konnect 本机验收为维护者报告；原生 Freerouting 2.5.0 端到端结果和跨项目生产验证仍须独立核实，不能由合并操作推断通过。详见 [验收状态](05-release-readiness.md)。
+> **2026-11-18：PR #6、#7 已合入 main；PR #9 补充原生 GND 保护及实际 NetClass 校验。** 旧版五张 SVG 保留历史参考，其箭头不代表当前七阶段布线顺序。Windows/Konnect 本机验收为维护者报告；[固定版本原生隔离往返测试](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44295612537)已通过GND保护（8条普通走线、0 GND）；但同一Fixture的G4 DRC仍有9项违规和2项未连接，跨项目生产验证仍须独立核实，不能由合并操作推断通过。详见 [验收状态](05-release-readiness.md)。
 
 ## 从哪里开始看
 
