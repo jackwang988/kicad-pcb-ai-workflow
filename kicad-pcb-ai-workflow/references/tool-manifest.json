@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "package_kind": "universal_runtime",
-  "revision": "2026-11-18-R10-native-netclass-guard-fix",
+  "revision": "2026-11-18-R10-ground-fill-stitch-pre-DRC-gate",
   "active": [
     {
       "file": "scripts/assembly_guard.py",
@@ -495,7 +495,7 @@
     },
     {
       "file": "scripts/routing_seven_stage.py",
-      "sha256": "6ef75bd8cc6566c18a6cd863727ef3b9c8aff0801b1cd880280e83d61adc9e58",
+      "sha256": "118529791b24a81d117ad7c7f3e0c30a3e10dafcd2f588a861c53b2acb1761bf",
       "version": "R10-seven-stage-preview-1",
       "command": "python scripts/routing_seven_stage.py --help",
       "input": "Project-local source-hash-bound full routing request + real saved candidate boards + Native KiCad DRC JSON",
@@ -504,7 +504,7 @@
         "0": "Read-only stage plan or limited geometry audit, G4 remains pending",
         "2": "BLOCKED; invalid evidence/geometry/rules"
       },
-      "validation_scope": "Synthetic fixture tests: source hash + native board snapshots + critical copper/footprint preservation and explicit ripup + geometry/HV45/width/via/GND, native E2E separately required"
+      "validation_scope": "Read-only GND first-fill/stitch/refill stage before full native DRC and G4; hash-bound saved board receipts, live native connectivity external."
     },
     {
       "file": "scripts/schematic_candidate.py",
@@ -721,7 +721,7 @@
     },
     {
       "file": "scripts/workflow.py",
-      "sha256": "7d4bc8c0a5ae711f524f2f36df4a8b0f9ecfee787b5e6c956e551603e2c3ee03",
+      "sha256": "25f321d9f4c1a7da52c197da45efe4232f70b269ab7bdb9fb20aa4ae6ab58a15",
       "version": "R10.0-alpha.3-local.5+cache-first-1",
       "command": "python3 scripts/workflow.py --help (includes architecture.sources_resolve and architecture.sources_register tasks)",
       "input": "One shared master; immutable flow/static/npi bundles; explicit fixed task and typed arguments",

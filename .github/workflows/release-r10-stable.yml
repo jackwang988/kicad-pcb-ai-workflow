@@ -58,12 +58,18 @@ jobs:
           echo 'f6f51bb02245e8e717f9359bd260cc9c5c0b1bc0acc8b7cb2cd5b8ffeb5de3c7  /tmp/freerouting-2.5.0.jar' | sha256sum --check
       - name: Mandatory real KiCad DSN Freerouting SES KiCad roundtrip
         run: /usr/bin/python3 development/native_freerouting_250_e2e.py
+      - name: Mandatory real first-fill GND via-stitch final-refill and postfill DRC
+        env:
+          NATIVE_GND_REPORT: /tmp/r10-native-ground-fill-evidence.json
+        run: /usr/bin/python3 development/native_ground_fill_10_e2e.py
       - name: Preserve native evidence even if blocked
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: r10-stable-native-evidence
-          path: /tmp/r10-stable-native-evidence.json
+          path: |
+            /tmp/r10-stable-native-evidence.json
+            /tmp/r10-native-ground-fill-evidence.json
           retention-days: 90
           if-no-files-found: warn
       - name: Build independent R10.0.0 distribution and checksums

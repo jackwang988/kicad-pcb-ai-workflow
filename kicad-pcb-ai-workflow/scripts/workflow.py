@@ -54,6 +54,7 @@ TASKS = {
     'pcb.freerouting_candidate': 'freerouting_adapter',
     'pcb.routing_seven_plan': 'routing_seven_stage',
     'pcb.routing_import_audit': 'routing_seven_stage',
+    'pcb.ground_plane_audit': 'routing_seven_stage',
     'pcb.routing_final_audit': 'routing_seven_stage',
     'pcb.high_speed_audit': 'high_speed',
     'manufacturing.precheck': 'mass_production_review',
@@ -727,11 +728,15 @@ def command(root, name, bundle, task, options):
                 args += ['--' + key, str(options[key])]
         if options.get('apply'):
             args += ['--apply']
-    elif task in ('pcb.routing_seven_plan', 'pcb.routing_import_audit', 'pcb.routing_final_audit'):
+    elif task in ('pcb.routing_seven_plan', 'pcb.routing_import_audit',
+                  'pcb.ground_plane_audit', 'pcb.routing_final_audit'):
         action = {'pcb.routing_seven_plan': 'plan',
                   'pcb.routing_import_audit': 'audit-import',
+                  'pcb.ground_plane_audit': 'audit-ground',
                   'pcb.routing_final_audit': 'audit-final'}[task]
         args = [action, str(root), '--config', required('routing_stage_config')]
+        if task == 'pcb.ground_plane_audit':
+            args += ['--output', required('ground_audit_output')]
     elif task == 'pcb.route_search':
         args = [str(root), '--problem', required('route_problem')]
         if options.get('output_dir'):
@@ -1001,7 +1006,7 @@ def main():
             a.add_argument('--format', choices=('text', 'json','compact'), default='text')
         if cmd in ('plan', 'run'):
             a.add_argument('--task', choices=TASKS, required=True)
-            for key in ('output-dir', 'state', 'packet', 'ai-review', 'engineer-review', 'netlist', 'destination', 'candidate-dir', 'kicad-cli', 'board', 'resource-manifest', 'resource-lock', 'routing-request', 'routing-stage-config', 'dsn', 'jar', 'expected-dsn-sha256', 'expected-jar-sha256', 'exclude-netclasses', 'rules-file', 'expected-rules-sha256', 'after-attempt', 'route-problem', 'bridge-request', 'session-dir', 'sessions-root', 'python-executable', 'candidate-manifest', 'pcb-editor', 'runtime-dir', 'installation', 'high-speed-policy', 'device-cache', 'device-inventory', 'device-output', 'konnect-executable','konnect-config','konnect-enrollment','konnect-registry','konnect-tool','konnect-scope','konnect-toolset','source-board','arguments-json','expected-json','preplacement-request','preplacement-receipt','layout-request','layout-receipt','fab-board','fab-layers','fab-proposal','fab-confirmed-by','fab-decision','fab-approval','fab-rule-output'):
+            for key in ('output-dir', 'state', 'packet', 'ai-review', 'engineer-review', 'netlist', 'destination', 'candidate-dir', 'kicad-cli', 'board', 'resource-manifest', 'resource-lock', 'routing-request', 'routing-stage-config', 'ground-audit-output', 'dsn', 'jar', 'expected-dsn-sha256', 'expected-jar-sha256', 'exclude-netclasses', 'rules-file', 'expected-rules-sha256', 'after-attempt', 'route-problem', 'bridge-request', 'session-dir', 'sessions-root', 'python-executable', 'candidate-manifest', 'pcb-editor', 'runtime-dir', 'installation', 'high-speed-policy', 'device-cache', 'device-inventory', 'device-output', 'konnect-executable','konnect-config','konnect-enrollment','konnect-registry','konnect-tool','konnect-scope','konnect-toolset','source-board','arguments-json','expected-json','preplacement-request','preplacement-receipt','layout-request','layout-receipt','fab-board','fab-layers','fab-proposal','fab-confirmed-by','fab-decision','fab-approval','fab-rule-output'):
                 a.add_argument('--' + key)
             a.add_argument('--passes', type=int)
             a.add_argument('--threads', type=int)

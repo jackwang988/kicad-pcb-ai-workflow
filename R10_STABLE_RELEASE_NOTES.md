@@ -8,6 +8,8 @@
 - PR [#7](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/7): real-net inventory and rules-first routing, critical nets before ordinary nets, bounded Freerouting 2.5.0 DSN→SES candidate, native import/save/reload, protected copper audit, limited repair, GND fills then independent full KiCad DRC/G4.
 - PR [#9](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/9): hardened actual DSN net-to-NetClass membership verification, hash-bound independent native `net_to_class` map mandatory for autoexecution; fixed headless KiCad native test to restore `.kicad_pro` classes into exported board; disabled Freerouting 2.5.0 SMD fanout and optimizer on the protected ordinary-net pass to prevent their addition of GND tracks.
 
+[Mandatory GND first-fill/stitch/refill/full-DRC sequence](kicad-pcb-ai-workflow/references/gnd-before-drc.md) now has a real native two-layer integration test; verify its separate GitHub Actions result before asserting success.
+
 ## Seven-stage constrained routing
 
 1. Extract actual native networks, pad endpoints, class/current/priority/critical attributes.
@@ -26,7 +28,7 @@
 |---|---|---|
 | R10 corrected software regressions | [PR #9 software Actions](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44295612517) | PASS (branch software contracts) |
 | KiCad→Freerouting→SES→KiCad actual native roundtrip | [Native Actions](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44295612537) | **PASS_NOT_G4**: KiCad 10.0.8, pinned Freerouting 2.5.0, 8 +3V3 tracks imported, **0 added GND tracks**, saved/reloaded |
-| Independent native KiCad DRC on that synthetic test fixture | Same native Actions | **9 violations and 2 unconnected**; this fixture is not G4 clean and is **NOT** a manufacturing approval |
+| Independent native KiCad DRC on that synthetic test fixture | Same native Actions | **historical pre-GND-fill route-only fixture** reported 9 violations / 2 unconnected, not a valid final-G4 verdict; route fixture now defers full DRC until an independent actual GND zone/stitch/refill gate. This is **NOT** manufacturing approval |
 | Windows/Konnect machine operation | Maintainer reported local acceptance | User-reported; independent Windows GUI capture not in this repository evidence |
 | 2/4-layer mixed high-speed, RF and power production cases | Not fully represented by the minimal isolated native fixture | Still must validate each real board; not blanket production approval |
 | Factory CAM/EQ/physical prototype | External process | Not performed by this Skill |

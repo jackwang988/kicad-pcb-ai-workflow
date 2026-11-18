@@ -12,9 +12,9 @@
 | 4. Ordinary autorouting | Freerouting **v2.5.0** external CLI | Export saved board as reviewed Specctra DSN; hash-locked DSN, external `.rules` and JAR; `-inc` must exclude separate **GND, critical power, RF, differential, clock, other protected NetClasses**; output SES **candidate only** |
 | 5. Import and geometry audit | Konnect/KiCad + `routing_seven_stage.py audit-import` | **Isolated candidate** import; save/reload; same net inventory; preserved critical copper/object UUIDs; new ordinary H/V/45 segments, per-net widths, legal layers, via geometry/count |
 | 6. Bounded repair | Accepted KiCad/Konnect routing tool or engineer | New checkpoint, explicitly identified remaining connections, approved maximum iterations/time/vias, whitelist for ripup. Any source hash drift, failure, or need to relax constraints = BLOCKED |
-| 7. GND fill and G4 | KiCad native full DRC + engineer | Keep GND out of ordinary *trace* autorouting; add required ground stitching/returns; refill actual zones; save/reload; zero unconnected and native DRC errors; full G4 reviews including SI/PI, high-current thermal and manufacturing constraints |
+| 7. GND first fill → via stitch → final refill → G4 | Accepted KiCad/Konnect + `audit-ground` + native KiCad DRC + engineer | Fill all approved GND layers first; inspect copper islands/ground-pad continuity, place only explicitly approved GND stitching vias if needed, refill again, save/reload, **pass the source-bound pre-DRC GND gate** before running full native DRC. Any remaining actual GND unconnected errors or G4 blockers require repair and re-fill |
 
-**Do not require zero unconnected or full-board DRC in G3 placement**. G3 remains placement-only after real Konnect save and position readback. Only stage 7 calls final native full-board DRC.
+**Do not require zero unconnected or full-board DRC in G3 placement**. G3 remains placement-only after real Konnect save and position readback. Only stage 7 calls final native full-board DRC, **after** first pour, potential stitching and final refill.
 
 ## Practical use
 
@@ -78,7 +78,7 @@ The referenced native map is:
 }
 ```
 
-For the final audit, use `"stage":"final"` and add `"zone_refill_completed":true` plus `"native_drc_json":{"file":"reports/final-drc.json","sha256":"<actual DRC JSON hash>"}`. The final board must have a genuinely filled GND zone and the report must contain `violations` and `unconnected_items` arrays. This read-only audit does not authenticate the DRC tool or calculate current/thermal, differential timing, characteristic impedance, return path or engineer acceptance by itself. **Never treat user-supplied boolean evidence as a substitute for an actual native operation.**
+For the final audit, use `"stage":"final"` and add the actual pre-DRC `"gnd_completion_report":{"file":"reports/ground-pre-drc.json","sha256":"<actual gate report hash>"}`, `"native_drc_board_sha256":"<post-DRC saved board SHA>"`, `"zone_refill_completed":true` and `"native_drc_json":{"file":"reports/final-drc.json","sha256":"<actual DRC report hash>"}`. `before_board` must bind the saved board after the final GND refill. `after_board` binds the saved board after KiCad DRC. The boolean alone does **not** authorize DRC/G4. The final board must have a genuinely filled GND zone and the report must contain `violations` and `unconnected_items` arrays. This read-only audit does not authenticate the DRC tool or calculate current/thermal, differential timing, characteristic impedance, return path or engineer acceptance by itself. **Never treat user-supplied boolean evidence as a substitute for an actual native operation.**
 
 ### Commands
 
@@ -94,13 +94,19 @@ python scripts/freerouting_adapter.py --dsn route/board.dsn \
 # After reviewing preview, repeat the same command with --apply.
 # Import SES via accepted KiCad/Konnect operation into isolated candidate.
 python scripts/routing_seven_stage.py audit-import PROJECT --config route-import-config.json
-# Then approved bounded repair, native KiCad zone fill and actual full DRC.
+# After import/repairs, FIRST fill GND, review and add APPROVED vias only if needed,
+# REFILL GND, save/reload four source-bound candidate PCB checkpoints.
+python scripts/routing_seven_stage.py audit-ground PROJECT --config ground-config.json --output reports/ground-pre-drc.json
+# Do not do full G4 DRC until audit-ground succeeds:
+kicad-cli pcb drc --refill-zones --save-board --format json --output reports/final-drc.json PROJECT/checkpoints/final-refilled.kicad_pcb
 python scripts/routing_seven_stage.py audit-final PROJECT --config route-final-config.json
 ```
 
 If the approved Freerouting `.rules` is present, pass `--rules-file FILE --expected-rules-sha256 HASH`; a silently autodiscovered adjacent rules file is blocked. Use actual available NetClass names: examples are **not** automatic categories.
 
-The same plan/audit interfaces are registered as `workflow.py --task pcb.routing_seven_plan`, `pcb.routing_import_audit`, and `pcb.routing_final_audit` with `--routing-stage-config`. The `pcb.freerouting_candidate` task calls only the offline Freerouting adapter; the accepted Konnect native import remains a separately discovered and authorized operation.
+[Full GND first-pour/stitch/refill/DRC evidence contract](gnd-before-drc.md) is mandatory before full DRC.
+
+The same plan/audit interfaces are registered as `workflow.py --task pcb.routing_seven_plan`, `pcb.routing_import_audit`, `pcb.ground_plane_audit`, and `pcb.routing_final_audit` with `--routing-stage-config`. The `pcb.freerouting_candidate` task calls only the offline Freerouting adapter; the accepted Konnect native import remains a separately discovered and authorized operation.
 
 ## Freerouting 2.5.0 fanout and optimization safety
 

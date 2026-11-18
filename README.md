@@ -53,7 +53,9 @@ flowchart TD
 4. **Freerouting 2.5.0 批量普通网络**：保存 PCB 后导出 DSN，绑定 DSN/JAR 及获批准的 `.rules` SHA-256，使用 `-inc` 按**NetClass**排除 GND 与所有受保护网络类别；仅路由允许的普通 P3 网络，限制重试/时间/过孔，产生独立 `.ses` 候选。`-inc` 不是按网络名称排除；NetClass 必须确实覆盖全部网络。
 5. **SES 导入与真实几何审核**：仅在隔离 KiCad 候选中经认可工具回导，保存/重载，对比网络、封装位置、原有关键铜与对象UUID，审核普通网络线宽、层、过孔、H/V/45°走线及完整性。**生成 SES 不等于成功布线。**
 6. **有界修复**：仅处理明确的未连接项或获准的拆线白名单；执行前确认范围/限额，改动后重复真实回读；失败或工具缺失则阻断并交由工程师处理，不默认放宽工艺/电气规则。
-7. **最后覆铜与G4**：GND默认不参与普通网络自动走线，完成必要地过孔和各层批准的 GND Zone 铺铜，确认真实接地连通、回流与保存重载，然后运行包含未连接项的**全板 KiCad 原生 DRC**；追加SI/PI/热/制造等专项证据，经 G4 AI+工程师审核后才能进入制造候选。
+7. **GND 首次铺铜 → 检查地铜连通 → 按需补地孔 → 再次铺铜 → 全板 DRC/G4**：GND不参与普通走线。先在批准的GND铜层真实覆铜并保存，审核孤岛、焊盘、回流路径和跨层铜区；仅在必要、合法且经批准的位置放置GND缝合过孔（并非见空白就打孔），**之后重新填铜、保存重载**。四份PCB快照通过只读 `pcb.ground_plane_audit`，才能执行 `kicad-cli pcb drc --refill-zones --save-board` 全板DRC与未连接检查。DRC不为零继续修复并再次覆铜；G4工程师签核独立。**铺铜前GND飞线不是最终DRC故障。**
+
+[GND 铺铜、跨层地孔与 DRC 前置门禁规范](kicad-pcb-ai-workflow/references/gnd-before-drc.md)。GND 有多层填充不自动证明各层互连，最终须检查实际接触和原生网络连通性。
 
 **注意**：Freerouting 2.5.0 不保证自动满足任意 KiCad 自定义 DRC、受控阻抗/等长/回流/局部颈缩，也不能仅凭 DSN/SES 证明最终角度45°；由导入后的实际铜和原生检查判定。审核脚本**只读**，不会自行执行 SES 导入、GND铺铜或原生DRC。
 
@@ -87,7 +89,11 @@ python scripts/freerouting_adapter.py --dsn route/board.dsn \
   --output-dir NEW_CANDIDATE --passes 20
 # 真实SES须在独立KiCad/Konnect工程中导入、保存、重载，再审计：
 python scripts/routing_seven_stage.py audit-import /path/project --config route-import-config.json
-# 真实GND铺铜与全板原生DRC完成后：
+# Konnect 在保存的 PCB 上先实际铺GND → 如需则添加已批准地孔 → 再次铺铜和保存重载。
+python scripts/routing_seven_stage.py audit-ground /path/project --config ground-config.json --output reports/ground-pre-drc.json
+# 只有审核通过，才能对完成铺铜的候选板运行全板 DRC：
+kicad-cli pcb drc --refill-zones --save-board --format json --output reports/final-drc.json /path/project/checkpoints/final-refilled.kicad_pcb
+# 再次保存回读，最后用 ground gate、post-DRC board 与 DRC report 的 SHA 审核：
 python scripts/routing_seven_stage.py audit-final /path/project --config route-final-config.json
 ```
 
@@ -101,7 +107,7 @@ python scripts/routing_seven_stage.py audit-final /path/project --config route-f
 | PR #7 软件 CI | [已通过](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44287952061) |
 | KiCad 10.0.8 基础原生工具链 | [历史隔离工程烟测通过](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44015065144)，不等于新路由全链通过 |
 | Windows/Konnect 本机 | **维护者报告已验收通过**；当前仓库没有相应的新现场日志/录屏可供独立复核 |
-| KiCad→Freerouting 2.5.0→SES→KiCad 原生往返 | **PASS_NOT_G4**：[#44295612537](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44295612537)。GND在真实DSN中归属GND类；禁用v2.5.0 Fanout/Optimizer后，KiCad回导保存得到8条普通网线、0条新增GND铜线；DRC尚有9项违规/2项未连 |
+| KiCad→Freerouting 2.5.0→SES→KiCad 原生往返 | **PASS_NOT_G4**：[#44295612537](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44295612537)。GND在真实DSN中归属GND类；禁用v2.5.0 Fanout/Optimizer后，KiCad回导保存得到8条普通网线、0条新增GND铜线；旧版路由夹具在未铺地铜时出现过9项违规与2项未连；**不属于G4判定**。路由互通夹具已停止铺铜前全板DRC |
 | 不同层数/高速与电源混合项目、CAM/试产 | 未作为自动化通用能力认证；每个真实产品需独立验收 |
 
 **修复记录（[PR #9](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/9) / [Issue #8](https://github.com/jackwang988/kicad-pcb-ai-workflow/issues/8)）**：仅有 NetClass 名称声明不够；必须校验网络实际 DSN 类成员与独立原生 `net_to_class` 全量映射及SHA-256。Freerouting 2.5.0 的 Fanout/Optimizer 在先前测试中绕开了GND保护，因此 R10普通网批量布线默认关闭这两阶段；回导后的受保护铜线差异审核继续强制执行。支持范围外保持 BLOCKED。

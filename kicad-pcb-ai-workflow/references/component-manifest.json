@@ -14,7 +14,7 @@
   "execution_policy": {
     "single_project_writer": true,
     "project_writes": "konnect_only_current_protected_working_candidate_with_post_write_check",
-    "routing_strategy": "seven_stage_rules_first_freerouting_ordinary_candidate_with_critical_konnect",
+    "routing_strategy": "R10_7stage_ordinary_route_then_GND_FIRST_FILL_REVIEW_APPROVED_STITCH_REFILL_BEFORE_FULL_NATIVE_DRC_G4",
     "preferred_router": "freerouting_2_5_0_ordinary_net_only_with_native_class_map_and_disabled_fanout_optimizer; full_G4_required_before_manufacturing",
     "fallback_router": "bounded_verified_konnect_repair_or_engineer_handoff;no_unverified_auto_fallback",
     "external_skills_auto_install": false,
@@ -30,7 +30,7 @@
     "pcbnew_read": "optional_migration_compatibility_only",
     "capability_registry": "external_build_schema_kicad_scope_bound_optional_fixture_or_verified_postcheck",
     "native_export": "remains_blocked_until_independently_verified_geometry_and_freeze_equivalence",
-    "routing_stage_native_scope": "native DSN/SES roundtrip verified on isolated KiCad 10.0.8 fixture with GND protected; not G4 clean; per-project saved-board review and manufacturing gates mandatory"
+    "routing_stage_native_scope": "ROUTING-only DSN/SES native test is not G4. GND completion requires four hash-bound saved native boards and approved stitching via audit; actual post-refill full native DRC/engineer acceptance remains external."
   },
   "modules": [
     {
@@ -164,7 +164,8 @@
         "references/jlcpcb-rigid-fr4-presets.json",
         "references/jlcpcb-fab-confirmation.md",
         "references/pcb-courtyard-hard-rules.md",
-        "references/freerouting-seven-stage.md"
+        "references/freerouting-seven-stage.md",
+        "references/gnd-before-drc.md"
       ],
       "tools": [
         "design_intent",

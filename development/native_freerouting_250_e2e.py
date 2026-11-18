@@ -168,17 +168,15 @@ def main():
             evidence["steps"]["imported_saved_board"] = {
                 "sha256": sha(target), "tracks": len(routed), "per_net": counts,
                 "source_sha256": sha(pcbfile)}
-            # This route-only fixture predates design approvals and must not be
-            # mistaken for a full G4-passed PCB or a real engineer signoff.
-            drc_report = project / "native-drc.json"
-            drc = run([cli, "pcb", "drc", "--format", "json",
-                       "--output", str(drc_report), str(target)], timeout=240)
-            evidence["steps"]["native_drc"] = drc
-            if drc_report.is_file():
-                data = json.loads(drc_report.read_text(encoding="utf-8"))
-                evidence["steps"]["native_drc"]["violation_count"] = len(data.get("violations", []))
-                evidence["steps"]["native_drc"]["unconnected_count"] = len(data.get("unconnected_items", []))
-                evidence["steps"]["native_drc"]["report_sha256"] = sha(drc_report)
+            # This fixture tests real DSN/SES/KiCad routing interop ONLY.
+            # It has no reviewed GND zone/cross-layer stitching workflow.
+            # Do NOT run full-board DRC before native GND fill and stitching:
+            # GND airwires here would be expected, not final design faults.
+            evidence["steps"]["native_drc"] = {
+                "status": "NOT_RUN_GND_ZONE_AND_STITCH_PENDING",
+                "reason": "Full G4 DRC must follow reviewed GND zones, "
+                          "approved stitching, final zone refill/save/reload."
+            }
             evidence["status"] = "REAL_NATIVE_DSN_SES_ROUNDTRIP_PASSED_NOT_G4"
     except Exception as exc:
         evidence["reason"] = str(exc)

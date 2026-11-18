@@ -118,7 +118,7 @@ def plan(root, config_path):
         '04_FREEROUTING_2_5_0_ORDINARY_DSN_SES',
         '05_ISOLATED_SES_IMPORT_AND_GEOMETRY_AUDIT',
         '06_BOUNDED_REPAIR_WITHOUT_RULE_RELAXATION',
-        '07_GND_ZONE_FILL_SAVE_RELOAD_NATIVE_DRC_G4',
+        '07_GND_FIRST_FILL_REVIEW_STITCH_REFILL_GATE_THEN_NATIVE_DRC_G4',
     ]
     return {
         'status': 'PLAN_READY_NOT_EXECUTED', 'production_authorized': False,
@@ -135,7 +135,8 @@ def plan(root, config_path):
             'Critical traces and all protected-object snapshots before external routing',
             'Approved Freerouting v2.5.0/JAR/DSN/rules versions and source hashes',
             'Konnect-only isolated SES import, save and reloaded board readback',
-            'Native DRC, actual connectivity, zone fill, G4 and engineer sign-off'
+            'Ground pre-DRC audit: actual first GND fill per layer, approved stitching vias, final refill, native saved board',
+            'Only after the GND gate: full native DRC/unconnected review, G4 and engineer sign-off'
         ],
         'warning': 'A source-bound mapping is not proof of native tool provenance. '
                    'This plan cannot authorize unattended writes or G4 release.'
@@ -202,6 +203,184 @@ def segments_45(s):
 
 def _counter(items):
     return Counter(json.dumps(x['node'], sort_keys=True, ensure_ascii=True) for x in items)
+
+
+def ground_filled_layers(snapshot, net):
+    """Layers with actual saved filled polygons, not just zone outlines."""
+    found = set()
+    for zone in snapshot['zones']:
+        if zone['net'] != net:
+            continue
+        node = zone['node']
+        declared = []
+        layer = value(node, 'layer')
+        if layer:
+            declared.append(str(layer))
+        ls = child(node, 'layers', [])
+        declared.extend(str(x) for x in ls[1:] if isinstance(x, str))
+        polygons = children(node, 'filled_polygon') + children(node, 'filled_polygons')
+        for poly in polygons:
+            poly_layer = value(poly, 'layer')
+            if poly_layer:
+                found.add(str(poly_layer))
+            elif len(set(declared)) == 1:
+                found.add(declared[0])
+    return found
+
+
+def ground_defined_layers(snapshot, net):
+    """Approved layer definitions may exist before any connected fill islands."""
+    found = set()
+    for zone in snapshot['zones']:
+        if zone['net'] != net:
+            continue
+        node = zone['node']
+        layer = value(node, 'layer')
+        if layer:
+            found.add(str(layer))
+        ls = child(node, 'layers', [])
+        found.update(str(x) for x in ls[1:] if isinstance(x, str))
+    return found
+
+
+def ground_audit(root, config_path):
+    """Read-only GND-first-fill / approved-stitch / final-refill gate BEFORE DRC.
+
+    This gate cannot prove copper/pad electrical continuity on its own.
+    An actual KiCad native DRC after final refill remains mandatory.
+    """
+    cfg = load(local(root, config_path))
+    require(cfg.get('schema_version') == 1 and cfg.get('stage') == 'ground',
+            'INVALID_STAGE', 'GND stage=ground contract required')
+    keys = ('pre_ground_board', 'first_filled_board', 'stitched_board',
+            'final_refilled_board')
+    paths = {k: checked(root, cfg.get(k)) for k in keys}
+    require(len(set(paths.values())) >= 3, 'GROUND_CHECKPOINTS_MISSING',
+            'Save distinct original, first fill, and final refill checkpoints')
+    pre, first, stitched, final = (board_snapshot(paths[k]) for k in keys)
+    require(len({tuple(sorted(s['codes'].values())) for s in (pre, first, stitched, final)}) == 1,
+            'GND_NET_INVENTORY_CHANGED', 'Net inventory must be preserved')
+    require(pre['footprints'] == first['footprints'] == stitched['footprints'] == final['footprints'],
+            'GND_FOOTPRINT_CHANGED', 'Copper operation must not move footprints')
+    for kind in ('segments', 'arcs'):
+        require(_counter(pre[kind]) == _counter(first[kind])
+                == _counter(stitched[kind]) == _counter(final[kind]),
+                'GROUND_UNAPPROVED_ROUTING_CHANGE', kind)
+    require(_counter(pre['vias']) == _counter(first['vias']),
+            'GROUND_FIRST_FILL_CHANGED_VIAS', 'First fill cannot create/delete vias')
+    require(_counter(stitched['vias']) == _counter(final['vias']),
+            'GROUND_FINAL_REFILL_CHANGED_VIAS', 'Refill cannot change via geometry')
+    copper_stack = cfg.get('copper_layer_stack')
+    require(isinstance(copper_stack, list) and len(copper_stack) >= 2
+            and len(copper_stack) == len(set(copper_stack))
+            and all(isinstance(l, str) and l.endswith('.Cu')
+                    for l in copper_stack),
+            'GROUND_LAYER_STACK_REQUIRED',
+            'Provide the real ordered copper layer stack from approved KiCad setup')
+    ground_layers = cfg.get('gnd_zone_layers')
+    require(isinstance(ground_layers, dict) and bool(ground_layers),
+            'GND_ZONE_LAYERS_REQUIRED', 'Explicit per-GND-net expected layers required')
+    require(all(isinstance(k, str) and k and k in pre['codes'].values()
+                and isinstance(v, list) and v and len(v) == len(set(v))
+                and all(isinstance(layer, str) and layer in copper_stack for layer in v)
+                for k, v in ground_layers.items()),
+            'INVALID_GND_ZONE_LAYERS', 'Ground layer list must match actual named nets')
+    first_unfilled = {}
+    for name, layers in ground_layers.items():
+        missing_outline = set(layers) - ground_defined_layers(first, name)
+        require(not missing_outline, 'GND_ZONE_NOT_DEFINED',
+                f'first-fill: {name}: {sorted(missing_outline)}')
+        first_unfilled[name] = sorted(set(layers) - ground_filled_layers(first, name))
+        missing_final = set(layers) - ground_filled_layers(final, name)
+        require(not missing_final, 'GND_LAYER_NOT_FILLED',
+                f'final-refill: {name}: {sorted(missing_final)}')
+    approved = cfg.get('approved_stitching_vias')
+    require(isinstance(approved, list), 'STITCHING_APPROVAL_REQUIRED',
+            'Explicit approved_stitching_vias list, possibly empty, is mandatory')
+    # An unanchored layer may have no first-pass filled polygon because KiCad
+    # removes isolated islands. This is only acceptable if intentional GND
+    # stitching follows, and the *final* saved refill has real copper.
+    require(not any(first_unfilled.values()) or bool(approved),
+            'GND_FIRST_FILL_UNANCHORED',
+            'First-fill copper absent on ground layers and no stitching is approved')
+    ids = [item.get('uuid') for item in approved if isinstance(item, dict)]
+    require(len(ids) == len(approved) == len(set(ids)) and all(
+                isinstance(uid, str) and bool(uid) for uid in ids),
+            'INVALID_STITCHING_APPROVAL', 'Each via needs unique approved UUID')
+    old = _counter(first['vias'])
+    added = []
+    for item in stitched['vias']:
+        sig = json.dumps(item['node'], sort_keys=True, ensure_ascii=True)
+        if old[sig]:
+            old[sig] -= 1
+        else:
+            added.append(item)
+    require(not any(old.values()), 'EXISTING_VIA_CHANGED_BY_STITCHING',
+            'Original vias are immutable')
+    require({v['id'] for v in added} == set(ids)
+            and len(added) == len(approved),
+            'UNAUTHORIZED_GND_STITCHING_VIA',
+            'Only exact approved new GND via UUIDs allowed')
+    specs = {a['uuid']: a for a in approved}
+    for via in added:
+        spec = specs[via['id']]
+        net = via['net']
+        require(net in ground_layers and spec.get('net') == net,
+                'STITCH_VIA_NOT_GND', str(via['id']))
+        xys = child(via['node'], 'at', [])
+        pos = spec.get('at_mm')
+        require(isinstance(pos, list) and len(pos) == 2 and len(xys) >= 3
+                and all(abs(number(xys[i+1], 'STITCH_COORD_INVALID') -
+                            number(pos[i], 'STITCH_COORD_INVALID')) < 0.001 for i in (0, 1)),
+                'STITCH_POSITION_NOT_APPROVED', str(via['id']))
+        layers = child(via['node'], 'layers', [])[1:]
+        required = spec.get('layers')
+        require(isinstance(required, list) and len(required) == 2
+                and layers == required
+                and all(x in copper_stack for x in required)
+                and copper_stack.index(required[0]) < copper_stack.index(required[1]),
+                'STITCH_LAYERS_NOT_APPROVED', str(via['id']))
+        contacts = spec.get('ground_contact_layers')
+        require(isinstance(contacts, list) and contacts and len(contacts) == len(set(contacts))
+                and all(isinstance(x, str) and x in ground_layers[net]
+                        and copper_stack.index(required[0]) <= copper_stack.index(x)
+                        <= copper_stack.index(required[1]) for x in contacts),
+                'STITCH_GND_CONTACT_LAYERS_UNPROVEN',
+                'Contact layers must be approved GND planes within actual via span')
+        require(number(value(via['node'], 'size'), 'STITCH_DIAMETER_MISSING') >=
+                number(spec.get('min_diameter_mm'), 'STITCH_DIAMETER_RULE_MISSING')
+                and number(value(via['node'], 'drill'), 'STITCH_DRILL_MISSING') >=
+                number(spec.get('min_drill_mm'), 'STITCH_DRILL_RULE_MISSING'),
+                'STITCH_VIA_UNDERSIZED', str(via['id']))
+        require(isinstance(spec.get('purpose'), str) and bool(spec['purpose'].strip()),
+                'STITCH_PURPOSE_NOT_DOCUMENTED', str(via['id']))
+    # No unapproved pad/footprint, trace, via or net change is permitted.
+    # Fill polygon changes are expected between snapshots; DRC tests whether
+    # each via actually contacts each intended plane and whether islands remain.
+    # A successful refill may produce identical filled-polygon geometry if the
+    # approved via lies fully inside copper. Require distinct saved checkpoints,
+    # not arbitrary content drift; native fill receipt/provenance is separate.
+    require(not approved or paths['stitched_board'] != paths['final_refilled_board'],
+            'GND_REFILL_CHECKPOINT_MISSING',
+            'A separate saved/refilled PCB checkpoint after GND vias is mandatory')
+    return {
+        'status': 'GROUND_FILLED_STITCHING_AUDITED_READY_FOR_NATIVE_DRC',
+        'production_authorized': False, 'g4_approved': False,
+        'drc_executed': False,
+        'pre_ground_sha256': sha(paths['pre_ground_board']),
+        'first_fill_sha256': sha(paths['first_filled_board']),
+        'stitched_sha256': sha(paths['stitched_board']),
+        'final_refilled_sha256': sha(paths['final_refilled_board']),
+        'ground_zone_layers': {k: sorted(v) for k, v in ground_layers.items()},
+        'copper_layer_stack': copper_stack,
+        'initial_unfilled_ground_layers': first_unfilled,
+        'approved_stitching_via_uuids': sorted(ids),
+        'remaining': [
+            'KiCad-native post-refill full DRC including GND unconnected items',
+            'Native plane connectivity / thermal / clearance / return-path evidence',
+            'Independent G4 electrical and manufacturing engineer approval',
+        ],
+    }
 
 
 def audit(root, config_path, phase):
@@ -298,6 +477,16 @@ def audit(root, config_path, phase):
               'protected_nets': sorted(protected),
               'remaining': ['real native connectivity and G4 validation']}
     if phase == 'final':
+        ground_path = checked(root, config.get('gnd_completion_report'))
+        ground_report = load(ground_path)
+        require(ground_report.get('status') ==
+                'GROUND_FILLED_STITCHING_AUDITED_READY_FOR_NATIVE_DRC'
+                and ground_report.get('final_refilled_sha256') == sha(before_path),
+                'GROUND_GATE_MISSING_OR_STALE',
+                'Full DRC must follow the completed, hash-bound GND refill/stitch gate')
+        require(config.get('native_drc_board_sha256') == sha(after_path),
+                'NATIVE_DRC_BOARD_MISMATCH',
+                'Native DRC must be bound to the final saved board after zone refill')
         require(config.get('zone_refill_completed') is True,
                 'ZONE_REFILL_NOT_ATTESTED', 'Native refill receipt required')
         for net in gnd:
@@ -306,6 +495,9 @@ def audit(root, config_path, phase):
                          children(z['node'], 'filled_polygons'))
                         for z in after['zones']),
                     'GND_FILLED_ZONE_NOT_FOUND', net)
+        for net, layers in ground_report['ground_zone_layers'].items():
+            require(not (set(layers) - ground_filled_layers(after, net)),
+                    'GND_LAYER_NOT_FILLED', net)
         drc_path = checked(root, config.get('native_drc_json'))
         drc = load(drc_path)
         require(isinstance(drc, dict) and isinstance(drc.get('violations'), list)
@@ -323,17 +515,29 @@ def audit(root, config_path, phase):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('action', choices=('plan', 'audit-import', 'audit-final'))
+    p.add_argument('action', choices=('plan', 'audit-import', 'audit-ground', 'audit-final'))
     p.add_argument('project', type=Path)
     p.add_argument('--config', required=True, help='Project-local, source-hash-bound routing stage config')
+    p.add_argument('--output', help='New project-local JSON report for audit-ground; never overwrites evidence')
     args = p.parse_args()
     try:
         root = args.project.resolve()
         require(root.is_dir(), 'MISSING_PROJECT', str(root))
         if args.action == 'plan':
             out = plan(root, args.config)
+        elif args.action == 'audit-ground':
+            out = ground_audit(root, args.config)
         else:
             out = audit(root, args.config, 'import' if args.action == 'audit-import' else 'final')
+        if args.output:
+            require(args.action == 'audit-ground', 'OUTPUT_SCOPE_INVALID',
+                    'Only audit-ground produces a durable pre-DRC gate receipt')
+            dest = root / args.output
+            require(dest.parent.resolve().is_relative_to(root)
+                    and not dest.exists() and not dest.is_symlink()
+                    and dest.parent.is_dir(),
+                    'UNSAFE_REPORT_OUTPUT', str(dest))
+            dest.write_text(json.dumps(out, indent=2) + '\n', encoding='utf-8')
     except (RoutingBlocked, policy.PolicyError, OSError, ValueError, KeyError, TypeError) as exc:
         out = {'status': 'BLOCKED', 'reason': getattr(exc, 'code', 'ROUTING_STAGE_INVALID'),
                'detail': str(exc), 'production_authorized': False}
