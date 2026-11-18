@@ -146,8 +146,63 @@ def plan(root, config_path):
 def board_snapshot(path):
     tree = parse_sexpr(path.read_text(encoding='utf-8-sig'))
     require(tree and tree[0] == 'kicad_pcb', 'INVALID_BOARD', str(path))
-    codes = {str(n[1]): str(n[2]) for n in children(tree, 'net') if len(n) > 2}
-    require(codes, 'BOARD_NETS_MISSING', str(path))
+    # KiCad 10 native SaveBoard/CLI may emit NAME-ONLY `(net "GND")`
+    # on pads, tracks, vias and zones, with no top-level numeric net table.
+    # Never infer a named net from a zone's decorative net_name label.
+    codes = {}
+    pad_named = set()
+    for n in children(tree, 'net'):
+        require(len(n) == 3 and str(n[1]).isdigit()
+                and isinstance(n[2], str), 'INVALID_BOARD_NET_DECLARATION', str(n))
+        key, name = str(n[1]), str(n[2])
+        require(key not in codes, 'DUPLICATE_BOARD_NET_CODE', key)
+        codes[key] = name
+    for fp in children(tree, 'footprint'):
+        for pad in children(fp, 'pad'):
+            net_field = child(pad, 'net')
+            if not net_field:
+                continue
+            require(len(net_field) in (2, 3), 'INVALID_PAD_NET', str(net_field))
+            if len(net_field) == 3:
+                key, name = str(net_field[1]), str(net_field[2])
+                require(key.isdigit() and name,
+                        'INVALID_PAD_NET', str(net_field))
+                if key in codes:
+                    require(codes[key] == name, 'PAD_NET_CODE_CONFLICT', str(net_field))
+                else:
+                    # Net names in pads can ground KiCad's omitted table,
+                    # but only if every later use resolves to that exact net.
+                    codes[key] = name
+            else:
+                name = str(net_field[1])
+                require(bool(name), 'INVALID_PAD_NET', str(net_field))
+                require(not name.isdigit(), 'PAD_NUMERIC_NET_WITHOUT_NAME',
+                        str(net_field))
+                pad_named.add(name)
+    for name in pad_named:
+        require(name not in codes or codes[name] == name,
+                'AMBIGUOUS_NAMED_NET', name)
+        codes[name] = name
+    require(any(v for v in codes.values()), 'BOARD_NETS_MISSING', str(path))
+    def resolve_net(node, kind):
+        field = child(node, 'net')
+        require(field is not None and len(field) >= 2,
+                'BOARD_OBJECT_NET_MISSING', f'{kind}: {str(node)[:100]}')
+        key = str(field[1])
+        if len(field) == 3:
+            require(key.isdigit() and isinstance(field[2], str),
+                    'INVALID_BOARD_NET', str(field))
+            stated = str(field[2])
+            require(key in codes and codes[key] == stated,
+                    'NET_NAME_CODE_CONFLICT', str(field))
+            return stated
+        if key in codes:
+            return codes[key]
+        # Name-only KiCad 10 refs MUST be anchored in a real native pad or
+        # an explicitly declared numeric project net (not zone.net_name).
+        require(key in pad_named, 'UNVERIFIED_NAMED_NET',
+                f'{kind}: {key}')
+        return key
     objects = {}
     footprints = {}
     traces = {}
@@ -163,10 +218,9 @@ def board_snapshot(path):
                 objects[uid] = json.dumps(node, sort_keys=True, ensure_ascii=True)
                 if kind == "footprint":
                     footprints[uid] = objects[uid]
-            n = str(value(node, 'net') or '0')
-            name = codes.get(n)
+            name = resolve_net(node, kind) if kind != 'footprint' else None
             if kind in {'segment', 'via', 'arc'}:
-                require(name is not None, 'UNKNOWN_TRACK_NET', str(n))
+                require(name is not None, 'UNKNOWN_TRACK_NET', kind)
                 track = {'kind': kind, 'net': name, 'node': node, 'id': uid}
                 traces.setdefault(name, []).append(
                     json.dumps(node, sort_keys=True, ensure_ascii=True))
