@@ -319,7 +319,7 @@
     },
     {
       "file": "scripts/npi_common.py",
-      "sha256": "2992b3fbd0c93c3126ee6d8b9f9c2b3b1b161ced49a0d29acd76ebd8b4aaf03b",
+      "sha256": "552e437a644dbee01a42f660be6f7d530b42c55f652f9ee39a1338ebfef8acae",
       "version": "R10.0-alpha.3",
       "command": "Python module imported by mass_production_review.py",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -669,7 +669,7 @@
     },
     {
       "file": "scripts/workflow.py",
-      "sha256": "10ee325c1ef7907f164ab6855a5c8de895199387ed6cd6810a794ade2174fb30",
+      "sha256": "2a1183a836839ff0919e557fe061d8aa0d38f364e9784f687db8fd14b2cbb100",
       "version": "R10.0-alpha.3-local.5+cache-first-1",
       "command": "python3 scripts/workflow.py --help (includes architecture.sources_resolve and architecture.sources_register tasks)",
       "input": "One shared master; immutable flow/static/npi bundles; explicit fixed task and typed arguments",
