@@ -352,6 +352,10 @@ def _ground_footprints(snapshot):
                     'clearance', 'die_length'
                 )),
             }
+            # KiCad 10 may reorder F.Mask/F.Paste in pad layer lists.
+            # Pad layer membership, not textual ordering, defines its geometry.
+            if 'layers' in attrs['physical']:
+                attrs['physical']['layers'] = sorted(attrs['physical']['layers'])
             pads.append(json.dumps(attrs, sort_keys=True, ensure_ascii=True))
         fp = {
             'uuid': uid, 'library_footprint': str(node[1]),
