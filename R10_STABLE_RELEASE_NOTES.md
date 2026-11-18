@@ -1,0 +1,46 @@
+# KiCad PCB AI Skill R10.0.0 — stable software release (2026-11-18)
+
+**Release scope:** Stable release of the R10 Skill *software source and validated orchestration contracts*. It does **not** certify a given PCB layout as routable, electrically correct, G4 approved, manufacturable or factory-released. Freerouting is used only on explicitly approved ordinary NetClasses and only within protected, isolated candidate workflow; GND and critical nets remain protected.
+
+## What's new since R9.4 / R10 RC1
+
+- PR [#6](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/6): one authoritative working KiCad project, immutable checkpoints, source-bound workspace status, compact context without skipping checks, English modular Skill, schematic topology-first constraints and review.
+- PR [#7](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/7): real-net inventory and rules-first routing, critical nets before ordinary nets, bounded Freerouting 2.5.0 DSN→SES candidate, native import/save/reload, protected copper audit, limited repair, GND fills then independent full KiCad DRC/G4.
+- PR [#9](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/9): hardened actual DSN net-to-NetClass membership verification, hash-bound independent native `net_to_class` map mandatory for autoexecution; fixed headless KiCad native test to restore `.kicad_pro` classes into exported board; disabled Freerouting 2.5.0 SMD fanout and optimizer on the protected ordinary-net pass to prevent their addition of GND tracks.
+
+## Seven-stage constrained routing
+
+1. Extract actual native networks, pad endpoints, class/current/priority/critical attributes.
+2. Set and read back real manufacturer-approved stackup and NetClasses, widths, clearances, layers, vias and local approved neckdown rules.
+3. Route critical/high-speed/power networks with qualified Konnect/KiCad and lock/read back their copper.
+4. Generate a reviewed, hash-bound DSN and NetClass map; run **Freerouting v2.5.0** on eligible ordinary nets only, excluding GND/protected classes, disabling fanout and optimizer. Produced SES is a candidate, not copper approval.
+5. Import only in isolated project via approved KiCad/Konnect, save/reload and audit net, footprint and copper deltas against source hashes.
+6. Perform only bounded, explicitly authorized repair without violating rules.
+7. Fill real GND zones, verify return connectivity and run full native KiCad DRC including unconnected items, then G4 design/engineer review.
+
+**G3 is layout-only and does not require all nets connected. Full native DRC/G4 is after routing and actual zone refill.**
+
+## Actual verification evidence and remaining limits
+
+| Tier | Evidence | Result |
+|---|---|---|
+| R10 corrected software regressions | [PR #9 software Actions](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44295612517) | PASS (branch software contracts) |
+| KiCad→Freerouting→SES→KiCad actual native roundtrip | [Native Actions](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44295612537) | **PASS_NOT_G4**: KiCad 10.0.8, pinned Freerouting 2.5.0, 8 +3V3 tracks imported, **0 added GND tracks**, saved/reloaded |
+| Independent native KiCad DRC on that synthetic test fixture | Same native Actions | **9 violations and 2 unconnected**; this fixture is not G4 clean and is **NOT** a manufacturing approval |
+| Windows/Konnect machine operation | Maintainer reported local acceptance | User-reported; independent Windows GUI capture not in this repository evidence |
+| 2/4-layer mixed high-speed, RF and power production cases | Not fully represented by the minimal isolated native fixture | Still must validate each real board; not blanket production approval |
+| Factory CAM/EQ/physical prototype | External process | Not performed by this Skill |
+
+**Release automation:** [R10.0.0 stable workflow](.github/workflows/release-r10-stable.yml) must re-run complete software and native roundtrip checks on the exact `main` commit before creating the tag and packaging. This page is not evidence a GitHub Release already exists. Check [Releases](https://github.com/jackwang988/kicad-pcb-ai-workflow/releases) for the published `R10.0.0` tag and the exact ZIP/SHA-256 assets.
+
+## Installation, compatibility and risk controls
+
+- Stable package (only after actual successful workflow): `kicad-pcb-ai-workflow-R10.0.0.zip` and `SHA256SUMS-R10.0.0`. Install the inner `kicad-pcb-ai-workflow/` Skill directory; do not overlay old scripts.
+- For working from source, use [main Skill directory](kicad-pcb-ai-workflow/) with [README](README.md). R10 RC1 ZIP does not contain the new seven-stage fix; keep historical releases untouched.
+- KiCad 10.0.8 was tested in Linux native CI. Newer KiCad 10.x, KiCad 9 and 11+ require version-specific feature acceptance; cannot assume automatic parity.
+- Konnect is a separate MCP/backend; real KiCad write/import/save/zone-fill capabilities require verification per environment. Freerouting 2.5.0 JAR and Java 25 must be independently installed/verified.
+- `freerouting_adapter.py --apply` requires exact DSN hash, full effective DSN class membership, independent native `net_to_class` map plus its SHA-256, exclusion NetClasses and pinned router. If the exported GND class is merely declared but GND belongs to `kicad_default`, the route is **BLOCKED**.
+- The external router cannot be assumed to enforce full KiCad custom DRC, impedance, differential length, power/thermal or every clearance rule. Native route import, board readback, G4 and engineer acceptance remain compulsory. GND default policy is via/zone return rather than ordinary trace routing.
+- Gerber/BOM/CPL/Excellon output is a controlled manufacturing **candidate** with state `EXPORTED_NOT_RELEASED` until separate CAM/EQ and signoff.
+
+[Latest R10 architecture and full 16-node diagrams](docs/r10/06-current-skill-full-flow.md) · [Seven-stage engineering contract](kicad-pcb-ai-workflow/references/freerouting-seven-stage.md) · [Release readiness](docs/r10/05-release-readiness.md) · [GND exclusion blocker history](https://github.com/jackwang988/kicad-pcb-ai-workflow/issues/8)
