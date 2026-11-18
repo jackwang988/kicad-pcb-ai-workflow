@@ -16,8 +16,10 @@ flowchart TB
   G1 --> G2{07 G2 Symbol and footprint review}
   G2 --> L[08 Stack-up and actual design rules]
   L --> G3{09 G3 Layout review}
-  G3 --> RT[10 Controlled routing and copper]
-  RT --> G4{11 G4 Final PCB review}
+  G3 --> RT[10 Controlled routing, power and GND]
+  RT --> ZF[Zone refill and saved copper readback]
+  ZF --> NDRC[Full native DRC and unconnected items]
+  NDRC --> G4{11 G4 Final PCB review}
   G4 --> D[12 DFX and NPI preflight]
   D --> M[13 Freeze and manufacturing candidate]
   M --> END[Design package ready for external review]
@@ -92,7 +94,7 @@ Before G3, offer the JLCPCB 2/4/6/8-layer conservative fabrication profile, **sh
 
 ### 09 — G3 placement and physical layout review (`placement`)
 
-**Inputs:** Current PCB, G2 resource map, board outline and constraints, netlist, critical device placement cards. **Method:** Anchor connectors, holes and mechanical restrictions; place power loops, oscillators, RF, sensitive analog and high-speed escape paths before aesthetic cleanup. Konnect applies accepted moves and rotations. `placement_review.py --review-config` inspects real current components/pads and stage-specific G3 guidance. **Gate:** Pad-center distance is not the complete current return loop; this Python script evaluates placement but does *not* independently execute auto-placement. Review actual routing feasibility, manufacturing and mechanical access.
+**Inputs:** Current PCB, G2 resource map, board outline and constraints, XML netlist, critical device placement cards. **Method:** Anchor connectors, holes and mechanical restrictions; place power loops, oscillators, RF, sensitive analog and high-speed escape paths before aesthetic cleanup. Konnect applies accepted moves where capability permits, **saves and reads back actual footprint positions**. `pcb.placement_pre` / `placement_review.py --phase pre_route --review-config` checks current real components/pads, Courtyards, mechanical keepouts, critical pin-level placement rules and prospective routing corridors. **G3 is a layout-only gate: do not invoke full-board KiCad DRC and never require zero unconnected nets before routing.** Airwires are expected. Assess routing feasibility, return-path topology, manufacturability and mechanical access; pad-center distance does not prove a completed current return path. This Python checker does not itself execute automatic placement or native DRC.
 
 ### 10 — Seven-step routing and zone-fill (`routing`)
 
@@ -102,13 +104,13 @@ Before G3, offer the JLCPCB 2/4/6/8-layer conservative fabrication profile, **sh
 4. **Route ordinary nets in small batches:** Python may produce A* suggestions; Konnect executes only tools covered by actual capability acceptance, then reads nets/vias/length/connectivity back.
 5. **Power and ground:** Verify ampacity, voltage drop, neckdowns, return-path continuity, stitching and zone fill; *ground is not always fully solved by a final pour*; detect islands and poor thermal joints.
 6. **Optimize:** Check clearance, geometry, via transitions, differential pairing, phase/skew, return-plane continuity and constraints without weakening rules.
-7. **Save, reload and verify:** Hand off the sole writer, fill/snapshot an isolated candidate via the accepted Konnect path, independently run KiCad CLI DRC and connectivity/parity, and compare actual geometry/hashes. An SES file or an offline shortest path is not finished PCB copper.
+7. **After finishing required routing and zone refill, save, reload and verify:** Hand off the sole writer, refill/snapshot an isolated candidate via the accepted Konnect path, **then** independently run the **G4 full-board KiCad CLI DRC**, including unconnected items and connectivity/parity; compare actual geometry/hashes. An SES file or an offline shortest path is not finished PCB copper.
 
 **Gate:** All required connections and stage-specific blocking risks must be resolved before G4.
 
 ### 11 — G4 final saved PCB review (`pcb_review`)
 
-**Inputs:** Final saved PCB, native DRC, current netlist/constraints/stack-up, layer renders, zone-fill receipts and frozen device bundle. **Method:** `static_review.py --stage pcb` reuses source cards and verified cached text by SHA. AI inspects every copper layer, decoupling, critical paths, vias, RF/antenna, return/ground, mechanical and manufacturability concerns. Gate recomputes source and board baseline, verifies native checks and requires engineer review. **Gate:** Native DRC alone cannot establish actual impedance, SI, EMI/EMC, reliability, or final product tests. `NEEDS_EVIDENCE` cannot become PASS just because the AI summary is short.
+**Inputs:** Final saved **routed and zone-refilled** PCB, native **G4 full-board DRC including unconnected items**, current netlist/constraints/stack-up, layer renders, zone-fill receipts and frozen device bundle. **Method:** `static_review.py --stage pcb` reuses source cards and verified cached text by SHA. AI inspects every copper layer, decoupling, critical paths, vias, RF/antenna, return/ground, mechanical and manufacturability concerns. Gate recomputes source and board baseline, verifies native checks and requires engineer review. **Gate:** Native DRC alone cannot establish actual impedance, SI, EMI/EMC, reliability, or final product tests. `NEEDS_EVIDENCE` cannot become PASS just because the AI summary is short.
 
 ### 12 — DFX/NPI pre-export (`npi`)
 
