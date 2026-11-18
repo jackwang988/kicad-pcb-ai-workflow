@@ -218,6 +218,12 @@ def _astar(problem, model, timer):
         moves = []
         layer_policy = problem['layers'][layer]
         for direction, (dx, dy) in enumerate(MOVES):
+            # H/V/45 grid steps alone permit a direct 90-degree turn.
+            # For ordinary automated candidates require <=45 degrees between
+            # consecutive segments. Dedicated sourced geometries must use
+            # separate accepted routing tools and independent post-route checks.
+            if heading != NO_HEADING and min((direction-heading) % 8, (heading-direction) % 8) > 1:
+                continue
             nx, ny = x + dx, y + dy
             if not clear(nx, ny, layer):
                 continue
@@ -260,6 +266,7 @@ def search(project, problem_file, timer=None):
               'executed_on_pcb': False, 'production_authorized': False,
               'accepted_execution_backend': False, 'native_validation': 'NOT_RUN',
               'electrical_validation': 'NOT_VERIFIED',
+              'corner_policy': 'H_V_45_WITH_MAX_45_DEG_BEND',
               'remaining': ['independent grid extraction and source applicability review',
                             'actual KiCad candidate projection/readback',
                             'native DRC/parity/connectivity/protection checks',
