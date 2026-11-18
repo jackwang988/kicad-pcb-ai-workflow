@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""REAL KiCad 10 isolated GND first-fill → via → refill → full native DRC.
+"""Real KiCad 10 fixture: GND first pour -> approved via -> refill -> final DRC.
 
-Fixture-only acceptance test: never edits a user's live EDA PCB, and
-does not grant final engineering G4 or manufacturing authorization.
+This isolated native test uses the supported KiCad CLI --refill-zones --
+save-board workflow. It deliberately avoids KiCad 10 headless pcbnew
+SWIG ZONE_FILLER writes, which can segfault on Ubuntu/Windows.
+This is NOT general product G4 or manufacturing authorization.
 """
-import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -16,16 +18,18 @@ import traceback
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "kicad-pcb-ai-workflow" / "scripts"))
-from routing_seven_stage import board_snapshot, ground_audit, ground_filled_layers, sha
+from routing_seven_stage import ground_audit, ground_defined_layers, ground_filled_layers, board_snapshot, sha
+OUTPUT = Path(os.environ.get("NATIVE_GND_REPORT",
+                             "/tmp/r10-native-ground-fill-evidence.json"))
+UUID = "00000000-0000-4000-8000-000000000123"
 
-OUTPUT = Path(os.environ.get("NATIVE_GND_REPORT", "/tmp/r10-native-ground-fill-evidence.json"))
 
-
-def run(command):
-    p = subprocess.run([str(x) for x in command], capture_output=True,
-                       text=True, errors="replace", timeout=240, check=False)
-    return {"returncode": p.returncode, "stdout_tail": p.stdout[-2000:],
-            "stderr_tail": p.stderr[-2000:]}
+def run(cmd):
+    p = subprocess.run([str(v) for v in cmd], capture_output=True, text=True,
+                       timeout=240, errors="replace", check=False)
+    return {"returncode": p.returncode,
+            "stdout_tail": p.stdout[-1800:],
+            "stderr_tail": p.stderr[-1800:]}
 
 
 def require(ok, reason):
@@ -33,114 +37,133 @@ def require(ok, reason):
         raise RuntimeError(reason)
 
 
+def add_items(board_file, items):
+    source = board_file.read_text(encoding="utf-8")
+    stripped = source.rstrip()
+    require(stripped.startswith("(kicad_pcb") and stripped.endswith(")"),
+            "NATIVE_SOURCE_BOARD_INVALID")
+    board_file.write_text(stripped[:-1] + "\n" +
+                          "\n".join(items) + "\n)\n", encoding="utf-8")
+
+
+def zone(layer):
+    return f'''(zone (net 2) (net_name "GND") (layer "{layer}")
+      (uuid "{'00000000-0000-4000-8000-000000000010' if layer=="F.Cu" else '00000000-0000-4000-8000-000000000011'}")
+      (hatch edge 0.5)
+      (connect_pads (clearance 0.25))
+      (min_thickness 0.2)
+      (fill yes (thermal_gap 0.3) (thermal_bridge_width 0.3))
+      (polygon (pts (xy 1 1) (xy 29 1) (xy 29 19) (xy 1 19))))'''
+
+
+def refill_first_then_drc(cli, board, out):
+    # KiCad fills zones BEFORE the integrated diagnostic check, then saves.
+    # These first two checks are fill operations, not final G4 acceptance.
+    result = run([cli, "pcb", "drc", "--refill-zones", "--save-board",
+                  "--format", "json", "--output", out, board])
+    require(out.is_file() and out.stat().st_size > 0 and
+            result["returncode"] == 0, "NATIVE_KICAD_CLI_REFILL_FAILED")
+    return result
+
+
 def main():
     evidence = {"status": "BLOCKED", "g4_approved": False,
                 "manufacturing_authorized": False,
-                "scope": "isolated_two_layer_native_ground_plane_gate"}
+                "scope": "isolated_two_layer_GND_real_kicad_cli"}
     try:
-        import pcbnew
         cli = shutil.which("kicad-cli")
-        require(cli is not None and "10." in str(pcbnew.GetBuildVersion()),
+        require(cli, "REAL_KICAD_CLI_MISSING")
+        version = run([cli, "version"])
+        require(version["returncode"] == 0
+                and version["stdout_tail"].strip().startswith("10."),
                 "REAL_KICAD_10_REQUIRED")
         with tempfile.TemporaryDirectory(prefix="r10-native-ground-") as td:
             folder = Path(td)
-            initial = ROOT / "development/fixtures/npi-demo/npi-demo.kicad_pcb"
+            original = ROOT / "development/fixtures/npi-demo/npi-demo.kicad_pcb"
             pre = folder / "routed.kicad_pcb"
-            shutil.copy2(initial, pre)
-            board = pcbnew.LoadBoard(str(pre))
-            require(board is not None, "REAL_KICAD_BOARD_LOAD_FAILED")
-            require(int(board.GetNetcodeFromNetname("GND")) == 2,
-                    "GROUND_NET_CODE_NOT_FOUND")
-            for layer in (pcbnew.F_Cu, pcbnew.B_Cu):
-                zone = pcbnew.ZONE(board)
-                zone.SetLayer(layer)
-                zone.SetNetCode(2)
-                polygon = pcbnew.SHAPE_POLY_SET()
-                polygon.NewOutline()
-                for x, y in ((1, 1), (29, 1), (29, 19), (1, 19)):
-                    polygon.Append(pcbnew.FromMM(x), pcbnew.FromMM(y))
-                zone.SetOutline(polygon)
-                board.Add(zone)
-            fill = pcbnew.ZONE_FILLER(board)
-            require(fill.Fill(board.Zones()) is not False,
-                    "NATIVE_GND_INITIAL_FILL_FAILED")
-            first = folder / "initial-filled.kicad_pcb"
-            pcbnew.SaveBoard(str(first), board)
-            first_loaded = board_snapshot(first)
-            evidence["first_filled_ground_layers"] = sorted(
-                ground_filled_layers(first_loaded, "GND"))
-            # Approved geometry is a named, reviewed location inside the
-            # native fixture. This is not generic automatic via placement.
-            board = pcbnew.LoadBoard(str(first))
-            via = pcbnew.PCB_VIA(board)
-            via.SetPosition(pcbnew.VECTOR2I(pcbnew.FromMM(5), pcbnew.FromMM(15)))
-            via.SetWidth(pcbnew.FromMM(0.6))
-            via.SetDrill(pcbnew.FromMM(0.3))
-            via.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu)
-            via.SetNetCode(2)
-            board.Add(via)
+            shutil.copy2(original, pre)
+            first = folder / "first-fill.kicad_pcb"
+            shutil.copy2(pre, first)
+            add_items(first, [zone("F.Cu"), zone("B.Cu")])
+            first_receipt = refill_first_then_drc(
+                cli, first, folder / "first-pour-diagnostic.json")
+            evidence["first_native_fill"] = first_receipt
+            first_snapshot = board_snapshot(first)
+            require({"F.Cu","B.Cu"} <= ground_defined_layers(first_snapshot, "GND"),
+                    "GROUND_FIRST_FILL_ZONES_MISSING")
+            evidence["first_filled_layers"] = sorted(
+                ground_filled_layers(first_snapshot, "GND"))
+
+            # A single approved GND stitching via for this specific 2-layer
+            # test fixture; never create uncontrolled grids in real projects.
             stitched = folder / "stitch-saved.kicad_pcb"
-            pcbnew.SaveBoard(str(stitched), board)
-            after_vias = [x for x in board_snapshot(stitched)['vias']
-                          if x['net'] == "GND"]
-            require(len(after_vias) == 1 and after_vias[0]['id'],
-                    "REAL_STITCH_VIA_MISSING_OR_AMBIGUOUS")
-            approved_uuid = after_vias[0]['id']
-            # Refill *again* after adding the GND via. Only this snapshot
-            # can advance to the actual native G4 DRC call.
-            board = pcbnew.LoadBoard(str(stitched))
-            require(pcbnew.ZONE_FILLER(board).Fill(board.Zones()) is not False,
-                    "NATIVE_GND_SECOND_FILL_FAILED")
-            final = folder / "after-stitch-refill.kicad_pcb"
-            pcbnew.SaveBoard(str(final), board)
-            binds = lambda p: {"file":p.name, "sha256":sha(p)}
-            config = {
-                "schema_version":1, "stage":"ground",
-                "pre_ground_board":binds(pre),
-                "first_filled_board":binds(first),
-                "stitched_board":binds(stitched),
-                "final_refilled_board":binds(final),
-                "gnd_zone_layers":{"GND":["F.Cu","B.Cu"]},
-                "copper_layer_stack":["F.Cu","B.Cu"],
-                "approved_stitching_vias":[{
-                    "uuid":approved_uuid, "net":"GND", "at_mm":[5,15],
+            shutil.copy2(first, stitched)
+            add_items(stitched, [
+                '(via (at 5 15) (size 0.6) (drill 0.3) '
+                '(layers "F.Cu" "B.Cu") (net 2) '
+                f'(uuid "{UUID}"))'
+            ])
+            st = board_snapshot(stitched)
+            require(any(v['id'] == UUID and v['net'] == 'GND'
+                        for v in st['vias']), "NATIVE_GND_STITCH_MISSING")
+            final = folder / "final-refill.kicad_pcb"
+            shutil.copy2(stitched, final)
+            second_receipt = refill_first_then_drc(
+                cli, final, folder / "refill-diagnostic.json")
+            evidence["post_via_native_refill"] = second_receipt
+
+            bindings = lambda p: {"file": p.name, "sha256": sha(p)}
+            cfg = {
+                "schema_version": 1, "stage": "ground",
+                "pre_ground_board": bindings(pre),
+                "first_filled_board": bindings(first),
+                "stitched_board": bindings(stitched),
+                "final_refilled_board": bindings(final),
+                "copper_layer_stack": ["F.Cu","B.Cu"],
+                "gnd_zone_layers": {"GND":["F.Cu","B.Cu"]},
+                "approved_stitching_vias": [{
+                    "uuid": UUID, "net":"GND", "at_mm":[5,15],
                     "layers":["F.Cu","B.Cu"],
                     "ground_contact_layers":["F.Cu","B.Cu"],
-                    "min_diameter_mm":0.6, "min_drill_mm":0.3,
-                    "purpose":"Approved 2-layer GND plane interconnection in isolated fixture"}],
+                    "min_diameter_mm":0.6,"min_drill_mm":0.3,
+                    "purpose":"Reviewed two-layer GND plane contact"}]
             }
-            configpath = folder / "ground-config.json"
-            configpath.write_text(json.dumps(config,indent=2),encoding="utf-8")
-            ground = ground_audit(folder, configpath.name)
-            require(ground["status"] ==
+            conf = folder / "ground.json"
+            conf.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
+            receipt = ground_audit(folder, conf.name)
+            require(receipt["status"] ==
                     "GROUND_FILLED_STITCHING_AUDITED_READY_FOR_NATIVE_DRC",
-                    "PRE_DRC_GND_GATE_DID_NOT_PASS")
-            evidence["ground_gate"] = ground
-            drc_file = folder / "post-ground-drc.json"
-            drc = run([cli, "pcb", "drc", "--refill-zones",
-                       "--save-board", "--format", "json",
-                       "--output", drc_file, final])
-            require(drc_file.is_file() and drc_file.stat().st_size > 0,
-                    "NATIVE_POSTGROUND_DRC_NOT_GENERATED")
-            data = json.loads(drc_file.read_text(encoding="utf-8"))
-            require(isinstance(data.get("violations"), list) and
-                    isinstance(data.get("unconnected_items"), list),
-                    "NATIVE_DRC_REPORT_INVALID")
-            evidence["postground_native_drc"] = {
-                "command_result":drc,
-                "board_sha256":sha(final), "report_sha256":sha(drc_file),
-                "violation_count":len(data["violations"]),
-                "unconnected_count":len(data["unconnected_items"]),
+                    "GROUND_GEOMETRY_PRE_DRC_GATE_BLOCKED")
+            evidence["ground_pre_drc_gate"] = receipt
+
+            # FINAL DRC is run only after actual first fill, GND via insertion,
+            # second refill and passing the ground stage checkpoint gate.
+            drc = folder / "final-postground-drc.json"
+            final_cmd = run([cli,"pcb","drc","--refill-zones","--save-board",
+                             "--format","json","--output",drc,final])
+            require(drc.is_file() and final_cmd["returncode"] == 0,
+                    "NATIVE_FINAL_DRC_TOOL_FAILED")
+            data = json.loads(drc.read_text(encoding="utf-8"))
+            require(isinstance(data.get("violations"),list)
+                    and isinstance(data.get("unconnected_items"),list),
+                    "NATIVE_FINAL_DRC_JSON_INVALID")
+            evidence["native_postground_drc"] = {
+                "exit_code": final_cmd["returncode"],
+                "saved_board_sha256": sha(final),
+                "report_sha256": sha(drc),
+                "violations": len(data["violations"]),
+                "unconnected_items": len(data["unconnected_items"]),
+                "status": "NATIVE_DRC_EXECUTED_NOT_AUTOMATICALLY_CLEAN",
             }
-            evidence["status"] = "REAL_GND_FIRST_FILL_STITCH_REFILL_AND_DRC_COMPLETED_NOT_G4"
-    except Exception as error:
-        evidence["reason"] = str(error)
-        evidence["traceback"] = traceback.format_exc()[-5500:]
+            evidence["status"] = "REAL_GND_FIRST_FILL_STITCH_REFILL_DRC_EXECUTED_NOT_G4"
+    except Exception as exc:
+        evidence["reason"] = str(exc)
+        evidence["traceback"] = traceback.format_exc()[-4800:]
     finally:
         OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-        OUTPUT.write_text(json.dumps(evidence,indent=2,ensure_ascii=False)+"\n",
+        OUTPUT.write_text(json.dumps(evidence, indent=2, ensure_ascii=False)+"\n",
                           encoding="utf-8")
-        print(json.dumps(evidence,indent=2,ensure_ascii=False))
+        print(json.dumps(evidence, indent=2, ensure_ascii=False))
     return 0 if evidence["status"].startswith("REAL_GND_") else 2
 
 
