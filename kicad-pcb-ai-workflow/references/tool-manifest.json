@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "package_kind": "universal_runtime",
-  "revision": "2026.11.18-R10-full-net-power-table-angle-and-neckdown-prep",
+  "revision": "2026.11.18-R10-freerouting-candidate-hash-netclass-gates",
   "active": [
     {
       "file": "scripts/assembly_guard.py",
@@ -113,16 +113,16 @@
     },
     {
       "file": "scripts/freerouting_adapter.py",
-      "sha256": "4b70e547154449633db884bc7af19aedcebacaa7a23c98712645e3d16ad09d4f",
+      "sha256": "4decd70660dec7985b534fa925b542c094320621c31ad9f42255d0a7d120f69c",
       "version": "R10.0-alpha.3",
       "command": "python3 scripts/freerouting_adapter.py --help",
-      "input": "User-approved v2.5.0 JAR, KiCad-exported DSN, new result directory",
-      "output": "SES and JSON; KiCad import and engineering approval required",
+      "input": "Reviewed DSN SHA; explicit protected NetClass exclusions; optional approved .rules + SHA; verified Freerouting 2.5.0 JAR",
+      "output": "SES candidate + JSON command/hashes; KiCad import, save/reload and G4 acceptance remain mandatory",
       "exit_codes": {
         "0": "preview/manual fallback/SES candidate only",
         "2": "blocked or failure"
       },
-      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
+      "validation_scope": "Class-name existence only; protected net membership and native KiCad geometry/DRC require independent evidence; live GUI E2E pending"
     },
     {
       "file": "scripts/freeze_candidate.py",
