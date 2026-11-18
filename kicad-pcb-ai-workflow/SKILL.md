@@ -19,6 +19,20 @@ Before placing symbols, use `schematic_style.py --plan-input page-plan.json` to 
 
 Before any new symbol-placement batch, prefer `geometry_mode=native_auto` and extract genuine KiCad symbol graphics, pins, fields and current instance positions via [`schematic_native_geometry.py`](references/schematic-native-geometry.md). Do not invent per-symbol rectangles. Worksheet title-block regions require project-specific source evidence and conservative font bounds still need KiCad render review. Reuse geometry/source SHA hashes at the fast second gate without rerunning A*.
 
+## Mandatory PCB routing sequence (seven stages; Freerouting 2.5.0 scoped)
+
+After G3 placement-only review (never run full DRC at G3), read [the seven-stage routing contract](references/freerouting-seven-stage.md), [power/neckdown and backend constraints](references/constraint-routing.md), and [PCB module](references/module-pcb.md).
+
+1. Inventory **all actual** schematic XML/KiCad nets and (ref,pin)/(pad) endpoints; classify each power/critical/ordinary/GND net and record intended current and priority. Unknown net = BLOCKED.
+2. Confirm manufacturer, layers/copper, effective KiCad NetClass and custom rules, widths/clearances/vias/stackup/angle policy. Apply via accepted Konnect writer and **read actual effective rule state back**. A JSON rule request alone is NOT an applied rule.
+3. Route and preserve critical nets first (power, RF, differential, timing, switching loops, Kelvin and return paths). Confirm actual saved geometry and lock/protection evidence.
+4. Use verified Freerouting **2.5.0 DSN->SES** only for eligible ordinary nets, with explicit reviewed DSN/rules hashes and `-inc` excluded **NetClasses** including GND and critical. Verify class membership from KiCad; a class name in the DSN is insufficient. Never route ordinary GND tracks.
+5. Import SES via authorized Konnect/KiCad into isolated PCB candidate. Save/read back and run `routing_seven_stage.py audit-import` for source-hash, protected copper/objects, H/V/45, minimum width, layer, via and net parity checks. Treat failed/partial import as BLOCKED.
+6. Only bounded retries or approved local native repair, with a new source-bound checkpoint and explicit net/rip-up scope; never silently relax manufacturer constraints, power trunk width (+0.254 mm), approved localized pad neckdowns, RF/impedance, clearances or GND policy.
+7. Refill verified GND copper, confirm actual returns/connection, save/reload, independent complete KiCad **native DRC at G4** (including unconnected), final geometry audit, SI/PI/thermal when applicable and engineering G4 sign-off. Failed/missing proofs = BLOCKED; no implicit manufacturing release.
+
+`routing_seven_stage.py` is a **read-only stage planner and after-import board auditor**, not a Freerouting invocation engine, KiCad writer, native DRC runner or G4 approval. Its success cannot replace live Konnect/KiCad end-to-end evidence. Run via `workflow.py run PROJECT --bundle BUNDLE --task pcb.routing_seven_plan --routing-stage-config CONFIG` (also `pcb.routing_import_audit`, `pcb.routing_final_audit`).
+
 ## Task-based reference routing
 
 | Requested task | Read first |
