@@ -148,6 +148,7 @@ def board_snapshot(path):
     codes = {str(n[1]): str(n[2]) for n in children(tree, 'net') if len(n) > 2}
     require(codes, 'BOARD_NETS_MISSING', str(path))
     objects = {}
+    footprints = {}
     traces = {}
     segments = []
     vias = []
@@ -159,6 +160,8 @@ def board_snapshot(path):
             if uid:
                 require(uid not in objects, 'DUPLICATE_UUID', str(uid))
                 objects[uid] = json.dumps(node, sort_keys=True, ensure_ascii=True)
+                if kind == "footprint":
+                    footprints[uid] = objects[uid]
             n = str(value(node, 'net') or '0')
             name = codes.get(n)
             if kind in {'segment', 'via', 'arc'}:
@@ -174,7 +177,7 @@ def board_snapshot(path):
                     arcs.append(track)
             elif kind == 'zone':
                 zones.append({'net': name, 'node': node})
-    return {'codes': codes, 'objects': objects, 'traces': traces,
+    return {'codes': codes, 'objects': objects, 'footprints': footprints, 'traces': traces,
             'segments': segments, 'vias': vias, 'arcs': arcs, 'zones': zones}
 
 
@@ -226,6 +229,8 @@ def audit(root, config_path, phase):
             and set(config_nets) | set(protected) == after_names - {''},
             'UNCLASSIFIED_OR_OVERLAPPING_NET',
             'All actual nets must be classified ordinary or protected')
+    require(before['footprints'] == after['footprints'], 'FOOTPRINTS_CHANGED_BY_ROUTER',
+            'SES import must not change any footprint placement or identity')
     for net in protected:
         require(_counter([x for x in before['segments'] + before['vias'] + before['arcs']
                           if x['net'] == net])
@@ -236,6 +241,16 @@ def audit(root, config_path, phase):
         require(uid in before['objects'] and
                 before['objects'][uid] == after['objects'].get(uid),
                 'PROTECTED_OBJECT_CHANGED', str(uid))
+    allowed_removed = config.get('allowed_removed_track_uuids', [])
+    require(isinstance(allowed_removed, list) and len(allowed_removed) == len(set(allowed_removed))
+            and all(isinstance(v, str) and v for v in allowed_removed),
+            'INVALID_RIPUP_WHITELIST', 'Unique explicit allowed_removed_track_uuids required')
+    current_uuids = {tr['id'] for kind in ('segments', 'vias', 'arcs')
+                     for tr in after[kind] if tr['id']}
+    removed = [tr for kind in ('segments', 'vias', 'arcs')
+               for tr in before[kind] if tr['id'] not in current_uuids]
+    require(all(tr['id'] in allowed_removed and tr['net'] not in protected for tr in removed),
+            'UNAUTHORIZED_RIPUP', 'Saved pre-existing tracks removed outside explicit whitelist')
     added_segments = []
     added_vias = []
     added_arcs = []
@@ -279,6 +294,7 @@ def audit(root, config_path, phase):
               'phase': phase, 'production_authorized': False,
               'before_sha256': sha(before_path), 'after_sha256': sha(after_path),
               'added_segments': len(added_segments), 'added_vias': len(added_vias),
+              'removed_prior_tracks': len(removed),
               'protected_nets': sorted(protected),
               'remaining': ['real native connectivity and G4 validation']}
     if phase == 'final':
