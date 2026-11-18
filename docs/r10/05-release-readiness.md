@@ -1,4 +1,4 @@
-# R10 latest release and native validation evidence — 2026-11-18
+# R10 main integration and native validation evidence — 2026-11-18
 
 [Current full architecture and 16-node / 7-stage execution diagrams](06-current-skill-full-flow.md) · [Seven-stage routing runtime contract](../../kicad-pcb-ai-workflow/references/freerouting-seven-stage.md) · [Legacy R10 acceptance history](../../R10_RELEASE_NOTES.md)
 
@@ -8,14 +8,14 @@
 |---|---|---|
 | Software runtime tool inventory, G1–G4 and seven-stage read-only audits | Current GitHub software CI [476 main + 37 R10 regression tests passed](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44287564161), plus new fixture tests | **Software contract only**; no live PCB routing certification |
 | KiCad 10.0.8 native CLI + PCB load, effective rules, DRC, fill and CAM smoke | [Historical tested KiCad 10.0.8 run](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44015065144) | Previous **native toolchain subset** passed; does not demonstrate the new Freerouting workflow |
-| Freerouting 2.5.0 pinned JAR, native KiCad DSN→SES→native import/save | [Current isolated interoperability action](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44286105239) | **Execution/verification in progress; no PASS asserted before actual result** |
-| Windows KiCad 10.0.8 + Freerouting 2.5.0 plugin GUI + Konnect MCP live editor | No fresh Windows GUI/Konnect recording in this development branch | **Not verified** |
+| Freerouting 2.5.0 pinned JAR, native KiCad DSN→SES→native import/save | [Isolated interoperability action](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44286105239) | **No confirmed final PASS at this documentation snapshot; review current run result** |
+| Windows KiCad/Konnect 本机验收 | 维护者于 2026-11-18 报告已在本机验收；尚无本次仓库可独立检查的现场日志 | **Maintainer-reported PASS; independent evidence pending** |
 | Mixed critical/power/high-speed 2/4-layer samples, real manufacturing rule fidelity | No representative matrix of routed and independently approved native boards | **Not verified** |
 | Factory CAM/EQ and prototype EVT/DVT/PVT | External engineering/factory steps | **Not performed by Skill** |
 
 ## Latest scope
 
-The current Skill source registers **54 SHA-pinned runtime Python tools** in the development branch, with `routing_seven_stage.py` as a read-only plan/SES-candidate geometry audit and `freerouting_adapter.py` as a bounded external CLI candidate generator. Those code paths cannot by themselves perform native KiCad SES import, GND pour, complete DRC or engineering G4 signoff. The branch remains **alpha/pre-release**; existing `main` R10.0.0-rc.1 archive is not automatically replaced by development files.
+The integrated main Skill source registers **54 SHA-pinned runtime Python tools**, with `routing_seven_stage.py` as a read-only plan/SES-candidate geometry audit and `freerouting_adapter.py` as a bounded external CLI candidate generator. Those code paths cannot by themselves perform native KiCad SES import, GND pour, complete DRC or engineering G4 signoff. PR #6 and #7 have been merged into `main`. The historical `R10.0.0-rc.1` ZIP remains unchanged, and release packaging must use the merged source, not the old archive. This is an integration milestone, not automatic production routing certification.
 
 ## Before designating Freerouting as a production default
 
