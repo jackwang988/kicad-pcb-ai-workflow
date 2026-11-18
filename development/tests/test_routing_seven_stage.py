@@ -393,7 +393,7 @@ class RoutingSevenStageAuditTests(unittest.TestCase):
           (footprint "NPI:Fixture" (uuid "fp1")
             (layer "F.Cu") (at 10 10)
             (property "Reference" "U1") (property "Value" "TEST")
-            (pad "1" smd rect (at 0 0) (size 0.6 0.6)
+            (pad "1" smd rect (at 0 0) (size .6 .6)
               (layers "F.Cu" "F.Paste" "F.Mask") (net 1 "GND") (uuid "pad1")))
           (via (at 5 15) (size 0.6) (drill 0.3)
             (layers "F.Cu" "B.Cu") (net 1) (uuid "via1")))'''
