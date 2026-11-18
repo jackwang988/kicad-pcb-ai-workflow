@@ -13,9 +13,13 @@ The model plans component placement based on actual schematic net topology, veri
 3. **Routing feasibility:** Access/escape channels, real narrow-pitch geometry, net classification, protected paths and current/thermal widths. An approximate airwire count is not proof of completed routing.
 4. **Human visual quality:** Functional grouping, reference/value readability, silkscreen orientation, drawing legibility and service access, without weakening hard rules.
 
-## Pre-route and final checks
+## G3 pre-route layout-only versus G4 post-route DRC
 
-Run the phase-specific review before routing and again after saved final copper/zone fill whenever relevant placement changed. Retain per-stage reports with current board SHA, source-card basis, actual component IDs/coords, observed violations and independent engineer decision. Fail/unknown/missing knowledge cannot become PASS to optimize appearance. See [schematic source](module-schematic.md), [G3/G4 workflow](latest-complete-workflow.md), [PCB rules](module-pcb.md).
+**G3:** `pcb.layout_plan` → Konnect accepted placement moves → save/position readback → `pcb.placement_pre` / `placement_review.py --phase pre_route`. Check supported Courtyard/collision, mechanical keepouts, module ownership, source-bound pin proximity/decoupling, corridor and anticipated routing access. **No full-board KiCad DRC is run and unconnected nets are never a G3 failure.** Do not call `pcb.prepare`/`pcb.gate` during G3.
+
+**After G3:** complete signal and power/GND routing → zone fill/refill → save/reload. **G4:** `pcb.prepare` invokes native full-board KiCad DRC (including unconnected items and schematic parity); `pcb.gate` requires AI and engineer review. `pcb.placement_final` may recheck final placement but cannot replace G4 DRC.
+
+Run phase-specific placement reviews before routing and again after saved final copper/zone fill whenever relevant placement changed. Retain per-stage reports with current board SHA, source-card basis, actual component IDs/coords, observed violations and independent engineer decision. Fail/unknown/missing knowledge cannot become PASS to optimize appearance. See [schematic source](module-schematic.md), [G3/G4 workflow](latest-complete-workflow.md), [PCB rules](module-pcb.md).
 
 ```bash
 # Read-only G3 report, always into a new immutable report directory.
@@ -57,7 +61,7 @@ Only aesthetic rules may declare an `exception={reason,evidence:{file,sha256}}`;
 
 `reviews.pre_route` must bind `placement_sha256`, `netlist_sha256`, `policy_sha256` (excluding the review record), reviewer, date, reason and evidence. Review routability/escape, return paths, manufacturer source layouts and mechanical constraints for **every** declared critical subcircuit. It does not prove automatic routability. `reviews.final` must correspond to the same actual placement and final `board_sha256`, and cover final visual quality and all `moves_rechecked` after routing/fill. Board changes can invalidate final review even when the pre-route placement remains unchanged; changes to pads, constraints, source data or component position require the affected pre-route review again. Never reconstruct or backdate a missing earlier review.
 
-For PCB static AI review, set `require_placement_review=true`, bind `placement_review.policy`, and add a `placement_quality` semantic task. Cover all physical footprints and critical nets; mechanical objects are observed as footprints, electrical pins as `(ref,pin,net)`. Native layer views and source layouts are separate evidence. Missing pre-route/final evidence or hard-constraint failure blocks relevant G3/G4 and manufacturing gates. Human/AI review is required even when the visual plot looks tidy.
+For PCB static AI review, set `require_placement_review=true`, bind `placement_review.policy`, and add a `placement_quality` semantic task. Cover all physical footprints and critical nets; mechanical objects are observed as footprints, electrical pins as `(ref,pin,net)`. Native layer views and source layouts are separate evidence. Missing pre-route/final evidence or hard-constraint failure blocks the relevant G3/G4 and manufacturing gates; **unrouted nets alone never block G3**. Human/AI review is required even when the visual plot looks tidy.
 
 Deliver four classes of *read-only* artifacts: `module-map.svg`, `local-N.svg` local circuit views, `placement-report.json/.md`, and `visual-review.md`. They are coordinate illustrations, not KiCad native copper/CAM/3D proof. Where native PCB extraction is unavailable, `--static-preview` is screening only; unsupported geometry remains a reported gap. Strict reports use new immutable report directories; do not clone a fresh KiCad engineering project merely for another report.
 
