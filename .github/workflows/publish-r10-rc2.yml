@@ -1,0 +1,85 @@
+name: Publish R10.0.0-rc.2 pre-release
+on:
+  push:
+    branches: [main]
+    paths:
+      - "R10_RELEASE_NOTES.md"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-r10-rc2
+  cancel-in-progress: false
+
+jobs:
+  package-and-release:
+    if: github.repository == 'jackwang988/kicad-pcb-ai-workflow' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out reviewed main source
+        uses: actions/checkout@v4
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Validate software regression before release
+        run: |
+          python -B -m unittest discover -s development/tests -q
+          python -B -m unittest discover -s development/r10_tests -q
+      - name: Build clean standalone Skill ZIP and SHA-256
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile, ZIP_DEFLATED
+          import hashlib
+
+          version = "R10.0.0-rc.2"
+          root = Path("kicad-pcb-ai-workflow")
+          output = Path("release-artifacts")
+          output.mkdir(exist_ok=True)
+          assert root.joinpath("SKILL.md").is_file(), "Missing installed Skill"
+          for f in ("scripts/freerouting_adapter.py", "scripts/routing_seven_stage.py",
+                    "references/freerouting-seven-stage.md",
+                    "references/tool-manifest.json"):
+              assert root.joinpath(f).is_file(), f"Missing R10 runtime file: {f}"
+          package = output / f"kicad-pcb-ai-workflow-{version}.zip"
+          count = 0
+          with ZipFile(package, "w", compression=ZIP_DEFLATED, compresslevel=9) as z:
+              for path in sorted(root.rglob("*")):
+                  if not path.is_file() or path.is_symlink():
+                      continue
+                  if "__pycache__" in path.parts or path.suffix in (".pyc", ".pyo"):
+                      continue
+                  z.write(path, path.as_posix())
+                  count += 1
+          assert count >= 10, f"Unexpectedly small package: {count}"
+          digest = hashlib.sha256(package.read_bytes()).hexdigest()
+          sums = output / f"SHA256SUMS-{version}"
+          sums.write_text(f"{digest}  {package.name}\n", encoding="utf-8")
+          print("Packaged files", count, "zip_sha256", digest)
+          PY
+      - name: Publish R10 pre-release without modifying existing release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG=R10.0.0-rc.2
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Existing release found; preserving it unchanged."
+            exit 0
+          fi
+          gh release create "$TAG" \
+            release-artifacts/kicad-pcb-ai-workflow-R10.0.0-rc.2.zip \
+            release-artifacts/SHA256SUMS-R10.0.0-rc.2 \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "R10.0.0-rc.2 — seven-stage Freerouting (pre-release)" \
+            --notes-file R10_RELEASE_NOTES.md \
+            --prerelease
