@@ -270,12 +270,19 @@ def ground_audit(root, config_path):
             'GROUND_FIRST_FILL_CHANGED_VIAS', 'First fill cannot create/delete vias')
     require(_counter(stitched['vias']) == _counter(final['vias']),
             'GROUND_FINAL_REFILL_CHANGED_VIAS', 'Refill cannot change via geometry')
+    copper_stack = cfg.get('copper_layer_stack')
+    require(isinstance(copper_stack, list) and len(copper_stack) >= 2
+            and len(copper_stack) == len(set(copper_stack))
+            and all(isinstance(l, str) and l.endswith('.Cu')
+                    for l in copper_stack),
+            'GROUND_LAYER_STACK_REQUIRED',
+            'Provide the real ordered copper layer stack from approved KiCad setup')
     ground_layers = cfg.get('gnd_zone_layers')
     require(isinstance(ground_layers, dict) and bool(ground_layers),
             'GND_ZONE_LAYERS_REQUIRED', 'Explicit per-GND-net expected layers required')
     require(all(isinstance(k, str) and k and k in pre['codes'].values()
                 and isinstance(v, list) and v and len(v) == len(set(v))
-                and all(isinstance(layer, str) and layer.endswith('.Cu') for layer in v)
+                and all(isinstance(layer, str) and layer in copper_stack for layer in v)
                 for k, v in ground_layers.items()),
             'INVALID_GND_ZONE_LAYERS', 'Ground layer list must match actual named nets')
     first_unfilled = {}
@@ -328,9 +335,18 @@ def ground_audit(root, config_path):
                 'STITCH_POSITION_NOT_APPROVED', str(via['id']))
         layers = child(via['node'], 'layers', [])[1:]
         required = spec.get('layers')
-        require(isinstance(required, list) and len(required) >= 2
-                and layers == required and all(x in ground_layers[net] for x in required),
+        require(isinstance(required, list) and len(required) == 2
+                and layers == required
+                and all(x in copper_stack for x in required)
+                and copper_stack.index(required[0]) < copper_stack.index(required[1]),
                 'STITCH_LAYERS_NOT_APPROVED', str(via['id']))
+        contacts = spec.get('ground_contact_layers')
+        require(isinstance(contacts, list) and contacts and len(contacts) == len(set(contacts))
+                and all(isinstance(x, str) and x in ground_layers[net]
+                        and copper_stack.index(required[0]) <= copper_stack.index(x)
+                        <= copper_stack.index(required[1]) for x in contacts),
+                'STITCH_GND_CONTACT_LAYERS_UNPROVEN',
+                'Contact layers must be approved GND planes within actual via span')
         require(number(value(via['node'], 'size'), 'STITCH_DIAMETER_MISSING') >=
                 number(spec.get('min_diameter_mm'), 'STITCH_DIAMETER_RULE_MISSING')
                 and number(value(via['node'], 'drill'), 'STITCH_DRILL_MISSING') >=
@@ -356,6 +372,7 @@ def ground_audit(root, config_path):
         'stitched_sha256': sha(paths['stitched_board']),
         'final_refilled_sha256': sha(paths['final_refilled_board']),
         'ground_zone_layers': {k: sorted(v) for k, v in ground_layers.items()},
+        'copper_layer_stack': copper_stack,
         'initial_unfilled_ground_layers': first_unfilled,
         'approved_stitching_via_uuids': sorted(ids),
         'remaining': [
