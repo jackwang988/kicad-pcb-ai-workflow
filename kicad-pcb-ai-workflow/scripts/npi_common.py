@@ -82,7 +82,7 @@ system_integration workflow freerouting_adapter skill_modules resource_guard
 routing_policy kicad_ipc_probe script_route_search kicad_bridge konnect_backend konnect_capabilities
 high_speed hs_board_snapshot hs_rule_engine hs_solver
 schematic_geometry schematic_space_map schematic_preplacement
-schematic_wire_planner schematic_incremental_gate schematic_native_geometry pcb_module_layout pcb_fab_approval'''.split())
+schematic_wire_planner schematic_incremental_gate schematic_native_geometry pcb_module_layout pcb_fab_approval pcb_placement_geometry'''.split())
 
 def sha256(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
