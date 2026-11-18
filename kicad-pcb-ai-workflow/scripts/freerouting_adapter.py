@@ -281,7 +281,8 @@ def main():
     ses = dest / (dsn.stem + ".ses")
     command = [java_executable, "-jar", str(jar), "-de", str(dsn),
                "-do", str(ses), "-mp", str(a.passes), "-mt", str(a.threads),
-               "--gui.enabled=false", "-da"]
+               "--gui.enabled=false", "-da",
+               "--router.fanout.enabled=false", "--router.optimizer.enabled=false"]
     if excluded:
         command.extend(["-inc", ",".join(excluded)])
     if rules:
