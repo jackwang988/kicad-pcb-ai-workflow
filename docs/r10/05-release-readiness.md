@@ -6,7 +6,7 @@
 
 | Scope | Current evidence | Conclusion |
 |---|---|---|
-| Software runtime tool inventory, G1–G4 and seven-stage read-only audits | Current GitHub software CI [latest branch run](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44286740566), plus new fixture tests | **Software contract only**; no live PCB routing certification |
+| Software runtime tool inventory, G1–G4 and seven-stage read-only audits | Current GitHub software CI [476 main + 37 R10 regression tests passed](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44287564161), plus new fixture tests | **Software contract only**; no live PCB routing certification |
 | KiCad 10.0.8 native CLI + PCB load, effective rules, DRC, fill and CAM smoke | [Historical tested KiCad 10.0.8 run](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44015065144) | Previous **native toolchain subset** passed; does not demonstrate the new Freerouting workflow |
 | Freerouting 2.5.0 pinned JAR, native KiCad DSN→SES→native import/save | [Current isolated interoperability action](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44286105239) | **Execution/verification in progress; no PASS asserted before actual result** |
 | Windows KiCad 10.0.8 + Freerouting 2.5.0 plugin GUI + Konnect MCP live editor | No fresh Windows GUI/Konnect recording in this development branch | **Not verified** |
