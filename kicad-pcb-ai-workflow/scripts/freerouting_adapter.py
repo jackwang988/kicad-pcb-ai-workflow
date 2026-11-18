@@ -201,7 +201,11 @@ def main():
             return blocked("EXCLUDED_NETCLASS_NOT_IN_DSN", missing_netclasses=missing)
     # A named class does not prove that the expected net belongs to it.
     try:
-        actual_map = specctra_netclass_members(dsn)
+        # Preserve the documented no-JAR/no-routing manual fallback. Any
+        # requested exclusion, actual router, apply or bound map requires a
+        # complete native DSN network inventory before proceeding.
+        inventory_required = bool(a.jar or a.apply or excluded or a.netclass_map)
+        actual_map = specctra_netclass_members(dsn) if inventory_required else {}
     except (ValueError, UnicodeError, OSError) as exc:
         return blocked("DSN_NETCLASS_MEMBERSHIP_UNVERIFIABLE", detail=str(exc))
     implicit_rules = dsn.with_suffix(".rules")
