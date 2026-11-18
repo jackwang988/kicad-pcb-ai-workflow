@@ -207,6 +207,23 @@ def main():
     if "GND" in actual_map and actual_map["GND"] not in excluded:
         return blocked("GND_EFFECTIVE_CLASS_NOT_EXCLUDED",
                        actual_class=actual_map["GND"])
+    implicit_rules = dsn.with_suffix(".rules")
+    rules = a.rules_file.resolve() if a.rules_file else None
+    if implicit_rules.is_file() and rules != implicit_rules.resolve():
+        return blocked("UNAPPROVED_ADJACENT_RULES")
+    rules_hash = None
+    if rules:
+        if rules.suffix.lower() != ".rules" or not rules.is_file() or not rules.stat().st_size:
+            return blocked("INVALID_RULES_FILE")
+        rules_hash = sha256(rules)
+        if a.expected_rules_sha256:
+            if not re.fullmatch(r"[0-9a-fA-F]{64}", a.expected_rules_sha256):
+                return blocked("INVALID_RULES_SHA256")
+            if rules_hash != a.expected_rules_sha256.lower():
+                return blocked("RULES_SHA256_MISMATCH")
+        elif a.apply:
+            return blocked("RULES_HASH_REQUIRED_FOR_EXECUTION")
+
     native_map_sha = None
     if a.netclass_map:
         native_path = a.netclass_map.resolve()
@@ -232,23 +249,6 @@ def main():
             return blocked("NATIVE_NETCLASS_MAP_INVALID", detail=str(exc))
     elif a.apply:
         return blocked("NATIVE_NETCLASS_MAP_REQUIRED_FOR_EXECUTION")
-
-    implicit_rules = dsn.with_suffix(".rules")
-    rules = a.rules_file.resolve() if a.rules_file else None
-    if implicit_rules.is_file() and rules != implicit_rules.resolve():
-        return blocked("UNAPPROVED_ADJACENT_RULES")
-    rules_hash = None
-    if rules:
-        if rules.suffix.lower() != ".rules" or not rules.is_file() or not rules.stat().st_size:
-            return blocked("INVALID_RULES_FILE")
-        rules_hash = sha256(rules)
-        if a.expected_rules_sha256:
-            if not re.fullmatch(r"[0-9a-fA-F]{64}", a.expected_rules_sha256):
-                return blocked("INVALID_RULES_SHA256")
-            if rules_hash != a.expected_rules_sha256.lower():
-                return blocked("RULES_SHA256_MISMATCH")
-        elif a.apply:
-            return blocked("RULES_HASH_REQUIRED_FOR_EXECUTION")
 
     if a.jar is None or not a.jar.is_file():
         print(json.dumps({**base, "status": "MANUAL_ROUTING_FALLBACK",
