@@ -102,7 +102,7 @@ python scripts/routing_seven_stage.py audit-final /path/project --config route-f
 | KiCad→Freerouting 2.5.0→SES→KiCad 原生往返 | **FAILED / BLOCKED**：[专用 Actions 记录](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44286105239)。真实 DSN、SES 已生成，但 KiCad 导入后 GND 被布线（`GND_AUTOROUTED_DESPITE_EXCLUSION`），`-inc GND` 未达到受保护网络契约；**普通网络自动布线不能作为已验收默认执行路径** |
 | 不同层数/高速与电源混合项目、CAM/试产 | 未作为自动化通用能力认证；每个真实产品需独立验收 |
 
-**当前已知阻断：本次原生测试表明 GND 保护失效。必须核对实际 DSN 中网络的有效/复合 NetClass 归属，修正排除策略，再完成真实导入、保存回读与原生DRC；无法证实受保护网络未改动时保持 BLOCKED。**
+**当前已知阻断（[Issue #8](https://github.com/jackwang988/kicad-pcb-ai-workflow/issues/8)）：本次原生测试表明 GND 保护失效。必须核对实际 DSN 中网络的有效/复合 NetClass 归属，修正排除策略，再完成真实导入、保存回读与原生DRC；无法证实受保护网络未改动时保持 BLOCKED。**
 
 **软件发布不等于 PCB 可投产授权。** 源码测试、保存板上的G4 DRC、工程师的电气/热/高速审核以及板厂CAM/EQ/样机测试是独立步骤。Gerber、钻孔、BOM、CPL 导出成功仍标记 `EXPORTED_NOT_RELEASED`。
 
