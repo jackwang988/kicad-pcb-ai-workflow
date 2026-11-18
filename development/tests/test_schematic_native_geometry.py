@@ -11,11 +11,12 @@ import unittest
 from unittest.mock import patch
 ROOT=pathlib.Path(__file__).resolve().parents[2]/'kicad-pcb-ai-workflow'
 sys.path.insert(0,str(ROOT/'scripts'))
-from schematic_native_geometry import symbol_geometry,placed_instance_geometry,snapshot,_arc_bbox,_bezier_bbox
+from schematic_native_geometry import symbol_geometry,placed_instance_geometry,snapshot,prospective_geometry,_arc_bbox,_bezier_bbox
 from schematic_geometry import evidence,sha
 from schematic_io import parse
 from npi_common import children
 from schematic_preplacement import layout
+from schematic_space_map import placements
 from schematic_incremental_gate import authorize
 
 SYM='''(kicad_symbol_lib (version 20231120) (generator "kicad_symbol_editor")
@@ -55,6 +56,56 @@ class NativeGeometryTests(unittest.TestCase):
         self.assertAlmostEqual(g['pins'][0]['xy_mm'][0],-5.08)
         self.assertLess(g['body_bbox_mm'][0],-5.08)
         self.assertFalse(g['text_render_exact'])
+    def test_library_identifier_is_metadata_not_visible_geometry(self):
+        original=symbol_geometry(self.root,self.root/'working.kicad_sch','Fixture:Fixture')
+        long_name='UnreasonablyLongLibrarySymbolIdentifierWithNoDisplayedText'
+        lib=SYM.replace('(symbol "Fixture"',f'(symbol "{long_name}"').replace('Fixture_1_1',f'{long_name}_1_1')
+        (self.root/'Fixture.kicad_sym').write_text(lib)
+        (self.root/'empty.kicad_sch').write_text('(kicad_sch (paper "A4") (lib_symbols))')
+        other=symbol_geometry(self.root,self.root/'empty.kicad_sch',f'Fixture:{long_name}',library_file='Fixture.kicad_sym')
+        self.assertEqual(original['body_bbox_mm'],other['body_bbox_mm'])
+        self.assertEqual([f['bbox_mm'] for f in original['fields']],[f['bbox_mm'] for f in other['fields']])
+        self.assertNotIn('lib_id',{f['name'] for f in other['fields']})
+        self.assertNotIn(f'Fixture:{long_name}',[f['text'] for f in other['fields']])
+
+    def test_unset_value_inherits_actual_native_value_not_identifier_suffix(self):
+        long_name='VeryLongSymbolNameNotPrintedInSchematic'
+        lib=SYM.replace('(symbol "Fixture"',f'(symbol "{long_name}"').replace('Fixture_1_1',f'{long_name}_1_1')
+        (self.root/'Fixture.kicad_sym').write_text(lib)
+        (self.root/'empty.kicad_sch').write_text('(kicad_sch (paper "A4") (lib_symbols))')
+        topo={('R1','1'):'SIG',('R1','2'):'GND'}
+        g=prospective_geometry(self.root,self.root/'empty.kicad_sch',
+          {'ref':'R1','lib_id':f'Fixture:{long_name}','library_file':'Fixture.kicad_sym'},topo,5.0)
+        self.assertEqual({f['name']:f['text'] for f in g['fields']},{'Reference':'R1','Value':'Fixture'})
+        placed=placements({'ref':'R1','geometry':g},(50,50),0,5,0.4)
+        self.assertEqual({n for n,b in placed['objects']},{'body','field:Reference','field:Value'})
+        self.assertNotIn('lib_id',str(placed['objects']))
+        self.assertLess(max(b[2]-b[0] for n,b in placed['objects']),22)
+        with self.assertRaisesRegex(ValueError,'Visible Value must be'):
+            prospective_geometry(self.root,self.root/'empty.kicad_sch',
+              {'ref':'R1','lib_id':f'Fixture:{long_name}','library_file':'Fixture.kicad_sym','value':42},topo,5.0)
+
+    def test_hidden_native_value_does_not_block_placement_space(self):
+        hidden=SYM.replace('(property "Value" "Fixture" (at 0 -3.81 0) (effects (font (size 1.27 1.27))))',
+                           '(property "Value" "Fixture" (at 0 -3.81 0) (effects (font (size 1.27 1.27)) (hide yes)))')
+        (self.root/'Fixture.kicad_sym').write_text(hidden)
+        (self.root/'empty.kicad_sch').write_text('(kicad_sch (paper "A4") (lib_symbols))')
+        topo={('R1','1'):'SIG',('R1','2'):'GND'}
+        g=prospective_geometry(self.root,self.root/'empty.kicad_sch',
+          {'ref':'R1','lib_id':'Fixture:Fixture','library_file':'Fixture.kicad_sym'},topo,5.0)
+        self.assertTrue(next(f for f in g['fields'] if f['name']=='Value')['hidden'])
+        placed=placements({'ref':'R1','geometry':g},(50,50),0,5,0.4)
+        self.assertEqual([n for n,b in placed['objects']],['body','field:Reference'])
+        self.assertEqual(len(g['pins']),2)
+
+    def test_instance_lib_id_not_in_rendered_collision_boxes(self):
+        one=snapshot(self.root,'working.kicad_sch',self.protected)['pages']['working.kicad_sch']['objects'][0]
+        expanded=SCH.replace('Fixture:Fixture','Fixture:AnExtremelyLongSymbolLibraryIdentifier')
+        (self.root/'other.kicad_sch').write_text(expanded)
+        two=snapshot(self.root,'other.kicad_sch',self.protected)['pages']['other.kicad_sch']['objects'][0]
+        self.assertEqual(one['bbox_mm'],two['bbox_mm'])
+        self.assertEqual(one['collision_boxes_mm'],two['collision_boxes_mm'])
+
     def test_resolve_before_placement_from_actual_kicad_sym(self):
         (self.root/'empty.kicad_sch').write_text('(kicad_sch (paper "A4") (lib_symbols))')
         g=symbol_geometry(self.root,self.root/'empty.kicad_sch','Fixture:Fixture',1,1,'Fixture.kicad_sym')

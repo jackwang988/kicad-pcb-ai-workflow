@@ -60,13 +60,15 @@ For the planner, use **`geometry_mode: "native_auto"`** and **`protected_regions
 }
 ```
 
-This is an **illustrative partial request**; supply the normal independent pin-to-net contract, connection list, routing/label settings and real sheet keepouts before planning. Required per-component input is now the **KiCad library identifier, component value, net topology, and optional placement zones**—not guessed body/pin geometry.
+This is an **illustrative partial request**; supply the normal independent pin-to-net contract, connection list, routing/label settings and real sheet keepouts before planning. Required per-component input is the **KiCad library identifier, net topology, and optional actual displayed Value / placement zones**—not guessed body/pin geometry. An unspecified `value` inherits the native symbol library `Value` property; the `lib_id` itself is always non-rendered lookup metadata.
 
 ## What is exact and what is not
 
 | Quantity | Evidence/precision |
 |---|---|
 | Supported symbol drawing primitives, coordinates, pin endpoints | Native source-derived, geometric calculations |
+| `lib_id` (such as `Device:R`) | **Lookup metadata only; never a visible text object and never a source of collision width.** Changing identifier length must not change the placement bounds. |
+| Actual displayed `Reference` (`R1`), `Value` (`10k`) and other visible text | Occupancy counts their shown text, with conservative font estimates; hidden properties are not obstacles. If the prospective instance does not declare `value`, inherit the **native KiCad library `Value` field**, never `lib_id` or its suffix. |
 | Actual placed instance origin/rotation/mirror | Native `.kicad_sch` |
 | Existing Reference/Value text positions, font sizes, visible/hidden flags | Native `.kicad_sch` metadata |
 | **Exact glyph outline** of KiCad's rendered font, especially complex Unicode | **Not guaranteed by text-size metadata.** Use conservative bounds and the real KiCad SVG/PDF during post-write review |

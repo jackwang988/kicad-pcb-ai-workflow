@@ -511,13 +511,24 @@ def prospective_geometry(root,schematic,symbol,topology,pin_escape_mm):
         if p['number'] in pin_map:raise ValueError('Duplicate native pin number in selected symbol unit')
         pin_map[p['number']]=p
     if not pin_map:raise ValueError('Native symbol has no pin endpoints')
+    # lib_id identifies the library symbol; it is NOT a rendered schematic field.
+    # An absent instance Value inherits the KiCad library's actual Value property,
+    # not the library identifier or its suffix (which may be much longer).
     fields=[]
     for f in g['fields']:
-        value_text=(ref if f['name']=='Reference' else str(symbol.get('value',g['lib_id'].split(':')[-1])))
+        if f['name']=='Reference':
+            display_text=ref
+        elif f['name']=='Value':
+            explicit=symbol.get('value')
+            if explicit is not None and not isinstance(explicit,str):
+                raise ValueError('Visible Value must be an explicit string or use the native library default')
+            display_text=f['text'] if explicit is None else explicit
+        else:
+            raise ValueError('Unexpected native field in prospective geometry')
         size=f['font_size_mm']
         effects=['effects',['font',['size',*size]]]
-        b=_font_box(value_text,tuple(f['at_local_mm']),effects,f['angle_deg'])
-        fields.append({**f,'bbox_mm':b,'text':value_text})
+        b=_font_box(display_text,tuple(f['at_local_mm']),effects,f['angle_deg'])
+        fields.append({**f,'bbox_mm':b,'text':display_text})
     g['fields']=fields
     g['labels']=[]
     for lab in symbol.get('labels',[]):

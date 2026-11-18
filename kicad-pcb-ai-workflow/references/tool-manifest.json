@@ -508,7 +508,7 @@
     },
     {
       "file": "scripts/schematic_native_geometry.py",
-      "sha256": "21fba79f8043d75b6cf141fb0107430391004623b946a1eee01130bcb25108a4",
+      "sha256": "e91f239edf14f41d909c9092608622e142d103ac97f4eff92e1f5548f495f34f",
       "version": "R10-native-geometry-preview",
       "command": "python scripts/schematic_native_geometry.py --help (symbol / snapshot)",
       "input": "Native KiCad .kicad_sch/.kicad_sym, worksheet protected region contract; read-only",
@@ -534,7 +534,7 @@
     },
     {
       "file": "scripts/schematic_space_map.py",
-      "sha256": "e2a053a9ffe6c8f3573eb588a3882c1d5b8dc8a216b12caac54cde1c88e693fd",
+      "sha256": "221c045194d64caf01a2743140e2de34b65ebf68e4ccd35b28c28b938121fb02",
       "version": "R10-preplacement-v1-preview",
       "command": "Python library: schematic_space_map",
       "input": "Existing source-bound geometry, independently authored topology, exact project state; no guessed dimensions.",

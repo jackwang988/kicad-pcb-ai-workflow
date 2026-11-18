@@ -50,7 +50,7 @@ def placements(symbol, at, angle, pin_escape, width):
     obbs=[('body',body)]
     fields=geom.get('fields', [])
     if not fields or not {'Reference','Value'}.issubset({f.get('name') for f in fields}):
-        raise ValueError('Visible Reference and Value field geometry required for '+symbol['ref'])
+        raise ValueError('Native Reference and Value field metadata required for '+symbol['ref'])
     for f in fields:
         if not f.get('hidden',False):
             obbs.append(('field:'+f['name'],box_at(f['bbox_mm'],at,angle)))
