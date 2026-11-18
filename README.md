@@ -215,3 +215,7 @@ python3 -B -m unittest discover -s development/tests -v
 基础工具接通、软件回归和真实产品验收分别记录。真实项目仍需完成原生同步、规则命中、布局布线、覆铜/DRC、AI/本人确认、CAM/工厂EQ和样机测试。静态线宽检查不是阻抗场求解，二维图不是完整3D干涉或热分析；未覆盖项按实际任务补证据。
 
 [能力范围](kicad-pcb-ai-workflow/references/capabilities.md) · [31个工具索引](docs/SCRIPTS.md) · [版本说明](RELEASE_NOTES.md) · [贡献指南](CONTRIBUTING.md) · [数据处理](SECURITY.md)
+
+## Current R10 full-system execution diagrams
+
+For the newest **16-node Skill architecture, seven-stage Freerouting 2.5.0 ordinary-net routing pipeline, G3/G4 distinction and native acceptance matrix**, see [R10 current full workflow and architecture](docs/r10/06-current-skill-full-flow.md). This is the living candidate architecture: offline DSN→SES is not equal to verified KiCad copper, and production release is gated independently.
