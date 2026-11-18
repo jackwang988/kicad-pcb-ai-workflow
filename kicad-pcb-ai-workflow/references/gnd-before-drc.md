@@ -15,7 +15,7 @@ they are NOT the G4 full-board DRC.
    and fill real GND zones **only on explicitly approved ground-bearing copper
    layers** (for example F.Cu and B.Cu on a two-layer design, or explicit In*.Cu
    ground layers on multilayer designs). Check plane priorities, keepouts,
-   clearances, thermal relief and the actual filled polygons per layer. Save,
+   clearances, thermal relief and verify zone definitions on each layer. A currently unanchored plane can temporarily produce **no filled polygon** because KiCad removes an isolated copper island; that is acceptable only when approved stitching follows and the **final** re-fill shows real GND copper on every required layer. Save,
    reload and hash the board as `first_filled_board`. A zone outline is not fill.
 3. **Review GND topology** — Inspect pads, split/isolated islands, reference
    return continuity and actual points with ground copper on intended layers.
@@ -34,8 +34,7 @@ they are NOT the G4 full-board DRC.
    reload and hash `final_refilled_board`. Repeat after ANY edit to via,
    copper, zone, component position, clearance or board geometry.
 6. **Pre-DRC ground gate** — Run `routing_seven_stage.py audit-ground` over
-   those four hash-bound actual PCB files. It checks real filled polygons for
-   each expected GND layer, unchanged non-ground tracks/footprints and exactly
+   those four hash-bound actual PCB files. It checks GND-zone definitions for every expected layer, explicitly records any first-fill unanchored layers, and requires **actual final filled polygons** on every approved GND layer, unchanged non-ground tracks/footprints and exactly
    approved, correctly sized GND stitching vias. Produce a fresh immutable
    `GROUND_FILLED_STITCHING_AUDITED_READY_FOR_NATIVE_DRC` JSON report.
    **This is a READ-ONLY geometry/snapshot gate, NOT proof of connectivity
