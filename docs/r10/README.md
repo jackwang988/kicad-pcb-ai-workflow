@@ -1,6 +1,12 @@
-# R10 系统架构与运行流程（候选版）
+# R10 当前 Skill 架构与运行流程（持续验收版）
 
-## 五张可直接查看或另存为SVG的流程图
+## 最新架构与详细流程（优先阅读）
+
+[**R10 最新完整系统架构、16 节点全流程图、Freerouting 7 阶段详细布线流程、测试证据分级**](06-current-skill-full-flow.md)
+
+这份最新版严格区分已编码的软件规划/审核能力、离线 Freerouting SES 候选、真实 KiCad/Konnect 写入与独立 G4 验收。旧版 5 张 SVG 作为历史架构参考保存，不代表最新布线执行顺序。
+
+## 历史五张 SVG 预览
 
 ![系统总体架构](figures/01-system-architecture.svg)
 
@@ -12,17 +18,17 @@
 | [Konnect动态能力与单写入闭环](figures/04-konnect-capabilities.svg) | 动态发现→按需验收→回读→原生DRC |
 | [16节点逐项详细规则](figures/05-16-node-details.svg) | 每节点的工作重点 |
 
-> **仓库当前正式版本仍是 R9.4。** 本目录介绍 2026-11-17 的 R10 独立候选 Skill：器件知识卡跨项目/跨G1–G4复用、Konnect MCP单写入、动态能力发现及风险分级。**这些文档不意味着 R10 源码或安装包已发布到 main**；详见 [迁移与验收状态](05-release-readiness.md)。
+> **当前 main 集成 R10.0.0-rc.1，七阶段 Freerouting 候选改造位于待验收开发分支。** 本目录仍保留 2026-11-17 的 R10 架构历史图片：器件知识卡跨项目/跨G1–G4复用、Konnect MCP单写入、动态能力发现及风险分级。**这些历史图片不意味着七阶段 Freerouting 集成已经在 main 发布或通过实机验收**；详见 [迁移与验收状态](05-release-readiness.md)。
 
 ## 从哪里开始看
 
 | 阅读顺序 | 图文 | 看完理解什么 |
 |---|---|---|
-| 1 | [系统总架构](01-system-architecture.md) | AI、Python、Konnect、KiCad、门禁如何协作 |
-| 2 | [16节点主线及逐项规则](02-16-node-workflow.md) | 从需求到制造候选的完整执行步骤 |
-| 3 | [器件知识库复用](03-device-knowledge-reuse.md) | 芯片资料一次核对、跨项目和G1–G4复用 |
-| 4 | [Konnect动态工具与单写入闭环](04-konnect-capability-and-single-writer.md) | 发现工具、按风险验证、执行、读回、DRC |
-| 5 | [真实能力及测试状态](05-release-readiness.md) | 已编码与未在真实KiCad端到端验收的边界 |
+| 1 | [最新完整架构及布线详细流程](06-current-skill-full-flow.md) | 真实模块关系、最新16节点、七阶段布线、测试层级与能力边界 |\n| 2 | [系统总架构](01-system-architecture.md) | AI、Python、Konnect、KiCad、门禁如何协作 |
+| 3 | [16节点主线及逐项规则](02-16-node-workflow.md) | 从需求到制造候选的完整执行步骤 |
+| 4 | [器件知识库复用](03-device-knowledge-reuse.md) | 芯片资料一次核对、跨项目和G1–G4复用 |
+| 5 | [Konnect动态工具与单写入闭环](04-konnect-capability-and-single-writer.md) | 发现工具、按风险验证、执行、读回、DRC |
+| 6 | [真实能力及测试状态](05-release-readiness.md) | 已编码与未在真实KiCad端到端验收的边界 |
 
 ## 一句话理解
 
