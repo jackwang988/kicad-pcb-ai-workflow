@@ -341,10 +341,12 @@ def ground_audit(root, config_path):
     # No unapproved pad/footprint, trace, via or net change is permitted.
     # Fill polygon changes are expected between snapshots; DRC tests whether
     # each via actually contacts each intended plane and whether islands remain.
-    require(not approved or (paths['stitched_board'] != paths['final_refilled_board']
-                            and sha(paths['stitched_board']) != sha(paths['final_refilled_board'])),
+    # A successful refill may produce identical filled-polygon geometry if the
+    # approved via lies fully inside copper. Require distinct saved checkpoints,
+    # not arbitrary content drift; native fill receipt/provenance is separate.
+    require(not approved or paths['stitched_board'] != paths['final_refilled_board'],
             'GND_REFILL_CHECKPOINT_MISSING',
-            'Refill/re-save changed copper after adding GND vias is mandatory')
+            'A separate saved/refilled PCB checkpoint after GND vias is mandatory')
     return {
         'status': 'GROUND_FILLED_STITCHING_AUDITED_READY_FOR_NATIVE_DRC',
         'production_authorized': False, 'g4_approved': False,
