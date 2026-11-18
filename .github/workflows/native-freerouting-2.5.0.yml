@@ -2,10 +2,18 @@ name: Native KiCad 10 + Freerouting 2.5.0 isolated DSN/SES roundtrip
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - development/native_freerouting_250_e2e.py
+      - kicad-pcb-ai-workflow/scripts/freerouting_adapter.py
+      - kicad-pcb-ai-workflow/scripts/workflow.py
+      - kicad-pcb-ai-workflow/references/tool-manifest.json
+      - .github/workflows/native-freerouting-2.5.0.yml
   push:
     branches:
       - main
-      - fix/r10-gnd-netclass-native-20261118
     paths:
       - development/native_freerouting_250_e2e.py
       - kicad-pcb-ai-workflow/scripts/freerouting_adapter.py
