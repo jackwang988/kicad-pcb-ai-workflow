@@ -221,11 +221,40 @@ class RoutingSevenStageAuditTests(unittest.TestCase):
         result = seven.ground_audit(self.root, 'ground.json')
         self.assertEqual(result['approved_stitching_via_uuids'], [])
 
-    def test_ground_missing_first_fill_blocks(self):
+    def test_ground_missing_first_zone_definition_blocks(self):
         self.ground_fixture(initial_fill=False)
         with self.assertRaises(seven.RoutingBlocked) as error:
             seven.ground_audit(self.root, 'ground.json')
-        self.assertEqual(error.exception.code, 'GND_LAYER_NOT_FILLED')
+        self.assertEqual(error.exception.code, 'GND_ZONE_NOT_DEFINED')
+
+    def test_initial_unanchored_zone_allowed_when_stitched_and_finally_filled(self):
+        self.ground_fixture()
+        # Model an unanchored B.Cu pour: KiCad keeps its outline, but the
+        # first fill removes the unconnected copper island before a GND via.
+        for filename in ('first-fill.kicad_pcb', 'stitched.kicad_pcb'):
+            p = self.root / filename
+            source = p.read_text(encoding='utf-8')
+            source = source.replace(
+                '(filled_polygon (layer "B.Cu") (pts (xy 0 0)))', '')
+            p.write_text(source, encoding='utf-8')
+        cfg = json.loads((self.root / 'ground.json').read_text())
+        cfg['first_filled_board'] = self.bind('first-fill.kicad_pcb')
+        cfg['stitched_board'] = self.bind('stitched.kicad_pcb')
+        (self.root / 'ground.json').write_text(json.dumps(cfg))
+        out = seven.ground_audit(self.root, 'ground.json')
+        self.assertEqual(out['initial_unfilled_ground_layers']['GND'], ['B.Cu'])
+
+    def test_initial_unanchored_zone_without_stitch_blocks(self):
+        self.ground_fixture(add_stitch=False)
+        p = self.root / 'first-fill.kicad_pcb'
+        p.write_text(p.read_text().replace(
+            '(filled_polygon (layer "B.Cu") (pts (xy 0 0)))', ''))
+        cfg = json.loads((self.root / 'ground.json').read_text())
+        cfg['first_filled_board'] = self.bind('first-fill.kicad_pcb')
+        (self.root / 'ground.json').write_text(json.dumps(cfg))
+        with self.assertRaises(seven.RoutingBlocked) as err:
+            seven.ground_audit(self.root, 'ground.json')
+        self.assertEqual(err.exception.code, 'GND_FIRST_FILL_UNANCHORED')
 
     def test_ground_missing_final_refill_blocks(self):
         self.ground_fixture(final_fill=False)
