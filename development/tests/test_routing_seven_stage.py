@@ -83,6 +83,28 @@ class RoutingSevenStageAuditTests(unittest.TestCase):
             seven.audit(self.root, self.write_cfg(), 'import')
         self.assertEqual(error.exception.code, 'TRACK_WIDTH_UNDERSIZED')
 
+    def test_existing_ordinary_copper_cannot_be_silently_removed(self):
+        (self.root / 'before.kicad_pcb').write_text(board(
+            seg('old', 0, 0, 0, 1)), encoding='utf-8')
+        self.config['before_board'] = self.bind('before.kicad_pcb')
+        self.change_after(board(seg('new', 0, 0, 1, 1), zone=True))
+        with self.assertRaises(seven.RoutingBlocked) as error:
+            seven.audit(self.root, self.write_cfg(), 'import')
+        self.assertEqual(error.exception.code, 'UNAUTHORIZED_RIPUP')
+        self.config['allowed_removed_track_uuids'] = ['old']
+        out = seven.audit(self.root, self.write_cfg(), 'import')
+        self.assertEqual(out['removed_prior_tracks'], 1)
+
+    def test_footprints_cannot_move_during_ses_import(self):
+        first = '(footprint "X:Y" (layer "F.Cu") (at 5 5) (uuid "fp1"))'
+        moved = '(footprint "X:Y" (layer "F.Cu") (at 6 5) (uuid "fp1"))'
+        (self.root / 'before.kicad_pcb').write_text(board(footprint=first), encoding='utf-8')
+        self.config['before_board'] = self.bind('before.kicad_pcb')
+        self.change_after(board(seg('new', 0, 0, 1, 1), zone=True, footprint=moved))
+        with self.assertRaises(seven.RoutingBlocked) as error:
+            seven.audit(self.root, self.write_cfg(), 'import')
+        self.assertEqual(error.exception.code, 'FOOTPRINTS_CHANGED_BY_ROUTER')
+
     def test_stale_hash_is_rejected(self):
         self.config['after_board']['sha256'] = '0'*64
         with self.assertRaises(seven.RoutingBlocked) as error:
