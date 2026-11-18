@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "package_kind": "universal_runtime",
-  "revision": "2026.11.18-R10-freerouting-candidate-hash-netclass-gates",
+  "revision": "2026-11-18-R10-freerouting-seven-stage-routing-audit-preview",
   "active": [
     {
       "file": "scripts/assembly_guard.py",
@@ -319,7 +319,7 @@
     },
     {
       "file": "scripts/npi_common.py",
-      "sha256": "8d5816dfa33fed6fdf1c0246bec7d75b3bcffaf599455d0240584ba2f1704ebe",
+      "sha256": "e2b6de29c7c811e4bede719d7ba3955a710ca14173aecad7a18f508bd0a5afd9",
       "version": "R10.0-alpha.3",
       "command": "Python module imported by mass_production_review.py",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -329,7 +329,7 @@
         "1": "comparison/path FAIL where supported",
         "2": "BLOCKED/input/tool failure"
       },
-      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.; seven-stage flow updated with software fixtures only; live routing pending"
     },
     {
       "file": "scripts/npi_geometry.py",
@@ -372,6 +372,45 @@
         "2": "BLOCKED/input/tool failure"
       },
       "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
+    },
+    {
+      "file": "scripts/pcb_fab_approval.py",
+      "sha256": "3b516bf4fd6152165d8d4d6a0043f2b7772bdb5f3025a3f2eb635fb3c5af1d4c",
+      "version": "R10-JLCPCB-consent-v1-preview",
+      "command": "python scripts/pcb_fab_approval.py preview|confirm PROJECT ...",
+      "input": "Current KiCad 2/4/6/8-layer FR4 board, dated factory catalog and explicit human user decision",
+      "output": "Conservative read-only factory proposal or immutable human approval plus fab rules; no EDA edit",
+      "exit_codes": {
+        "0": "Preview pending user confirmation or explicit confirmation recorded; not manufacturing approval",
+        "2": "BLOCKED; never advance to PCB layout"
+      },
+      "validation_scope": "Offline software fixtures; live KiCad/Konnect and actual factory confirmation remain separate"
+    },
+    {
+      "file": "scripts/pcb_module_layout.py",
+      "sha256": "4b43fffd84ea26b734e0d285b655602919748023333a64afd4d7af16f491c1ec",
+      "version": "R10-two-level-pcb-preview",
+      "command": "python scripts/pcb_module_layout.py {preflight|plan} /project --request REQUEST [--receipt RECEIPT]",
+      "input": "Actual current KiCad PCB/project, XML netlist, sourced fabrication minima, placement policy and native design-intent audit",
+      "output": "Read-only native rules readiness receipt or bounded local-module/whole-board placement proposal",
+      "validation_scope": "Synthetic native KiCad-format courtyard polygon, mechanical obstruction and selected hard electrical placement tests; actual KiCad/Konnect DRC acceptance pending",
+      "exit_codes": {
+        "0": "Scoped read-only plan; not production acceptance",
+        "2": "BLOCKED or REPLAN_REQUIRED; no KiCad write"
+      }
+    },
+    {
+      "file": "scripts/pcb_placement_geometry.py",
+      "sha256": "c500abede30b4e2efb2995a0266c4ae6c0674a1047d6e3725c570edafd9d8289",
+      "version": "R10-courtyard-hard-rule-preview",
+      "command": "Python import: pcb_placement_geometry",
+      "input": "Native KiCad courtyard, Keepout and NPTH obstacle geometries",
+      "output": "Read-only polygon collision and selected mechanical/electrical exclusion predicates",
+      "validation_scope": "Synthetic software fixtures only; native KiCad DRC and Konnect execution pending",
+      "exit_codes": {
+        "0": "Read-only geometry screening, not production approval",
+        "2": "BLOCKED on unsupported/unsafe geometry"
+      }
     },
     {
       "file": "scripts/placement_review.py",
@@ -453,6 +492,19 @@
       "sha256": "97a116b5d6670dd86e7249873c04792207f92b4f4118b0815cd7bce5c0677909",
       "version": "R10.0-alpha.3",
       "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
+    },
+    {
+      "file": "scripts/routing_seven_stage.py",
+      "sha256": "bde4aa428074a1e2dfe10a4eb168478ff2110458f5679633b43fbbff8de94dcf",
+      "version": "R10-seven-stage-preview-1",
+      "command": "python scripts/routing_seven_stage.py --help",
+      "input": "Project-local source-hash-bound full routing request + real saved candidate boards + Native KiCad DRC JSON",
+      "output": "Read-only seven-stage plan or saved-board import/final geometry audit; never actual SES import or manufacturing authorization",
+      "exit_codes": {
+        "0": "Read-only stage plan or limited geometry audit, G4 remains pending",
+        "2": "BLOCKED; invalid evidence/geometry/rules"
+      },
+      "validation_scope": "Python synthetic fixtures only; native KiCad save/reload, Freerouting live DSN/SES, Konnect acceptance and G4 separate"
     },
     {
       "file": "scripts/schematic_candidate.py",
@@ -669,7 +721,7 @@
     },
     {
       "file": "scripts/workflow.py",
-      "sha256": "87a4f071405902e0ac24fb92ffffa2340c8bba11707cc24dcef63885e8849b93",
+      "sha256": "85d1c9fe661d57004a41c9d4666e8d5555b5e2c46c1d681a550079e79dc3153a",
       "version": "R10.0-alpha.3-local.5+cache-first-1",
       "command": "python3 scripts/workflow.py --help (includes architecture.sources_resolve and architecture.sources_register tasks)",
       "input": "One shared master; immutable flow/static/npi bundles; explicit fixed task and typed arguments",
@@ -679,46 +731,7 @@
         "1": "Child comparison FAIL",
         "2": "BLOCKED/pending required inputs"
       },
-      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
-    },
-    {
-      "file": "scripts/pcb_module_layout.py",
-      "sha256": "4b43fffd84ea26b734e0d285b655602919748023333a64afd4d7af16f491c1ec",
-      "version": "R10-two-level-pcb-preview",
-      "command": "python scripts/pcb_module_layout.py {preflight|plan} /project --request REQUEST [--receipt RECEIPT]",
-      "input": "Actual current KiCad PCB/project, XML netlist, sourced fabrication minima, placement policy and native design-intent audit",
-      "output": "Read-only native rules readiness receipt or bounded local-module/whole-board placement proposal",
-      "validation_scope": "Synthetic native KiCad-format courtyard polygon, mechanical obstruction and selected hard electrical placement tests; actual KiCad/Konnect DRC acceptance pending",
-      "exit_codes": {
-        "0": "Scoped read-only plan; not production acceptance",
-        "2": "BLOCKED or REPLAN_REQUIRED; no KiCad write"
-      }
-    },
-    {
-      "file": "scripts/pcb_fab_approval.py",
-      "sha256": "3b516bf4fd6152165d8d4d6a0043f2b7772bdb5f3025a3f2eb635fb3c5af1d4c",
-      "version": "R10-JLCPCB-consent-v1-preview",
-      "command": "python scripts/pcb_fab_approval.py preview|confirm PROJECT ...",
-      "input": "Current KiCad 2/4/6/8-layer FR4 board, dated factory catalog and explicit human user decision",
-      "output": "Conservative read-only factory proposal or immutable human approval plus fab rules; no EDA edit",
-      "exit_codes": {
-        "0": "Preview pending user confirmation or explicit confirmation recorded; not manufacturing approval",
-        "2": "BLOCKED; never advance to PCB layout"
-      },
-      "validation_scope": "Offline software fixtures; live KiCad/Konnect and actual factory confirmation remain separate"
-    },
-    {
-      "file": "scripts/pcb_placement_geometry.py",
-      "sha256": "c500abede30b4e2efb2995a0266c4ae6c0674a1047d6e3725c570edafd9d8289",
-      "version": "R10-courtyard-hard-rule-preview",
-      "command": "Python import: pcb_placement_geometry",
-      "input": "Native KiCad courtyard, Keepout and NPTH obstacle geometries",
-      "output": "Read-only polygon collision and selected mechanical/electrical exclusion predicates",
-      "validation_scope": "Synthetic software fixtures only; native KiCad DRC and Konnect execution pending",
-      "exit_codes": {
-        "0": "Read-only geometry screening, not production approval",
-        "2": "BLOCKED on unsupported/unsafe geometry"
-      }
+      "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence.; seven-stage flow updated with software fixtures only; live routing pending"
     }
   ]
 }
