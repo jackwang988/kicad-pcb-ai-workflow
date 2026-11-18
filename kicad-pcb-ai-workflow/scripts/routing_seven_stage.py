@@ -165,7 +165,7 @@ def board_snapshot(path):
             require(len(net_field) in (2, 3), 'INVALID_PAD_NET', str(net_field))
             if len(net_field) == 3:
                 key, name = str(net_field[1]), str(net_field[2])
-                require(key.isdigit() and name,
+                require(key.isdigit() and (bool(name) or key == '0'),
                         'INVALID_PAD_NET', str(net_field))
                 if key in codes:
                     require(codes[key] == name, 'PAD_NET_CODE_CONFLICT', str(net_field))
@@ -175,7 +175,8 @@ def board_snapshot(path):
                     codes[key] = name
             else:
                 name = str(net_field[1])
-                require(bool(name), 'INVALID_PAD_NET', str(net_field))
+                if not name:
+                    continue  # KiCad 10 name-only unconnected pad.
                 require(not name.isdigit(), 'PAD_NUMERIC_NET_WITHOUT_NAME',
                         str(net_field))
                 pad_named.add(name)
@@ -218,7 +219,9 @@ def board_snapshot(path):
                 objects[uid] = json.dumps(node, sort_keys=True, ensure_ascii=True)
                 if kind == "footprint":
                     footprints[uid] = objects[uid]
-            name = resolve_net(node, kind) if kind != 'footprint' else None
+            name = (resolve_net(node, kind) if kind in
+                    ('segment', 'via', 'arc') or
+                    (kind == 'zone' and child(node, 'net')) else None)
             if kind in {'segment', 'via', 'arc'}:
                 require(name is not None, 'UNKNOWN_TRACK_NET', kind)
                 track = {'kind': kind, 'net': name, 'node': node, 'id': uid}
