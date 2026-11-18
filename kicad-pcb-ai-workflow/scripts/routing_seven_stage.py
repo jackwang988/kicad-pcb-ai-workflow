@@ -228,6 +228,21 @@ def ground_filled_layers(snapshot, net):
     return found
 
 
+def ground_defined_layers(snapshot, net):
+    """Approved layer definitions may exist before any connected fill islands."""
+    found = set()
+    for zone in snapshot['zones']:
+        if zone['net'] != net:
+            continue
+        node = zone['node']
+        layer = value(node, 'layer')
+        if layer:
+            found.add(str(layer))
+        ls = child(node, 'layers', [])
+        found.update(str(x) for x in ls[1:] if isinstance(x, str))
+    return found
+
+
 def ground_audit(root, config_path):
     """Read-only GND-first-fill / approved-stitch / final-refill gate BEFORE DRC.
 
@@ -263,14 +278,24 @@ def ground_audit(root, config_path):
                 and all(isinstance(layer, str) and layer.endswith('.Cu') for layer in v)
                 for k, v in ground_layers.items()),
             'INVALID_GND_ZONE_LAYERS', 'Ground layer list must match actual named nets')
+    first_unfilled = {}
     for name, layers in ground_layers.items():
-        for stage, snapshot in (('initial', first), ('final', final)):
-            missing = set(layers) - ground_filled_layers(snapshot, name)
-            require(not missing, 'GND_LAYER_NOT_FILLED',
-                    f'{stage}: {name}: {sorted(missing)}')
+        missing_outline = set(layers) - ground_defined_layers(first, name)
+        require(not missing_outline, 'GND_ZONE_NOT_DEFINED',
+                f'first-fill: {name}: {sorted(missing_outline)}')
+        first_unfilled[name] = sorted(set(layers) - ground_filled_layers(first, name))
+        missing_final = set(layers) - ground_filled_layers(final, name)
+        require(not missing_final, 'GND_LAYER_NOT_FILLED',
+                f'final-refill: {name}: {sorted(missing_final)}')
     approved = cfg.get('approved_stitching_vias')
     require(isinstance(approved, list), 'STITCHING_APPROVAL_REQUIRED',
             'Explicit approved_stitching_vias list, possibly empty, is mandatory')
+    # An unanchored layer may have no first-pass filled polygon because KiCad
+    # removes isolated islands. This is only acceptable if intentional GND
+    # stitching follows, and the *final* saved refill has real copper.
+    require(not any(first_unfilled.values()) or bool(approved),
+            'GND_FIRST_FILL_UNANCHORED',
+            'First-fill copper absent on ground layers and no stitching is approved')
     ids = [item.get('uuid') for item in approved if isinstance(item, dict)]
     require(len(ids) == len(approved) == len(set(ids)) and all(
                 isinstance(uid, str) and bool(uid) for uid in ids),
@@ -329,6 +354,7 @@ def ground_audit(root, config_path):
         'stitched_sha256': sha(paths['stitched_board']),
         'final_refilled_sha256': sha(paths['final_refilled_board']),
         'ground_zone_layers': {k: sorted(v) for k, v in ground_layers.items()},
+        'initial_unfilled_ground_layers': first_unfilled,
         'approved_stitching_via_uuids': sorted(ids),
         'remaining': [
             'KiCad-native post-refill full DRC including GND unconnected items',
