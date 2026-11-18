@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "package_kind": "universal_runtime",
-  "revision": "2026.11.18-R10-pcb-module-layout-draft",
+  "revision": "2026.11.18-R10-jlcpcb-user-approval-draft",
   "active": [
     {
       "file": "scripts/assembly_guard.py",
@@ -319,7 +319,7 @@
     },
     {
       "file": "scripts/npi_common.py",
-      "sha256": "552e437a644dbee01a42f660be6f7d530b42c55f652f9ee39a1338ebfef8acae",
+      "sha256": "d1c6725623243a74bb155d708d5b125f0c478e68a7ab5b189ebd8ea41696dae1",
       "version": "R10.0-alpha.3",
       "command": "Python module imported by mass_production_review.py",
       "input": "Explicit project/config/evidence or documented Python call; no inferred production defaults",
@@ -669,7 +669,7 @@
     },
     {
       "file": "scripts/workflow.py",
-      "sha256": "2a1183a836839ff0919e557fe061d8aa0d38f364e9784f687db8fd14b2cbb100",
+      "sha256": "9e2ac11cef88893acfd82abf1da3befcdce8f06c0fd30dbd4460fa051207d8c0",
       "version": "R10.0-alpha.3-local.5+cache-first-1",
       "command": "python3 scripts/workflow.py --help (includes architecture.sources_resolve and architecture.sources_register tasks)",
       "input": "One shared master; immutable flow/static/npi bundles; explicit fixed task and typed arguments",
@@ -683,7 +683,7 @@
     },
     {
       "file": "scripts/pcb_module_layout.py",
-      "sha256": "f1debcdbcfdfe86f94a99c7dbf12b12067e57eeccb1b1a1e353d131166c58ace",
+      "sha256": "6f9155a213008c74a8563f9d069bbd2b8ca9f734ff3ead50c6f13339996876f5",
       "version": "R10-two-level-pcb-preview",
       "command": "python scripts/pcb_module_layout.py {preflight|plan} /project --request REQUEST [--receipt RECEIPT]",
       "input": "Actual current KiCad PCB/project, XML netlist, sourced fabrication minima, placement policy and native design-intent audit",
@@ -693,6 +693,19 @@
         "0": "Scoped read-only plan; not production acceptance",
         "2": "BLOCKED or REPLAN_REQUIRED; no KiCad write"
       }
+    },
+    {
+      "file": "scripts/pcb_fab_approval.py",
+      "sha256": "3b516bf4fd6152165d8d4d6a0043f2b7772bdb5f3025a3f2eb635fb3c5af1d4c",
+      "version": "R10-JLCPCB-consent-v1-preview",
+      "command": "python scripts/pcb_fab_approval.py preview|confirm PROJECT ...",
+      "input": "Current KiCad 2/4/6/8-layer FR4 board, dated factory catalog and explicit human user decision",
+      "output": "Conservative read-only factory proposal or immutable human approval plus fab rules; no EDA edit",
+      "exit_codes": {
+        "0": "Preview pending user confirmation or explicit confirmation recorded; not manufacturing approval",
+        "2": "BLOCKED; never advance to PCB layout"
+      },
+      "validation_scope": "Offline software fixtures; live KiCad/Konnect and actual factory confirmation remain separate"
     }
   ]
 }

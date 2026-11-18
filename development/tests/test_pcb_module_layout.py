@@ -43,7 +43,20 @@ class ModuleLayoutTests(unittest.TestCase):
         (self.root/'fab.json').write_text(json.dumps(profile))
         self.request={'schema_version':1,'board':'demo.kicad_pcb','project':'demo.kicad_pro','netlist':'demo.xml','design_intent':'intent.json','placement_policy':'placement.json','fab_rules':'fab.json','grid_mm':2,'max_candidates_per_ref':800,'fixed_refs':['J1']}
         (self.root/'request.json').write_text(json.dumps(self.request))
-    def tearDown(self):self.tmp.cleanup()
+        # These legacy tests intentionally isolate prior planner geometry/rule checks.
+        # Genuine JLCPCB approval protocol is tested separately.
+        (self.root/'03_REPORTS/test-approval.json').write_text('fixture approval')
+        (self.root/'03_REPORTS/test-proposal.json').write_text('fixture proposal')
+        stub={'approval_path':'03_REPORTS/test-approval.json',
+              'approval_sha256':pl.sha256(self.root/'03_REPORTS/test-approval.json'),
+              'proposal_path':'03_REPORTS/test-proposal.json',
+              'proposal_sha256':pl.sha256(self.root/'03_REPORTS/test-proposal.json'),
+              'status':'FAB_PROFILE_APPROVAL_CURRENT'}
+        self.approval_patch=patch.object(pl,'validate_for_layout',return_value=stub)
+        self.approval_patch.start()
+    def tearDown(self):
+        self.approval_patch.stop()
+        self.tmp.cleanup()
     def ready(self):
         with patch.object(pl,'audit_design_rules',return_value={'status':'PASS','native_requested':True,'findings':[]}):
             p=pl.preflight(self.root,'request.json')

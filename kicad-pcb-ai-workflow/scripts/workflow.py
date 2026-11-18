@@ -44,6 +44,7 @@ TASKS = {
     'schematic.prepare': 'static_review', 'schematic.gate': 'static_review_gate',
     'pcb.prepare': 'static_review', 'pcb.gate': 'static_review_gate',
     'pcb.layout_preflight': 'pcb_module_layout', 'pcb.layout_plan': 'pcb_module_layout',
+    'pcb.fab_preview': 'pcb_fab_approval', 'pcb.fab_confirm': 'pcb_fab_approval',
     'pcb.placement_pre': 'placement_review', 'pcb.placement_final': 'placement_review',
     'pcb.rules_pre': 'design_intent_audit', 'pcb.rules_final': 'design_intent_audit',
     'pcb.routing_preflight': 'routing_policy', 'pcb.routing_plan': 'routing_policy',
@@ -53,7 +54,7 @@ TASKS = {
     'manufacturing.export': 'manufacturing_export', 'manufacturing.release': 'npi_release',
     'lifecycle.check': 'project_flow',
 }
-WRITING = {'environment.konnect_fixture', 'environment.konnect_invoke', 'architecture.sources_resolve', 'architecture.sources_register', 'environment.setup', 'environment.bridge_plugin', 'environment.open_editor', 'pcb.edit', 'schematic.resources_lock', 'manufacturing.export', 'manufacturing.release'}
+WRITING = {'pcb.fab_confirm', 'environment.konnect_fixture', 'environment.konnect_invoke', 'architecture.sources_resolve', 'architecture.sources_register', 'environment.setup', 'environment.bridge_plugin', 'environment.open_editor', 'pcb.edit', 'schematic.resources_lock', 'manufacturing.export', 'manufacturing.release'}
 FLAGS = ('require_device_knowledge', 'require_reserve_review', 'require_placement_review',
          'require_schematic_style', 'require_system_integration')
 METHODS = {
@@ -484,6 +485,21 @@ def command(root, name, bundle, task, options):
         raise ValueError('--require-ipc only applies to IPC discovery tasks')
     if task in ('environment.bridge_plugin','environment.open_editor','pcb.edit'):
         raise ValueError('LEGACY_WRITE_DISABLED: use Konnect MCP as the sole EDA writer; no silent kicad_bridge fallback')
+    if task in ('pcb.fab_preview', 'pcb.fab_confirm'):
+        if task=='pcb.fab_preview':
+            if options.get('apply'):raise ValueError('Fabrication preview cannot --apply or auto-confirm')
+            if not options.get('fab_board') or not options.get('fab_layers'):
+                raise ValueError('Fabrication preview needs --fab-board and --fab-layers')
+            args=['preview',str(root),'--board',options['fab_board'],'--layers',options['fab_layers']]
+            if options.get('fab_proposal'):args+=['--output',options['fab_proposal']]
+            return 'pcb_fab_approval',args
+        if not options.get('apply') or options.get('fab_decision')!='CONFIRM':
+            raise ValueError('Explicit human fabrication profile confirmation and --apply required')
+        for name in ('fab_proposal','fab_confirmed_by','fab_approval','fab_rule_output'):
+            if not options.get(name):raise ValueError('Missing --'+name.replace('_','-'))
+        return 'pcb_fab_approval',['confirm',str(root),'--proposal',options['fab_proposal'],
+            '--confirmed-by',options['fab_confirmed_by'],'--decision',options['fab_decision'],
+            '--output',options['fab_approval'],'--fab-output',options['fab_rule_output'],'--apply']
     if task in ('pcb.layout_preflight', 'pcb.layout_plan'):
         if not options.get('layout_request'):
             raise ValueError('PCB module layout needs --layout-request')
@@ -957,7 +973,7 @@ def main():
             a.add_argument('--format', choices=('text', 'json','compact'), default='text')
         if cmd in ('plan', 'run'):
             a.add_argument('--task', choices=TASKS, required=True)
-            for key in ('output-dir', 'state', 'packet', 'ai-review', 'engineer-review', 'netlist', 'destination', 'candidate-dir', 'kicad-cli', 'board', 'resource-manifest', 'resource-lock', 'routing-request', 'after-attempt', 'route-problem', 'bridge-request', 'session-dir', 'sessions-root', 'python-executable', 'candidate-manifest', 'pcb-editor', 'runtime-dir', 'installation', 'high-speed-policy', 'device-cache', 'device-inventory', 'device-output', 'konnect-executable','konnect-config','konnect-enrollment','konnect-registry','konnect-tool','konnect-scope','konnect-toolset','source-board','arguments-json','expected-json','preplacement-request','preplacement-receipt','layout-request','layout-receipt'):
+            for key in ('output-dir', 'state', 'packet', 'ai-review', 'engineer-review', 'netlist', 'destination', 'candidate-dir', 'kicad-cli', 'board', 'resource-manifest', 'resource-lock', 'routing-request', 'after-attempt', 'route-problem', 'bridge-request', 'session-dir', 'sessions-root', 'python-executable', 'candidate-manifest', 'pcb-editor', 'runtime-dir', 'installation', 'high-speed-policy', 'device-cache', 'device-inventory', 'device-output', 'konnect-executable','konnect-config','konnect-enrollment','konnect-registry','konnect-tool','konnect-scope','konnect-toolset','source-board','arguments-json','expected-json','preplacement-request','preplacement-receipt','layout-request','layout-receipt','fab-board','fab-layers','fab-proposal','fab-confirmed-by','fab-decision','fab-approval','fab-rule-output'):
                 a.add_argument('--' + key)
             a.add_argument('--mode', choices=('prototype', 'mass_production'), default='mass_production')
             a.add_argument('--apply', action='store_true')

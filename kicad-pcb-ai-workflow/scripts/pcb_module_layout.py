@@ -16,6 +16,7 @@ from engineering_gate import local
 from npi_common import parse_sexpr, children, child, value, sha256
 from netlist_guard import read_netlist
 from placement_review import metadata
+from pcb_fab_approval import validate_for_layout
 
 # Actual KiCad .kicad_pro keys, saved as millimeter floating point values.
 REQUIRED_RULES = {
@@ -180,6 +181,9 @@ def preflight(root, request, native_audit=None):
     root=Path(root).resolve()
     req=json.loads(_checked(root,request,'.json').read_text(encoding='utf-8-sig'))
     if req.get('schema_version')!=1:raise ValueError('Expected schema_version=1')
+    # Human decision is checked before requiring profile sidecars or running
+    # costly native rule audits; preview without consent remains actionable.
+    approval=validate_for_layout(root,req)
     project,board_file,netlist,intent,policy,fab,pro,board=_sources(root,req)
     rule_values,courtyard=_validate_fab(root,fab,pro)
     graph,_=_parity(board,netlist)
@@ -190,12 +194,14 @@ def preflight(root, request, native_audit=None):
     if checks.get('status')!='PASS' or checks.get('native_requested') is not True:
         raise ValueError('Current KiCad effective rules not verified: '+repr(checks.get('findings',checks.get('status'))))
     file_hashes={str(p.relative_to(root)):sha256(p) for p in (project,netlist,intent,policy,fab)}
+    file_hashes[approval["approval_path"]]=approval["approval_sha256"]
+    file_hashes[approval["proposal_path"]]=approval["proposal_sha256"]
     dru=project.with_suffix('.kicad_dru')
     if dru.exists():file_hashes[str(dru.relative_to(root))]=sha256(dru)
     return {'schema_version':1,'status':'RULES_VERIFIED_FOR_LAYOUT_PLANNING',
             'input_hashes':file_hashes,'board_electrical_fingerprint':fingerprint,
             'board_hash_at_preflight':sha256(board_file),'board':str(board_file.relative_to(root)),
-            'sensitive_anchor_poses':anchors,
+            'sensitive_anchor_poses':anchors,'fab_user_confirmation':approval,
             'board_outline_mm':_outline(board),'active_fabrication_rules':rule_values,
             'courtyard_clearance_mm':courtyard,'netlist_components':len(graph['components']),
             'scope':'Current native Board Setup minima + design-intent native effective-netclass subset, not full manufacturing, geometry or DRC approval',
@@ -229,6 +235,9 @@ def plan(root, request, receipt):
         raise ValueError('Preflight receipt must be immutable and outside work files')
     ready=json.loads(saved.read_text(encoding='utf-8-sig'))
     if ready.get('status')!='RULES_VERIFIED_FOR_LAYOUT_PLANNING':raise ValueError('No verified rules-first preflight')
+    current_approval=validate_for_layout(root,req)
+    if current_approval!=ready.get('fab_user_confirmation'):
+        raise ValueError('User-approved fabrication profile differs from preflight; obtain fresh confirmation')
     project,board_file,netlist,intent,policy,fab,pro,board=_sources(root,req)
     for name,digest in ready['input_hashes'].items():
         if sha256(local(root,name))!=digest:raise ValueError('Rules/electrical/layout policy changed; repeat native preflight')

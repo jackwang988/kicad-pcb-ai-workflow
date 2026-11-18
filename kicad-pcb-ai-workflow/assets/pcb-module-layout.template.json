@@ -8,5 +8,6 @@
   "fab_rules": "03_REPORTS/layout/fab.json",
   "grid_mm": null,
   "max_candidates_per_ref": 120,
-  "fixed_refs": []
+  "fixed_refs": [],
+  "fab_approval": "03_REPORTS/pcb-fab/approval.json"
 }

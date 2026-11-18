@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "catalog_id": "jlcpcb-rigid-fr4-standard-2026-11-18",
+  "vendor": "JLCPCB",
+  "snapshot_date": "2026-11-18",
+  "scope": "Regular rigid FR-4 PCB, nominal 1.6 mm, finished outer copper 1 oz; no blind/buried/microvia or special edge/castellation processing",
+  "sources": [
+    {"title": "JLCPCB rigid PCB capabilities", "url": "https://jlcpcb.com/capabilities/pcb-capabilities/", "covers": ["traces", "vias", "drills", "annular rings", "finished copper", "through-hole spacing", "solder mask", "surface finish"]},
+    {"title": "JLCPCB copper weight guide, updated Nov 10 2026", "url": "https://jlcpcb.com/help/article/jlcpcb-copper-weight", "covers": ["outer and inner copper weights", "minimum trace/space by copper weight"]},
+    {"title": "JLCPCB multilayer controlled impedance/stackup", "url": "https://jlcpcb.com/impedance", "covers": ["exact factory multilayer stackup and dielectric details"]},
+    {"title": "JLCPCB copper-edge routing guidance", "url": "https://jlcpcb.com/blog/pcb-routing-rules-best-practices", "covers": ["routed edge and V-cut clearance"]}
+  ],
+  "general_fabrication_caps_mm": {
+    "via_min_drill": 0.15,
+    "via_min_diameter": 0.25,
+    "via_hole_to_hole_min": 0.2,
+    "plated_pad_hole_to_hole_min": 0.45,
+    "copper_to_routed_edge_min": 0.2,
+    "copper_to_vcut_edge_min": 0.4
+  },
+  "notes": [
+    "Manufacturer limits are not Skill-recommended defaults. Users must confirm current order-page options and exact stackup.",
+    "Fine-pitch BGA, RF, controlled impedance, V-cut, thermal, high-current, vias-in-pad, blind/buried via and 2 oz copper require separate constraints and factory verification.",
+    "Via 0.15 mm drills and certain smaller diameters may incur extra fees; conservative 0.3 mm drills avoid relying on that extreme.",
+    "Through-hole pad annular ring, plated-pad hole clearance and per-pad geometry need additional verification; global via minima do not prove footprints producible.",
+    "No default differential impedance/track width is implied by selecting a layer count."
+  ],
+  "profiles": {
+    "2": {
+      "name": "2-layer standard conservative",
+      "layers": 2,
+      "board_thickness_mm": 1.6,
+      "outer_copper_oz": 1,
+      "inner_copper_oz": null,
+      "surface_finish_suggestion": "HASL_LF_OR_ENIG_AS_PART_REQUIRES",
+      "manufacturer_1oz_trace_space_floor_mm": 0.10,
+      "manufacturer_1oz_pth_annular_floor_mm": 0.18,
+      "user_reviewed_design_rules_mm": {
+        "min_clearance_mm": 0.20,
+        "min_track_width_mm": 0.20,
+        "min_via_diameter_mm": 0.70,
+        "min_via_drill_mm": 0.30,
+        "min_annular_width_mm": 0.20,
+        "min_copper_edge_clearance_mm": 0.30,
+        "min_hole_to_hole_mm": 0.30
+      },
+      "courtyard_clearance_mm": 0.25
+    },
+    "4": {
+      "name": "4-layer standard conservative",
+      "layers": 4,
+      "board_thickness_mm": 1.6,
+      "outer_copper_oz": 1,
+      "inner_copper_oz": 0.5,
+      "surface_finish_suggestion": "HASL_LF_OR_ENIG_AS_PART_REQUIRES",
+      "manufacturer_1oz_trace_space_floor_mm": 0.09,
+      "manufacturer_1oz_pth_annular_floor_mm": 0.15,
+      "user_reviewed_design_rules_mm": {
+        "min_clearance_mm": 0.15,
+        "min_track_width_mm": 0.15,
+        "min_via_diameter_mm": 0.70,
+        "min_via_drill_mm": 0.30,
+        "min_annular_width_mm": 0.20,
+        "min_copper_edge_clearance_mm": 0.30,
+        "min_hole_to_hole_mm": 0.30
+      },
+      "courtyard_clearance_mm": 0.25
+    },
+    "6": {
+      "name": "6-layer standard conservative",
+      "layers": 6,
+      "board_thickness_mm": 1.6,
+      "outer_copper_oz": 1,
+      "inner_copper_oz": 0.5,
+      "surface_finish_suggestion": "ENIG_OR_OTHER_FACTORY_SUPPORTED_NON_HASL",
+      "manufacturer_1oz_trace_space_floor_mm": 0.09,
+      "manufacturer_1oz_pth_annular_floor_mm": 0.15,
+      "user_reviewed_design_rules_mm": {
+        "min_clearance_mm": 0.15,
+        "min_track_width_mm": 0.15,
+        "min_via_diameter_mm": 0.70,
+        "min_via_drill_mm": 0.30,
+        "min_annular_width_mm": 0.20,
+        "min_copper_edge_clearance_mm": 0.30,
+        "min_hole_to_hole_mm": 0.30
+      },
+      "courtyard_clearance_mm": 0.25
+    },
+    "8": {
+      "name": "8-layer standard conservative",
+      "layers": 8,
+      "board_thickness_mm": 1.6,
+      "outer_copper_oz": 1,
+      "inner_copper_oz": 0.5,
+      "surface_finish_suggestion": "ENIG_OR_OTHER_FACTORY_SUPPORTED_NON_HASL",
+      "manufacturer_1oz_trace_space_floor_mm": 0.09,
+      "manufacturer_1oz_pth_annular_floor_mm": 0.15,
+      "user_reviewed_design_rules_mm": {
+        "min_clearance_mm": 0.15,
+        "min_track_width_mm": 0.15,
+        "min_via_diameter_mm": 0.70,
+        "min_via_drill_mm": 0.30,
+        "min_annular_width_mm": 0.20,
+        "min_copper_edge_clearance_mm": 0.30,
+        "min_hole_to_hole_mm": 0.30
+      },
+      "courtyard_clearance_mm": 0.25
+    }
+  }
+}
