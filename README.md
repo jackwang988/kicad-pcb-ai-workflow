@@ -2,7 +2,7 @@
 
 > **2026-11-18：PR [#6](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/6) 与 [#7](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/7) 已按依赖顺序合入 `main`。** R10 源码包含工作区/Token优化、原理图拓扑预布局约束、KiCad/Konnect单写入、Freerouting 2.5.0 普通网络七阶段布线和只读回导审核。
 >
-> **版本边界**：本页描述 `main` 的**最新源码**，不代表已将新版内容打包到历史 `R10.0.0-rc.1.zip`。R9.4仍是既有已验证稳定安装包；RC1是历史预发布包。**R10.0.0-rc.2 已创建预发布标签，但普通网络自动布线存在原生验收阻断项（见下文），不得视为已验证的生产默认路径。**新版发布与校验见 [R10版本说明](R10_RELEASE_NOTES.md) 和 [更新记录](RELEASE_NOTES.md)。**软件合并、Windows/Konnect本机验收、原生 Freerouting 往返测试和实际产品投产授权属于不同的验证层级。**
+> **版本边界**：本页描述 `main` 的**最新源码**，不代表已将新版内容打包到历史 `R10.0.0-rc.1.zip`。R9.4仍是既有已验证稳定安装包；RC1是历史预发布包。**R10.0.0-rc.2 已创建预发布标签，但普通网络自动布线存在原生验收阻断项（见下文），不得视为已验证的生产默认路径。** 新版发布与校验见 [R10版本说明](R10_RELEASE_NOTES.md) 和 [更新记录](RELEASE_NOTES.md)。 **软件合并、Windows/Konnect本机验收、原生 Freerouting 往返测试和实际产品投产授权属于不同的验证层级。**
 
 [R10.0.0-rc.2 预发布页面](https://github.com/jackwang988/kicad-pcb-ai-workflow/releases/tag/R10.0.0-rc.2) · [查看最新源码](https://github.com/jackwang988/kicad-pcb-ai-workflow/tree/main/kicad-pcb-ai-workflow) · [R10 最新16节点/七阶段完整流程图](docs/r10/06-current-skill-full-flow.md) · [七阶段工程契约](kicad-pcb-ai-workflow/references/freerouting-seven-stage.md) · [R10验收矩阵](docs/r10/05-release-readiness.md) · [旧版R9.4包](dist/kicad-pcb-ai-workflow-R9.4.zip)
 
