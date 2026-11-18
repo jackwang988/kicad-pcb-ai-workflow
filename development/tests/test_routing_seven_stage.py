@@ -352,6 +352,42 @@ class RoutingSevenStageAuditTests(unittest.TestCase):
             seven.board_snapshot(path)
         self.assertEqual(err.exception.code, 'PAD_NET_CODE_CONFLICT')
 
+    def test_ground_audit_still_blocks_moved_footprints_after_format_normalization(self):
+        self.ground_fixture(add_stitch=False)
+        original = '(footprint "NPI:Fixture" (uuid "fp1") (layer "F.Cu") ' \
+                   '(at 2 2) (pad "1" smd rect (at 0 0) (size 0.6 0.6) ' \
+                   '(layers "F.Cu") (net 1 "GND") (uuid "pad1")))'
+        moved = original.replace('(at 2 2)', '(at 3 2)')
+        for name in ('post-route.kicad_pcb', 'first-fill.kicad_pcb',
+                     'stitched.kicad_pcb', 'last-fill.kicad_pcb'):
+            path = self.root / name
+            raw = path.read_text()
+            path.write_text(raw[:-1] + ' ' + (moved if name == 'first-fill.kicad_pcb'
+                                               else original) + ')')
+        cfg = json.loads((self.root / 'ground.json').read_text())
+        for attr, filename in (('pre_ground_board', 'post-route.kicad_pcb'),
+                               ('first_filled_board', 'first-fill.kicad_pcb'),
+                               ('stitched_board', 'stitched.kicad_pcb'),
+                               ('final_refilled_board', 'last-fill.kicad_pcb')):
+            cfg[attr] = self.bind(filename)
+        (self.root / 'ground.json').write_text(json.dumps(cfg))
+        with self.assertRaises(seven.RoutingBlocked) as err:
+            seven.ground_audit(self.root, 'ground.json')
+        self.assertEqual(err.exception.code, 'GND_FOOTPRINT_CHANGED')
+
+    def test_ground_audit_does_not_ignore_wrong_net_for_existing_via(self):
+        self.ground_fixture(add_stitch=False)
+        p = self.root / 'first-fill.kicad_pcb'
+        p.write_text(p.read_text()[:-1] + ' '
+                     '(via (at 4 4) (size 0.6) (drill 0.3) '
+                     '(layers "F.Cu" "B.Cu") (net 1) (uuid "rogue")))')
+        cfg = json.loads((self.root / 'ground.json').read_text())
+        cfg['first_filled_board'] = self.bind('first-fill.kicad_pcb')
+        (self.root / 'ground.json').write_text(json.dumps(cfg))
+        with self.assertRaises(seven.RoutingBlocked) as err:
+            seven.ground_audit(self.root, 'ground.json')
+        self.assertEqual(err.exception.code, 'GROUND_FIRST_FILL_CHANGED_VIAS')
+
     def test_physical_fp_and_copper_stable_across_net_dialect(self):
         legacy = '''(kicad_pcb (net 0 "") (net 1 "GND")
           (footprint "NPI:Fixture" (uuid "fp1")
