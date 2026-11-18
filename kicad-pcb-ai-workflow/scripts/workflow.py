@@ -51,12 +51,16 @@ TASKS = {
     'pcb.rules_pre': 'design_intent_audit', 'pcb.rules_final': 'design_intent_audit',
     'pcb.routing_preflight': 'routing_policy', 'pcb.routing_plan': 'routing_policy',
     'pcb.route_search': 'script_route_search',
+    'pcb.freerouting_candidate': 'freerouting_adapter',
+    'pcb.routing_seven_plan': 'routing_seven_stage',
+    'pcb.routing_import_audit': 'routing_seven_stage',
+    'pcb.routing_final_audit': 'routing_seven_stage',
     'pcb.high_speed_audit': 'high_speed',
     'manufacturing.precheck': 'mass_production_review',
     'manufacturing.export': 'manufacturing_export', 'manufacturing.release': 'npi_release',
     'lifecycle.check': 'project_flow',
 }
-WRITING = {'pcb.fab_confirm', 'environment.konnect_fixture', 'environment.konnect_invoke', 'architecture.sources_resolve', 'architecture.sources_register', 'environment.setup', 'environment.bridge_plugin', 'environment.open_editor', 'pcb.edit', 'schematic.resources_lock', 'manufacturing.export', 'manufacturing.release'}
+WRITING = {'pcb.freerouting_candidate', 'pcb.fab_confirm', 'environment.konnect_fixture', 'environment.konnect_invoke', 'architecture.sources_resolve', 'architecture.sources_register', 'environment.setup', 'environment.bridge_plugin', 'environment.open_editor', 'pcb.edit', 'schematic.resources_lock', 'manufacturing.export', 'manufacturing.release'}
 FLAGS = ('require_device_knowledge', 'require_reserve_review', 'require_placement_review',
          'require_schematic_style', 'require_system_integration')
 METHODS = {
@@ -69,7 +73,7 @@ METHODS = {
     'footprints': 'Compare actual MPN pinout and land pattern; engineer confirms G2.',
     'stackup': 'Obtain approved factory stackup and validate actual rule/netclass bindings.',
     'placement': 'G3: Konnect save/position readback then placement_review pre_route; NO full-board DRC or unconnected-net gate.',
-    'routing': 'After G3, route all nets and power/GND, refill zones, save and reload; then full DRC.',
+    'routing': 'After G3: classify nets -> apply/read back rules -> protect critical nets -> Freerouting ordinary DSN/SES candidate -> native import audit -> bounded repair -> GND fill/save/reload/full G4 DRC.',
     'pcb_review': 'G4 after routing/zone refill: full native DRC including unconnected items, then AI/engineer review.',
     'npi': 'Run actual DFX/NPI pre-export checks; unresolved blockers forbid export.',
     'manufacturing': 'Freeze source and export a new isolated candidate, not a released package.',
@@ -706,6 +710,26 @@ def command(root, name, bundle, task, options):
             if task != 'pcb.routing_plan':
                 raise ValueError('--after-attempt only applies to routing plan')
             args += ['--after-attempt', options['after_attempt']]
+    elif task == 'pcb.freerouting_candidate':
+        args = ['--dsn', str(local(root, required('dsn'))),
+                '--output-dir', required('output_dir'),
+                '--expected-dsn-sha256', required('expected_dsn_sha256'),
+                '--exclude-netclasses', required('exclude_netclasses'),
+                '--jar', required('jar'),
+                '--expected-jar-sha256', required('expected_jar_sha256')]
+        if options.get('rules_file'):
+            args += ['--rules-file', str(local(root, options['rules_file'])),
+                     '--expected-rules-sha256', required('expected_rules_sha256')]
+        for key in ('passes', 'threads', 'timeout'):
+            if options.get(key) is not None:
+                args += ['--' + key, str(options[key])]
+        if options.get('apply'):
+            args += ['--apply']
+    elif task in ('pcb.routing_seven_plan', 'pcb.routing_import_audit', 'pcb.routing_final_audit'):
+        action = {'pcb.routing_seven_plan': 'plan',
+                  'pcb.routing_import_audit': 'audit-import',
+                  'pcb.routing_final_audit': 'audit-final'}[task]
+        args = [action, str(root), '--config', required('routing_stage_config')]
     elif task == 'pcb.route_search':
         args = [str(root), '--problem', required('route_problem')]
         if options.get('output_dir'):
@@ -975,8 +999,11 @@ def main():
             a.add_argument('--format', choices=('text', 'json','compact'), default='text')
         if cmd in ('plan', 'run'):
             a.add_argument('--task', choices=TASKS, required=True)
-            for key in ('output-dir', 'state', 'packet', 'ai-review', 'engineer-review', 'netlist', 'destination', 'candidate-dir', 'kicad-cli', 'board', 'resource-manifest', 'resource-lock', 'routing-request', 'after-attempt', 'route-problem', 'bridge-request', 'session-dir', 'sessions-root', 'python-executable', 'candidate-manifest', 'pcb-editor', 'runtime-dir', 'installation', 'high-speed-policy', 'device-cache', 'device-inventory', 'device-output', 'konnect-executable','konnect-config','konnect-enrollment','konnect-registry','konnect-tool','konnect-scope','konnect-toolset','source-board','arguments-json','expected-json','preplacement-request','preplacement-receipt','layout-request','layout-receipt','fab-board','fab-layers','fab-proposal','fab-confirmed-by','fab-decision','fab-approval','fab-rule-output'):
+            for key in ('output-dir', 'state', 'packet', 'ai-review', 'engineer-review', 'netlist', 'destination', 'candidate-dir', 'kicad-cli', 'board', 'resource-manifest', 'resource-lock', 'routing-request', 'routing-stage-config', 'dsn', 'jar', 'expected-dsn-sha256', 'expected-jar-sha256', 'exclude-netclasses', 'rules-file', 'expected-rules-sha256', 'after-attempt', 'route-problem', 'bridge-request', 'session-dir', 'sessions-root', 'python-executable', 'candidate-manifest', 'pcb-editor', 'runtime-dir', 'installation', 'high-speed-policy', 'device-cache', 'device-inventory', 'device-output', 'konnect-executable','konnect-config','konnect-enrollment','konnect-registry','konnect-tool','konnect-scope','konnect-toolset','source-board','arguments-json','expected-json','preplacement-request','preplacement-receipt','layout-request','layout-receipt','fab-board','fab-layers','fab-proposal','fab-confirmed-by','fab-decision','fab-approval','fab-rule-output'):
                 a.add_argument('--' + key)
+            a.add_argument('--passes', type=int)
+            a.add_argument('--threads', type=int)
+            a.add_argument('--timeout', type=int)
             a.add_argument('--mode', choices=('prototype', 'mass_production'), default='mass_production')
             a.add_argument('--apply', action='store_true')
             a.add_argument('--cli-only', action='store_true', help='CLI-only environment smoke; no pcbnew or manufacturing approval')

@@ -54,6 +54,24 @@ def process(args, timeout):
                           errors="replace", timeout=timeout, check=False)
 
 
+def specctra_netclasses(path):
+    """Inventory declared classes only; membership still needs independent proof."""
+    source = path.read_text(encoding="utf-8", errors="replace")
+    matches = re.findall(r'\(\s*class\s+(?:"([^"]+)"|([^\s()]+))', source, re.I)
+    return {quoted or bare for quoted, bare in matches}
+
+
+def class_exclusions(value):
+    """CLI -inc is a CLASS exclusion, not a net-name exclusion."""
+    if not value:
+        return []
+    classes = [x.strip() for x in value.split(",")]
+    if (not all(classes) or len(set(classes)) != len(classes) or
+            not all(re.fullmatch(r"[A-Za-z0-9_.:+-]+", x) for x in classes)):
+        raise ValueError("Invalid or duplicate NetClass names in exclusions")
+    return classes
+
+
 def main():
     p = argparse.ArgumentParser(description="Optional Freerouting v2.5.0 DSN-to-SES adapter")
     p.add_argument("--dsn", type=Path, required=True, help="KiCad PCB Editor exported Specctra .dsn")
@@ -64,6 +82,14 @@ def main():
     p.add_argument("--threads", type=int, default=1)
     p.add_argument("--timeout", type=int, default=1800)
     p.add_argument("--expected-jar-sha256", help="Optional external checksum of the approved JAR")
+    p.add_argument("--exclude-netclasses", default="",
+                   help="Comma-separated PROTECTED NetClass names; routed with Freerouting -inc")
+    p.add_argument("--expected-dsn-sha256",
+                   help="SHA-256 of reviewed KiCad-exported DSN; required for --apply")
+    p.add_argument("--rules-file", type=Path,
+                   help="Optional approved Freerouting .rules file (never trust implicit sidecar)")
+    p.add_argument("--expected-rules-sha256",
+                   help="SHA-256 of approved .rules; required for --apply when --rules-file is used")
     p.add_argument("--apply", action="store_true", help="Execute router, otherwise preview only")
     a = p.parse_args()
     if a.dsn.suffix.lower() != ".dsn" or not a.dsn.is_file() or not a.dsn.stat().st_size:
@@ -78,6 +104,46 @@ def main():
         p.error("Output directory cannot be the DSN source directory or its ancestor")
     base = {"adapter": "freerouting-cli", "requested_version": VERSION, "dsn": str(dsn),
             "dsn_sha256": sha256(dsn), "output_directory": str(dest)}
+    def blocked(reason, **extra):
+        print(json.dumps({**base, "status": "BLOCKED", "reason": reason, **extra}, indent=2))
+        return 2
+
+    if a.expected_dsn_sha256:
+        if not re.fullmatch(r"[0-9a-fA-F]{64}", a.expected_dsn_sha256):
+            return blocked("INVALID_DSN_SHA256")
+        if base["dsn_sha256"] != a.expected_dsn_sha256.lower():
+            return blocked("DSN_SHA256_MISMATCH")
+    elif a.apply:
+        return blocked("DSN_HASH_REQUIRED_FOR_EXECUTION")
+
+    try:
+        excluded = class_exclusions(a.exclude_netclasses)
+    except ValueError:
+        return blocked("INVALID_EXCLUDED_NETCLASSES")
+    if a.apply and not excluded:
+        return blocked("PROTECTED_NETCLASS_EXCLUSIONS_REQUIRED")
+    if excluded:
+        declared = specctra_netclasses(dsn)
+        missing = sorted(set(excluded) - declared)
+        if missing:
+            return blocked("EXCLUDED_NETCLASS_NOT_IN_DSN", missing_netclasses=missing)
+    implicit_rules = dsn.with_suffix(".rules")
+    rules = a.rules_file.resolve() if a.rules_file else None
+    if implicit_rules.is_file() and rules != implicit_rules.resolve():
+        return blocked("UNAPPROVED_ADJACENT_RULES")
+    rules_hash = None
+    if rules:
+        if rules.suffix.lower() != ".rules" or not rules.is_file() or not rules.stat().st_size:
+            return blocked("INVALID_RULES_FILE")
+        rules_hash = sha256(rules)
+        if a.expected_rules_sha256:
+            if not re.fullmatch(r"[0-9a-fA-F]{64}", a.expected_rules_sha256):
+                return blocked("INVALID_RULES_SHA256")
+            if rules_hash != a.expected_rules_sha256.lower():
+                return blocked("RULES_SHA256_MISMATCH")
+        elif a.apply:
+            return blocked("RULES_HASH_REQUIRED_FOR_EXECUTION")
+
     if a.jar is None or not a.jar.is_file():
         print(json.dumps({**base, "status": "MANUAL_ROUTING_FALLBACK",
                           "reason": "Freerouting jar not configured; use KiCad interactive routing."}, indent=2))
@@ -106,7 +172,15 @@ def main():
     command = [java_executable, "-jar", str(jar), "-de", str(dsn),
                "-do", str(ses), "-mp", str(a.passes), "-mt", str(a.threads),
                "--gui.enabled=false", "-da"]
-    report = {**base, "jar": str(jar), "jar_sha256": digest,
+    if excluded:
+        command.extend(["-inc", ",".join(excluded)])
+    if rules:
+        command.extend(["-dr", str(rules)])
+    report = {**base, "excluded_netclasses": excluded,
+              "dsn_classes_declared": sorted(specctra_netclasses(dsn)) if excluded else [],
+              "rules_file": str(rules) if rules else None, "rules_sha256": rules_hash,
+              "class_mapping_limit": "DSN class name existence does not prove every protected net is assigned; independently verify KiCad native net classes and pre/post copper.",
+              "jar": str(jar), "jar_sha256": digest,
               "jar_identity": reason, "java": java_executable, "command": command,
               "ses": str(ses), "note": "KiCad SES import, DRC and engineering review are mandatory."}
     if not a.apply:

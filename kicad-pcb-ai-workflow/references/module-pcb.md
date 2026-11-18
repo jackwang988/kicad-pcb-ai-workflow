@@ -23,3 +23,11 @@ For G3 candidate placement, read the real F.CrtYd/B.CrtYd mechanical occupancy a
 ## Fine-pitch pad escape and power trunk
 
 Apply the user chart plus **0.254 mm only to required power trunk width**, not as an unconditional minimum for the short copper leaving every pad. Use a source-backed, exact-net/pad/layer/region, bounded-length neckdown only when necessary and only above the fab absolute minimum; verify its **own** current/thermal/drop budget and local KiCad custom-rule scope. The generic grid A* does **not** yet route variable-width segments or auto-apply these exceptions. Do not claim automatic control without an accepted Konnect operator and readback evidence. See [power neckdown contract](constraint-routing.md).
+
+## Freerouting-first candidate for ordinary nets (not production-promoted)
+
+See [the staged Freerouting-primary integration contract](freerouting-primary-routing.md). After whole-net classification and native rule/readback checks, prefer a **qualified external DSN/SES Freerouting candidate** for ordinary nets over custom LLM-operated global A*. Protect dedicated GND, RF, differential, high-current and timing-critical NetClasses using independently audited actual KiCad membership and `-inc`. Keep Konnect the sole KiCad writer, performing external candidate import/save/readback and critical native edits. Then refill GND zones and run independent full G4 DRC. The current external candidate is **not** a general accepted default: live all-board rule-fidelity and integration evidence remain pending. Freerouting's output alone must not be treated as routed manufacturing copper.
+
+## Required seven-stage Freerouting path
+
+The seven-stage procedure in [Freerouting seven-stage routing](freerouting-seven-stage.md) supersedes a blanket Konnect/global A* priority for normal nets: verify full inventory and factory/native rules first; place/lock special power, timing, differential and RF tracks; use approved Freerouting 2.5.0 for remaining **ordinary-only** connections (GND + protected NetClasses excluded); audit imported SES against a protected checkpoint; repair on a bounded new checkpoint; and refill GND with full native G4 DRC. This does not certify automated native import, save, KiCad GUI or production acceptance until separately tested. G3 remains placement-only.

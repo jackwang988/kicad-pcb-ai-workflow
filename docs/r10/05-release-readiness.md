@@ -1,15 +1,27 @@
-# R10 预发布与验收状态（2026-11-17）
+# R10 latest release and native validation evidence — 2026-11-18
 
-[返回导航](README.md) · [预发布说明](../../R10_RELEASE_NOTES.md) · [稳定R9.4](../../README.md)
+[Current full architecture and 16-node / 7-stage execution diagrams](06-current-skill-full-flow.md) · [Seven-stage routing runtime contract](../../kicad-pcb-ai-workflow/references/freerouting-seven-stage.md) · [Legacy R10 acceptance history](../../R10_RELEASE_NOTES.md)
 
-| 验证范围 | 结果 | 说明 |
+## Acceptance status (do not combine tiers)
+
+| Scope | Current evidence | Conclusion |
 |---|---|---|
-| 完整R10 Skill源码及G1–G4/单写入迁移 | ✅ 已提交候选分支 | 44个登记Python组件，含JSON配置、文档、代码 |
-| R9.4既有软件回归 | ✅ 319/319 | [GitHub Actions](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44015071931) |
-| R10新增离线测试 | ✅ 33/33 | 真实后端调用不在此测试范围 |
-| 独立Skill安装包结构 | ✅ 通过 | 构建器验证输入、脚本清单、相对文件 |
-| KiCad 10.0.8原生工具链 | ✅ 通过 | [native验收](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44015065144) |
-| Konnect商业MCP Windows实时操作 | ⚠️ 未进行本轮端到端验证 | 动态工具可发现不等于功能已验收 |
-| 复杂板高速、自动布局/布线、工厂生产授权 | ⚠️ 未宣称通过 | 每个项目按G1–G4和CAM独立验证 |
+| Software runtime tool inventory, G1–G4 and seven-stage read-only audits | Current GitHub software CI [476 main + 37 R10 regression tests passed](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44287564161), plus new fixture tests | **Software contract only**; no live PCB routing certification |
+| KiCad 10.0.8 native CLI + PCB load, effective rules, DRC, fill and CAM smoke | [Historical tested KiCad 10.0.8 run](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44015065144) | Previous **native toolchain subset** passed; does not demonstrate the new Freerouting workflow |
+| Freerouting 2.5.0 pinned JAR, native KiCad DSN→SES→native import/save | [Current isolated interoperability action](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44286105239) | **Execution/verification in progress; no PASS asserted before actual result** |
+| Windows KiCad 10.0.8 + Freerouting 2.5.0 plugin GUI + Konnect MCP live editor | No fresh Windows GUI/Konnect recording in this development branch | **Not verified** |
+| Mixed critical/power/high-speed 2/4-layer samples, real manufacturing rule fidelity | No representative matrix of routed and independently approved native boards | **Not verified** |
+| Factory CAM/EQ and prototype EVT/DVT/PVT | External engineering/factory steps | **Not performed by Skill** |
 
-**发布标签：R10.0.0-rc.1（pre-release），不是稳定/量产授权。** R9.4安装包仍可独立下载。回归测试的通过是代码兼容和工具链证据，不代替真实Konnect可用性及电气正确性。
+## Latest scope
+
+The current Skill source registers **54 SHA-pinned runtime Python tools** in the development branch, with `routing_seven_stage.py` as a read-only plan/SES-candidate geometry audit and `freerouting_adapter.py` as a bounded external CLI candidate generator. Those code paths cannot by themselves perform native KiCad SES import, GND pour, complete DRC or engineering G4 signoff. The branch remains **alpha/pre-release**; existing `main` R10.0.0-rc.1 archive is not automatically replaced by development files.
+
+## Before designating Freerouting as a production default
+
+1. A real KiCad 10 saved project must have approved native NetClass membership and explicit GND/critical exclusions, with source+rules hashes.
+2. Real Freerouting v2.5.0 must route and produce nonempty SES; the exact KiCad project must then import it, save/reload and show correct actual copper without unauthorized footprint moves or existing track loss.
+3. Independent native DRC, post-fill required connectivity, return path, signal/thermal/factory constraints, plus live multi-board Konnect acceptance must pass.
+4. Preserve every failure record and avoid automatic promotion if any essential capability is unavailable. **A software unit test or CI DSN/SES smoke is not proof of qualified 4-layer/high-speed PCB manufacturing.**
+
+All manufacturer, external machine and engineering signatures remain independent.
