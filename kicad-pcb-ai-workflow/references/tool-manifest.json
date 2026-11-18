@@ -495,7 +495,7 @@
     },
     {
       "file": "scripts/routing_seven_stage.py",
-      "sha256": "d145e42f3b297e89d6e7edc8e67ae37a6d407a8d46ea528dd1cdfc5b1bb30d3a",
+      "sha256": "6d6fa1e40cfc427407cc3ede166b0261005e6c9a1c416be1ad126f1bfd6d2162",
       "version": "R10-seven-stage-preview-1",
       "command": "python scripts/routing_seven_stage.py --help",
       "input": "Project-local source-hash-bound full routing request + real saved candidate boards + Native KiCad DRC JSON",
