@@ -17,8 +17,10 @@ flowchart TB
   G2 --> L[08 Stack-up and actual design rules]
   L --> G3{09 G3 Layout review}
   G3 --> RT[10 Controlled routing, power and GND]
-  RT --> ZF[Zone refill and saved copper readback]
-  ZF --> NDRC[Full native DRC and unconnected items]
+  RT --> Z1[First actual GND fill on approved layers]
+  Z1 --> ST[Inspect islands and crossing planes; add approved GND vias if needed]
+  ST --> Z2[Refill all GND zones; save/reload and verify ground gate]
+  Z2 --> NDRC[Full native DRC and unconnected items]
   NDRC --> G4{11 G4 Final PCB review}
   G4 --> D[12 DFX and NPI preflight]
   D --> M[13 Freeze and manufacturing candidate]
@@ -108,11 +110,11 @@ This node is the **current R10 contract** (supersedes older Konnect-global-A* ro
 6. **Bounded repair**: Replan explicit remaining nets, time/iteration/via limits and whitelisted rip-up; never silently relax manufacturer minima, anti-short rules, reference planes, high-speed, current or neckdown limits. Revalidate after any edit or timeout, and use engineer handoff if no qualified operator exists.
 7. **GND fill and full G4 evidence**: Ground trace-autrouting remains off; add required return/stitching vias, refill actual GND copper, save/reload, then run native full-board KiCad DRC with all required unconnected items. Follow with project-specific SI/PI, thermal, manufacturing, AI and engineer review; `routing_seven_stage.py audit-final` is an additional read-only check, **not** a native DRC runner/G4 acceptance source.
 
-**G3 boundary:** No premature full-board KiCad DRC or zero-unconnected requirement during placement. **G4 boundary:** DRC and final connectivity only after routing and real zone fill; SES generation or a green planning report cannot constitute approval.
+**G3 boundary:** No premature full-board KiCad DRC or zero-unconnected requirement during placement. **G4 boundary:** Full-board DRC and final connectivity only after [GND first-fill → approved ground stitching if needed → second-fill → pre-DRC GND audit](gnd-before-drc.md); SES generation or a green planning report cannot constitute approval.
 
 ### 11 — G4 final saved PCB review (`pcb_review`)
 
-**Inputs:** Final saved **routed and zone-refilled** PCB, native **G4 full-board DRC including unconnected items**, current netlist/constraints/stack-up, layer renders, zone-fill receipts and frozen device bundle. **Method:** `static_review.py --stage pcb` reuses source cards and verified cached text by SHA. AI inspects every copper layer, decoupling, critical paths, vias, RF/antenna, return/ground, mechanical and manufacturability concerns. Gate recomputes source and board baseline, verifies native checks and requires engineer review. **Gate:** Native DRC alone cannot establish actual impedance, SI, EMI/EMC, reliability, or final product tests. `NEEDS_EVIDENCE` cannot become PASS just because the AI summary is short.
+**Inputs:** Final saved **routed, first-GND-filled, reviewed and stitched if needed, then re-refilled** PCB, a source-bound `ground-pre-drc` pass receipt, native **G4 full-board DRC including unconnected items**, current netlist/constraints/stack-up, layer renders, zone-fill receipts and frozen device bundle. **Method:** `static_review.py --stage pcb` reuses source cards and verified cached text by SHA. AI inspects every copper layer, decoupling, critical paths, vias, RF/antenna, return/ground, mechanical and manufacturability concerns. Gate recomputes source and board baseline, verifies native checks and requires engineer review. **Gate:** Native DRC alone cannot establish actual impedance, SI, EMI/EMC, reliability, or final product tests. `NEEDS_EVIDENCE` cannot become PASS just because the AI summary is short.
 
 ### 12 — DFX/NPI pre-export (`npi`)
 
