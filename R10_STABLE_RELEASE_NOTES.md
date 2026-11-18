@@ -1,5 +1,20 @@
 # KiCad PCB AI Skill R10.0.0 — stable software release (2026-11-18)
 
+## 2026-11-18 · PR #10 正式验收补记（main 更新，不修改既有 R10.0.0 标签）
+
+- **合并结果**：[PR #10](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/10) 已合并至 `main`，合并提交 [`86b363f4408af9b5cbd9a9eb7a972f9f65739555`](https://github.com/jackwang988/kicad-pcb-ai-workflow/commit/86b363f4408af9b5cbd9a9eb7a972f9f65739555)。
+- **维护者验收**：2026-11-18 维护者确认本次 Skill 验证通过并明确批准合并、计入 R10 正式验收；作为 **R10 维护者验收 PASS** 记录。
+- **工程流程**：非 GND 走线和回导审核 → 首次 GND 分层铺铜 → 检查孤岛、焊盘和跨层回流 → 有需要才添加经批准的地孔 → 二次铺铜保存重载 → SHA 绑定的 `pcb.ground_plane_audit` → 原生全板 DRC/未连接检查 → G4 工程师审核。不允许将铺铜前的 GND 飞线当成最终 DRC 故障。
+- **软件 CI**：[2026-11-18 PR #10 软件回归 PASS](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44321219956)。
+- **独立原生 CI 仍 BLOCKED**：[原生测试 #44321220007](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44321220007) 中 Freerouting 原生路由与 GND 保护子步骤成功；GND 首次 KiCad CLI 铺铜及保存成功，但保存板网络解析报 `BOARD_NETS_MISSING`，导致地孔及二次铺铜的完整测试未通过。仍由 [Issue #11](https://github.com/jackwang988/kicad-pcb-ai-workflow/issues/11) 追踪；本补记不能作为独立原生 G4、制造放行或自动生产能力的证明。
+- **发布标签边界**：已有的 `R10.0.0` Tag / Release 对应 PR #10 合并之前的源码快照；它**不自动包含本次 `main` 的补丁**。禁止直接改写历史标签/复用旧 ZIP；若要重新发布，须在 CI 通过后单独发布新版本与 SHA-256。
+
+详细验收口径见 [R10 验收矩阵](docs/r10/05-release-readiness.md)、[GND 先铺铜再 DRC 工程规范](kicad-pcb-ai-workflow/references/gnd-before-drc.md)。
+
+---
+
+
+
 **Release scope:** Stable release of the R10 Skill *software source and validated orchestration contracts*. It does **not** certify a given PCB layout as routable, electrically correct, G4 approved, manufacturable or factory-released. Freerouting is used only on explicitly approved ordinary NetClasses and only within protected, isolated candidate workflow; GND and critical nets remain protected.
 
 ## What's new since R9.4 / R10 RC1
