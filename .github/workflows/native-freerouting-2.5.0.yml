@@ -4,9 +4,13 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - feat/r10-freerouting-primary-gated-20261118
+      - main
+      - fix/r10-gnd-netclass-native-20261118
     paths:
       - development/native_freerouting_250_e2e.py
+      - kicad-pcb-ai-workflow/scripts/freerouting_adapter.py
+      - kicad-pcb-ai-workflow/scripts/workflow.py
+      - kicad-pcb-ai-workflow/references/tool-manifest.json
       - development/fixtures/npi-demo/**
       - .github/workflows/native-freerouting-2.5.0.yml
 
