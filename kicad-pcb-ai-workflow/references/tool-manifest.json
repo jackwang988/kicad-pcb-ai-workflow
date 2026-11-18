@@ -683,7 +683,7 @@
     },
     {
       "file": "scripts/pcb_module_layout.py",
-      "sha256": "756a1c6376903ea4b1d276fad3aecf7e338b3cc562d0b436ec0ed77960019eb6",
+      "sha256": "4b43fffd84ea26b734e0d285b655602919748023333a64afd4d7af16f491c1ec",
       "version": "R10-two-level-pcb-preview",
       "command": "python scripts/pcb_module_layout.py {preflight|plan} /project --request REQUEST [--receipt RECEIPT]",
       "input": "Actual current KiCad PCB/project, XML netlist, sourced fabrication minima, placement policy and native design-intent audit",

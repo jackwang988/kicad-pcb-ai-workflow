@@ -298,11 +298,13 @@ def _critical_constraint_ok(constraints, selected, pads, vias, native_pad_offset
             return pos
         if spec.get('kind','pad')!='pad':raise ValueError('Unsupported hard placement anchor kind')
         ref=str(spec['ref'])
-        if ref not in selected:return None
         if ref not in pads:raise ValueError('Hard constraint references absent footprint '+ref)
+        if ref not in selected:return None
         return pad_anchor(pads[ref],selected[ref],spec['pad'],spec['net'],(native_pad_offsets or {}).get(ref))
     for c in constraints:
         kind=c.get('kind');level=c.get('level')
+        if level not in ('阻断级','高风险','中风险','优化建议'):
+            raise ValueError('Unknown mandatory placement constraint risk level')
         if level not in ('阻断级','高风险'):continue
         if kind=='pad_proximity':
             a,b=point(c['a']),point(c['b'])
@@ -410,8 +412,10 @@ def plan(root, request, receipt):
     if len(set(ownership))!=len(ownership) or set(ownership)!=all_refs:
         raise ValueError('Every real PCB footprint must belong to exactly one module')
     outline=ready['board_outline_mm'];grid=_finite(req.get('grid_mm'),'grid_mm')
-    limit=int(_finite(req.get('max_candidates_per_ref',120),'max_candidates_per_ref'))
-    if grid<0.1 or grid>10 or limit>2000:raise ValueError('Placement search grid/budget outside bounded range')
+    limit_raw=_finite(req.get('max_candidates_per_ref',120),'max_candidates_per_ref')
+    if not limit_raw.is_integer():raise ValueError('Integer placement search candidate budget required')
+    limit=int(limit_raw)
+    if grid<0.1 or grid>10 or not 1<=limit<=2000:raise ValueError('Placement search grid/budget outside bounded range')
     fixed_refs=set(req.get('fixed_refs',[]))
     # Connector and mechanical positions are mechanical interfaces, not
     # optimizable aesthetic suggestions. Native locked and RF anchors are fixed.

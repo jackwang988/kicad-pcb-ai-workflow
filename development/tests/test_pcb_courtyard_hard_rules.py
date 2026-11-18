@@ -98,6 +98,17 @@ class PlacementHardRuleIntegration(unittest.TestCase):
         self._save_policy()
         r=pl.plan(self.root,'request.json',self._ready())
         self.assertEqual(r['status'],'BOUNDED_MODULAR_PLACEMENT_PROPOSAL')
+    def test_unknown_critical_pad_reference_does_not_defer_forever(self):
+        self.base.policy['constraints']=[{'id':'missing','kind':'pad_proximity','level':'阻断级',
+          'a':{'ref':'U999','pad':'1','net':'PWR'},'b':{'ref':'C1','pad':'1','net':'PWR'},'max_mm':5}]
+        self._save_policy()
+        with self.assertRaisesRegex(ValueError,'absent footprint'):
+            pl.plan(self.root,'request.json',self._ready())
+    def test_candidate_budget_must_be_positive_integer(self):
+        self.base.request['max_candidates_per_ref']=0.5
+        self._save_request()
+        with self.assertRaisesRegex(ValueError,'Integer placement search candidate budget'):
+            pl.plan(self.root,'request.json',self._ready())
     def test_unknown_mandatory_constraint_is_never_ignored(self):
         self.base.policy['constraints']=[{'id':'bad','kind':'custom_unknown','level':'阻断级'}]
         self._save_policy()
