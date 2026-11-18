@@ -331,8 +331,13 @@ def _ground_footprints(snapshot):
     found = []
     for uid, raw in snapshot['footprints'].items():
         node = json.loads(raw)
+        # KiCad 10 adds empty Datasheet/Description properties on save.
+        # Empty optional metadata does not change electrical/physical layout,
+        # but reference/value and all non-empty user fields still must match.
         props = sorted((str(p[1]), str(p[2]))
-                       for p in children(node, 'property') if len(p) >= 3)
+                       for p in children(node, 'property')
+                       if len(p) >= 3 and
+                       (str(p[2]) != '' or str(p[1]) in ('Reference', 'Value')))
         pads = []
         for pad in children(node, 'pad'):
             attrs = {
