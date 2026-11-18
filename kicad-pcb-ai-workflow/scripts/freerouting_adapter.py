@@ -204,9 +204,6 @@ def main():
         actual_map = specctra_netclass_members(dsn)
     except (ValueError, UnicodeError, OSError) as exc:
         return blocked("DSN_NETCLASS_MEMBERSHIP_UNVERIFIABLE", detail=str(exc))
-    if "GND" in actual_map and actual_map["GND"] not in excluded:
-        return blocked("GND_EFFECTIVE_CLASS_NOT_EXCLUDED",
-                       actual_class=actual_map["GND"])
     implicit_rules = dsn.with_suffix(".rules")
     rules = a.rules_file.resolve() if a.rules_file else None
     if implicit_rules.is_file() and rules != implicit_rules.resolve():
@@ -224,6 +221,9 @@ def main():
         elif a.apply:
             return blocked("RULES_HASH_REQUIRED_FOR_EXECUTION")
 
+    if "GND" in actual_map and actual_map["GND"] not in excluded:
+        return blocked("GND_EFFECTIVE_CLASS_NOT_EXCLUDED",
+                       actual_class=actual_map["GND"])
     native_map_sha = None
     if a.netclass_map:
         native_path = a.netclass_map.resolve()
