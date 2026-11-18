@@ -37,6 +37,27 @@ class PlacementTests(unittest.TestCase):
     def has(self,r,code):return any(f['rule']==code for f in r['findings'])
     def test_declared_static_scope_only(self):
         r=self.audit();self.assertEqual(r['status'],'DECLARED_LAYOUT_CHECKS_COMPLETE');self.assertFalse(r['production_authorized']);self.assertFalse(r['native_geometry_verified'])
+    def test_g3_unrouted_layout_passes_without_full_board_drc(self):
+        # No routed tracks exist in this synthetic PCB. G3 reviews placement,
+        # without requiring a full-board native DRC or zero unconnected nets.
+        self.assertNotIn('(segment ',self.board.read_text())
+        r=self.audit('pre_route')
+        self.assertEqual(r['status'],'DECLARED_LAYOUT_CHECKS_COMPLETE')
+        self.assertEqual(r['review_context'],'G3_PRE_ROUTE_LAYOUT_ONLY')
+        self.assertFalse(r['full_board_drc_executed'])
+        self.assertEqual(r['full_board_drc_schedule'],'DEFERRED_TO_G4_AFTER_ROUTING_AND_ZONE_REFILL')
+        self.assertFalse(r['unconnected_nets_are_g3_blocker'])
+        b,_=primitives(self.board,False)
+        report_dir=self.root/'g3-report'
+        pr.write_artifacts(r,b,report_dir)
+        report=(report_dir/'placement-report.md').read_text()
+        self.assertIn('Full-board native DRC was NOT executed',report)
+        self.assertIn('Unconnected nets do not block G3',report)
+    def test_g4_placement_recheck_does_not_replace_full_native_drc(self):
+        r=self.audit('final')
+        self.assertEqual(r['review_context'],'G4_POST_ROUTE_PLACEMENT_RECHECK')
+        self.assertFalse(r['full_board_drc_executed'])
+        self.assertEqual(r['full_board_drc_schedule'],'DEFERRED_TO_G4_AFTER_ROUTING_AND_ZONE_REFILL')
     def test_module_coverage(self):
         self.q['modules'][0]['refs'].remove('R1');self.q['modules'][0]['roles'].pop('R1');self.assertEqual(self.audit()['status'],'BLOCKED')
     def test_duplicate_module_assignment(self):
