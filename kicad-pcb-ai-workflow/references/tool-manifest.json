@@ -495,7 +495,7 @@
     },
     {
       "file": "scripts/routing_seven_stage.py",
-      "sha256": "bde4aa428074a1e2dfe10a4eb168478ff2110458f5679633b43fbbff8de94dcf",
+      "sha256": "6ef75bd8cc6566c18a6cd863727ef3b9c8aff0801b1cd880280e83d61adc9e58",
       "version": "R10-seven-stage-preview-1",
       "command": "python scripts/routing_seven_stage.py --help",
       "input": "Project-local source-hash-bound full routing request + real saved candidate boards + Native KiCad DRC JSON",
@@ -504,7 +504,7 @@
         "0": "Read-only stage plan or limited geometry audit, G4 remains pending",
         "2": "BLOCKED; invalid evidence/geometry/rules"
       },
-      "validation_scope": "Python synthetic fixtures only; native KiCad save/reload, Freerouting live DSN/SES, Konnect acceptance and G4 separate"
+      "validation_scope": "Synthetic fixture tests: source hash + native board snapshots + critical copper/footprint preservation and explicit ripup + geometry/HV45/width/via/GND, native E2E separately required"
     },
     {
       "file": "scripts/schematic_candidate.py",
