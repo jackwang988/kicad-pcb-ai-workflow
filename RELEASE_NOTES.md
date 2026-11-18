@@ -1,3 +1,12 @@
+# R10 main source integration · 2026-11-18 · Freerouting 2.5.0 七阶段布线
+
+- 维护者指示下，依次合并 [PR #6](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/6) 与 [PR #7](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/7) 到 `main`。工作区保护、原理图预布局、英文版模块化Skill、关键网保护、NetClass排除、Freerouting DSN/SES候选、保存板审计及G3/G4分界已纳入源码。
+- [最新版 README](README.md) · [七阶段布线说明](kicad-pcb-ai-workflow/references/freerouting-seven-stage.md) · [16节点/七阶段架构图](docs/r10/06-current-skill-full-flow.md) · [更新版R10说明](R10_RELEASE_NOTES.md)。
+- [PR #6 软件CI](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44278478257) 与 [PR #7 软件CI](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44287952061) 均成功。用户报告Windows/Konnect本机验收通过；新Freerouting原生往返CI与跨项目投产级验证单独计算，未得到最终PASS不得宣称。
+- 历史 `R10.0.0-rc.1` ZIP不随 `main` 的代码合并而改变；发布R10新版安装包时必须重新构建、独立测试并生成新的SHA-256。R9.4原稳定包继续保留。
+
+---
+
 # R10.0.0-rc.1 · 2026-11-17 · Konnect单写入与G1–G4知识库复用（预发布）
 
 - [完整版本说明](R10_RELEASE_NOTES.md) · [安装包](dist/kicad-pcb-ai-workflow-R10.0.0-rc.1.zip) · [系统架构及5张流程图](docs/r10/README.md)
