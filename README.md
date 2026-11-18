@@ -2,9 +2,9 @@
 
 > **2026-11-18：PR [#6](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/6) 与 [#7](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/7) 已按依赖顺序合入 `main`。** R10 源码包含工作区/Token优化、原理图拓扑预布局约束、KiCad/Konnect单写入、Freerouting 2.5.0 普通网络七阶段布线和只读回导审核。
 >
-> **版本边界**：本页描述 `main` 的**最新源码**，不代表已将新版内容打包到历史 `R10.0.0-rc.1.zip`。R9.4仍是既有已验证稳定安装包；RC1是历史预发布包。新版发布与校验见 [R10版本说明](R10_RELEASE_NOTES.md) 和 [更新记录](RELEASE_NOTES.md)。**软件合并、Windows/Konnect本机验收、原生 Freerouting 往返测试和实际产品投产授权属于不同的验证层级。**
+> **版本边界**：本页描述 `main` 的**最新源码**，不代表已将新版内容打包到历史 `R10.0.0-rc.1.zip`。R9.4仍是既有已验证稳定安装包；RC1是历史预发布包。**R10.0.0-rc.2 已创建预发布标签，但普通网络自动布线存在原生验收阻断项（见下文），不得视为已验证的生产默认路径。**新版发布与校验见 [R10版本说明](R10_RELEASE_NOTES.md) 和 [更新记录](RELEASE_NOTES.md)。**软件合并、Windows/Konnect本机验收、原生 Freerouting 往返测试和实际产品投产授权属于不同的验证层级。**
 
-[查看最新源码](https://github.com/jackwang988/kicad-pcb-ai-workflow/tree/main/kicad-pcb-ai-workflow) · [R10 最新16节点/七阶段完整流程图](docs/r10/06-current-skill-full-flow.md) · [七阶段工程契约](kicad-pcb-ai-workflow/references/freerouting-seven-stage.md) · [R10验收矩阵](docs/r10/05-release-readiness.md) · [旧版R9.4包](dist/kicad-pcb-ai-workflow-R9.4.zip)
+[R10.0.0-rc.2 预发布页面](https://github.com/jackwang988/kicad-pcb-ai-workflow/releases/tag/R10.0.0-rc.2) · [查看最新源码](https://github.com/jackwang988/kicad-pcb-ai-workflow/tree/main/kicad-pcb-ai-workflow) · [R10 最新16节点/七阶段完整流程图](docs/r10/06-current-skill-full-flow.md) · [七阶段工程契约](kicad-pcb-ai-workflow/references/freerouting-seven-stage.md) · [R10验收矩阵](docs/r10/05-release-readiness.md) · [旧版R9.4包](dist/kicad-pcb-ai-workflow-R9.4.zip)
 
 ## 一、R10 核心架构
 
@@ -99,8 +99,10 @@ python scripts/routing_seven_stage.py audit-final /path/project --config route-f
 | PR #7 软件 CI | [已通过](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44287952061) |
 | KiCad 10.0.8 基础原生工具链 | [历史隔离工程烟测通过](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44015065144)，不等于新路由全链通过 |
 | Windows/Konnect 本机 | **维护者报告已验收通过**；当前仓库没有相应的新现场日志/录屏可供独立复核 |
-| KiCad→Freerouting 2.5.0→SES→KiCad 原生往返 | [专用 Actions 记录](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44286105239)：截至本次文档更新，未取得成功的最终结论 |
+| KiCad→Freerouting 2.5.0→SES→KiCad 原生往返 | **FAILED / BLOCKED**：[专用 Actions 记录](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44286105239)。真实 DSN、SES 已生成，但 KiCad 导入后 GND 被布线（`GND_AUTOROUTED_DESPITE_EXCLUSION`），`-inc GND` 未达到受保护网络契约；**普通网络自动布线不能作为已验收默认执行路径** |
 | 不同层数/高速与电源混合项目、CAM/试产 | 未作为自动化通用能力认证；每个真实产品需独立验收 |
+
+**当前已知阻断：本次原生测试表明 GND 保护失效。必须核对实际 DSN 中网络的有效/复合 NetClass 归属，修正排除策略，再完成真实导入、保存回读与原生DRC；无法证实受保护网络未改动时保持 BLOCKED。**
 
 **软件发布不等于 PCB 可投产授权。** 源码测试、保存板上的G4 DRC、工程师的电气/热/高速审核以及板厂CAM/EQ/样机测试是独立步骤。Gerber、钻孔、BOM、CPL 导出成功仍标记 `EXPORTED_NOT_RELEASED`。
 
