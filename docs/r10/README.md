@@ -1,5 +1,9 @@
 # R10 当前 Skill 架构与运行流程（持续验收版）
 
+> **R10 最新正式验收登记 · 2026-11-18**：维护者确认 Skill 的 GND 首铺铜→检查→批准地孔→二次铺铜→DRC 顺序验证通过，[PR #10](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/10) 已合并 `main`。这是**维护者验收 PASS**；[软件 CI](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44321219956) 通过，但 [独立原生铺铜 CI](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44321220007) 仍因保存板网络解析而 BLOCKED（[Issue #11](https://github.com/jackwang988/kicad-pcb-ai-workflow/issues/11)）。历史 R10.0.0 发行包不含本次合并变更。
+
+[本次 GND/DRC 强制顺序](../../kicad-pcb-ai-workflow/references/gnd-before-drc.md) · [R10正式验收矩阵](05-release-readiness.md) · [R10发布补记](../../R10_STABLE_RELEASE_NOTES.md)
+
 ## 最新架构与详细流程（优先阅读）
 
 [**R10 最新完整系统架构、16 节点全流程图、Freerouting 7 阶段详细布线流程、测试证据分级**](06-current-skill-full-flow.md)
