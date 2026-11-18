@@ -145,8 +145,7 @@ class RoutingSevenStageAuditTests(unittest.TestCase):
     def test_final_unconnected_drc_is_rejected(self):
         (self.root / 'drc.json').write_text(json.dumps({
             'violations': [], 'unconnected_items': [{'type': 'unconnected'}]}))
-        self.config.update(stage='final', zone_refill_completed=True,
-                           native_drc_json=self.bind('drc.json'))
+        self.prepare_final()
         with self.assertRaises(seven.RoutingBlocked) as error:
             seven.audit(self.root, self.write_cfg(), 'final')
         self.assertEqual(error.exception.code, 'NATIVE_DRC_NOT_CLEAN')
@@ -154,8 +153,7 @@ class RoutingSevenStageAuditTests(unittest.TestCase):
     def test_final_warning_drc_is_rejected(self):
         (self.root / 'drc.json').write_text(json.dumps({
             'violations': [{'severity': 'warning'}], 'unconnected_items': []}))
-        self.config.update(stage='final', zone_refill_completed=True,
-                           native_drc_json=self.bind('drc.json'))
+        self.prepare_final()
         with self.assertRaises(seven.RoutingBlocked) as error:
             seven.audit(self.root, self.write_cfg(), 'final')
         self.assertEqual(error.exception.code, 'NATIVE_DRC_NOT_CLEAN')
