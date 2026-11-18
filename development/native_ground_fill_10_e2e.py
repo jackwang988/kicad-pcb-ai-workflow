@@ -16,7 +16,7 @@ import traceback
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "kicad-pcb-ai-workflow" / "scripts"))
-from routing_seven_stage import board_snapshot, ground_audit, sha
+from routing_seven_stage import board_snapshot, ground_audit, ground_filled_layers, sha
 
 OUTPUT = Path(os.environ.get("NATIVE_GND_REPORT", "/tmp/r10-native-ground-fill-evidence.json"))
 
@@ -67,11 +67,8 @@ def main():
             first = folder / "initial-filled.kicad_pcb"
             pcbnew.SaveBoard(str(first), board)
             first_loaded = board_snapshot(first)
-            evidence["first_ground_layers"] = {
-                name: sorted(set().union(*[
-                    {str(zone['net'])} if zone['net'] == name else set()
-                    for zone in first_loaded['zones']])) for name in ("GND",)
-            }
+            evidence["first_filled_ground_layers"] = sorted(
+                ground_filled_layers(first_loaded, "GND"))
             # Approved geometry is a named, reviewed location inside the
             # native fixture. This is not generic automatic via placement.
             board = pcbnew.LoadBoard(str(first))
