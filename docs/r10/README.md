@@ -18,13 +18,14 @@
 | [Konnect动态能力与单写入闭环](figures/04-konnect-capabilities.svg) | 动态发现→按需验收→回读→原生DRC |
 | [16节点逐项详细规则](figures/05-16-node-details.svg) | 每节点的工作重点 |
 
-> **当前 main 集成 R10.0.0-rc.1，七阶段 Freerouting 候选改造位于待验收开发分支。** 本目录仍保留 2026-11-17 的 R10 架构历史图片：器件知识卡跨项目/跨G1–G4复用、Konnect MCP单写入、动态能力发现及风险分级。**这些历史图片不意味着七阶段 Freerouting 集成已经在 main 发布或通过实机验收**；详见 [迁移与验收状态](05-release-readiness.md)。
+> **2026-11-18：PR #6、#7 已合入 main，七阶段 Freerouting 代码及最新流程图已经位于主分支。** 旧版五张 SVG 保留历史参考，其箭头不代表当前七阶段布线顺序。Windows/Konnect 本机验收为维护者报告；原生 Freerouting 2.5.0 端到端结果和跨项目生产验证仍须独立核实，不能由合并操作推断通过。详见 [验收状态](05-release-readiness.md)。
 
 ## 从哪里开始看
 
 | 阅读顺序 | 图文 | 看完理解什么 |
 |---|---|---|
-| 1 | [最新完整架构及布线详细流程](06-current-skill-full-flow.md) | 真实模块关系、最新16节点、七阶段布线、测试层级与能力边界 |\n| 2 | [系统总架构](01-system-architecture.md) | AI、Python、Konnect、KiCad、门禁如何协作 |
+| 1 | [最新完整架构及布线详细流程](06-current-skill-full-flow.md) | 真实模块关系、最新16节点、七阶段布线、测试层级与能力边界 |
+| 2 | [系统总架构](01-system-architecture.md) | AI、Python、Konnect、KiCad、门禁如何协作 |
 | 3 | [16节点主线及逐项规则](02-16-node-workflow.md) | 从需求到制造候选的完整执行步骤 |
 | 4 | [器件知识库复用](03-device-knowledge-reuse.md) | 芯片资料一次核对、跨项目和G1–G4复用 |
 | 5 | [Konnect动态工具与单写入闭环](04-konnect-capability-and-single-writer.md) | 发现工具、按风险验证、执行、读回、DRC |
