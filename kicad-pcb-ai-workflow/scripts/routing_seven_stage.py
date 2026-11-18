@@ -307,7 +307,7 @@ def _ground_fields(node, names):
         field = child(node, name)
         if field is not None:
             result[name] = [round(float(v), 9) if isinstance(v, str) and
-                            re.fullmatch(r'[+-]?\d+(?:\.\d+)?', v) else v
+                            re.fullmatch(r'[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?', v) else v
                             for v in field[1:]]
     return result
 
