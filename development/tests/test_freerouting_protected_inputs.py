@@ -95,5 +95,72 @@ class FreeroutingProtectedInputsTests(unittest.TestCase):
             self.assertFalse(out.exists())
 
 
+
+    def test_declared_gnd_class_does_not_prove_actual_membership(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "board.dsn").write_text(
+                '(pcb demo (network (net GND (pins J1-1)) '
+                '(net GPIO (pins J1-2)) (class kicad_default GND GPIO (rule (width 200))) '
+                '(class GND (rule (width 200)))))')
+            self.assertEqual(router.specctra_netclass_members(root / "board.dsn")["GND"],
+                             "kicad_default")
+            run, result, out = self.run_adapter(root, "--exclude-netclasses", "GND")
+            self.assertEqual(run.returncode, 2)
+            self.assertEqual(result["reason"], "GND_EFFECTIVE_CLASS_NOT_EXCLUDED")
+            self.assertFalse(out.exists())
+
+    def test_effective_gnd_and_signal_map_preview(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "board.dsn").write_text(
+                '(pcb demo (network (net GND (pins J1-1)) (net GPIO (pins J1-2)) '
+                '(class GND GND (rule (width 200))) (class SIGNAL GPIO)))')
+            self.assertEqual(router.specctra_netclass_members(root / "board.dsn"),
+                             {"GND": "GND", "GPIO": "SIGNAL"})
+            run, result, out = self.run_adapter(root, "--exclude-netclasses", "GND")
+            self.assertEqual(run.returncode, 0)
+            self.assertEqual(result["status"], "MANUAL_ROUTING_FALLBACK")
+
+    def test_native_netclass_map_mismatch_blocks(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            dsn = root / "board.dsn"
+            dsn.write_text('(pcb demo (network (net GND (pins J1-1)) '
+                           '(net GPIO (pins J1-2)) (class GND GND) (class SIGNAL GPIO)))')
+            native = root / "map.json"
+            native.write_text(json.dumps({"dsn_sha256": hashlib.sha256(dsn.read_bytes()).hexdigest(),
+                                         "net_to_class": {"GND": "GND", "GPIO": "Default"}}))
+            mhash = hashlib.sha256(native.read_bytes()).hexdigest()
+            run, result, _ = self.run_adapter(
+                root, "--netclass-map", str(native),
+                "--expected-netclass-map-sha256", mhash, "--exclude-netclasses", "GND")
+            self.assertEqual(run.returncode, 2)
+            self.assertEqual(result["reason"], "NATIVE_NETCLASS_MAP_MEMBERSHIP_MISMATCH")
+
+    def test_apply_requires_hash_bound_native_map(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            dsn = root / "board.dsn"
+            dsn.write_text('(pcb demo (network (class GND GND)))')
+            digest = hashlib.sha256(dsn.read_bytes()).hexdigest()
+            run, result, out = self.run_adapter(root, "--apply",
+                                                "--expected-dsn-sha256", digest,
+                                                "--exclude-netclasses", "GND")
+            self.assertEqual(run.returncode, 2)
+            self.assertEqual(result["reason"], "NATIVE_NETCLASS_MAP_REQUIRED_FOR_EXECUTION")
+            self.assertFalse(out.exists())
+
+    def test_duplicate_dsn_membership_fails_closed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "board.dsn").write_text(
+                '(pcb demo (network (class kicad_default GND) (class GND GND)))')
+            run, result, out = self.run_adapter(root, "--exclude-netclasses", "GND")
+            self.assertEqual(run.returncode, 2)
+            self.assertEqual(result["reason"], "DSN_NETCLASS_MEMBERSHIP_UNVERIFIABLE")
+            self.assertFalse(out.exists())
+
+
 if __name__ == "__main__":
     unittest.main()

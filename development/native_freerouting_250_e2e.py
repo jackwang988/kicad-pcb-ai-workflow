@@ -38,6 +38,35 @@ def require(ok, message):
         raise RuntimeError(message)
 
 
+def load_project_netclasses_for_native_export(board, net_settings, pcbnew):
+    """Mirror actual .kicad_pro rules in a headless SWIG board before DSN export.
+
+    LoadBoard() alone does NOT load .kicad_pro NET_SETTINGS. A declaration for
+    GND can be emitted without its net being assigned to that DSN class.
+    """
+    native = board.GetDesignSettings().m_NetSettings
+    for cls in net_settings["classes"]:
+        name = cls["name"]
+        nc = native.GetDefaultNetclass() if name == "Default" else pcbnew.NETCLASS(name)
+        for key, setter in (
+            ("clearance", "SetClearance"),
+            ("track_width", "SetTrackWidth"),
+            ("via_diameter", "SetViaDiameter"),
+            ("via_drill", "SetViaDrill"),
+        ):
+            if isinstance(cls.get(key), (int, float)):
+                getattr(nc, setter)(pcbnew.FromMM(float(cls[key])))
+        if name != "Default":
+            if isinstance(cls.get("priority"), int):
+                nc.SetPriority(cls["priority"])
+            native.SetNetclass(name, nc)
+    for entry in net_settings["netclass_patterns"]:
+        native.SetNetclassPatternAssignment(entry["pattern"], entry["netclass"])
+    if hasattr(native, "ClearAllCaches"):
+        native.ClearAllCaches()
+    board.SynchronizeNetsAndNetClasses(False)
+
+
 def main():
     evidence = {"status": "BLOCKED", "scope": "isolated_real_tool_roundtrip_not_production",
                 "manufacturing_authorized": False, "g4_approved": False,
@@ -86,6 +115,8 @@ def main():
             pcbnew.SaveBoard(str(pcbfile), board)
             assert not list(pcbnew.LoadBoard(str(pcbfile)).GetTracks())
             board = pcbnew.LoadBoard(str(pcbfile))
+            # Restore project net settings: raw pcbnew.LoadBoard never loads .kicad_pro.
+            load_project_netclasses_for_native_export(board, ns, pcbnew)
             dsn = project / "native-export.dsn"
             exported = pcbnew.ExportSpecctraDSN(board, str(dsn))
             require(bool(exported) and dsn.is_file() and dsn.stat().st_size > 0,
@@ -93,16 +124,25 @@ def main():
             dsntxt = dsn.read_text(encoding="utf-8", errors="replace")
             require("(pcb" in dsntxt and "GND" in dsntxt and "+3V3" in dsntxt,
                     "DSN_NETS_MISSING")
+            # Import our production DSN preflight: declarations alone are insufficient.
+            sys.path.insert(0, str(ROOT / "kicad-pcb-ai-workflow" / "scripts"))
+            from freerouting_adapter import specctra_netclass_members
+            members = specctra_netclass_members(dsn)
             evidence["steps"]["dsn"] = {
                 "sha256": sha(dsn), "bytes": dsn.stat().st_size,
-                "gnd_class_declaration": "(class GND" in dsntxt
+                "gnd_effective_class": members.get("GND"),
+                "signal_effective_class": members.get("+3V3"),
             }
-            require("(class GND" in dsntxt,
-                    "GND_NETCLASS_NOT_PRESERVED_IN_REAL_KICAD_DSN")
+            require(members.get("GND") == "GND",
+                    "GND_EFFECTIVE_NETCLASS_MISMATCH")
+            require(members.get("+3V3") == "SIGNAL",
+                    "SIGNAL_EFFECTIVE_NETCLASS_MISMATCH")
             ses = project / "freerouting-candidate.ses"
             command = ["java", "-jar", str(JAR),
                        "-de", str(dsn), "-do", str(ses),
                        "-inc", "GND", "-mp", "25", "-mt", "1",
+                       "--router.fanout.enabled=false",
+                       "--router.optimizer.enabled=false",
                        "--gui.enabled=false", "-da"]
             result = run(command, timeout=600)
             evidence["steps"]["freerouting"] = result
@@ -123,6 +163,7 @@ def main():
                 name = str(track.GetNetname())
                 counts[name] = counts.get(name, 0) + 1
             require(counts.get("+3V3", 0) > 0, "SIGNAL_UNROUTED_AFTER_IMPORT")
+            evidence["steps"]["imported_track_counts"] = counts
             require(counts.get("GND", 0) == 0, "GND_AUTOROUTED_DESPITE_EXCLUSION")
             evidence["steps"]["imported_saved_board"] = {
                 "sha256": sha(target), "tracks": len(routed), "per_net": counts,

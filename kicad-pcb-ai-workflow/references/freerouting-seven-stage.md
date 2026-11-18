@@ -88,6 +88,8 @@ python scripts/freerouting_adapter.py --dsn route/board.dsn \
   --expected-dsn-sha256 ACTUAL_DSN_SHA --jar approved/freerouting-2.5.0.jar \
   --expected-jar-sha256 APPROVED_JAR_SHA \
   --exclude-netclasses GND,DIFF_CRITICAL,RF_CRITICAL,POWER_CRITICAL \
+  --netclass-map route/netclass-map.json \
+  --expected-netclass-map-sha256 APPROVED_NATIVE_MAP_SHA \
   --output-dir NEW_CANDIDATE --passes 20
 # After reviewing preview, repeat the same command with --apply.
 # Import SES via accepted KiCad/Konnect operation into isolated candidate.
@@ -99,6 +101,58 @@ python scripts/routing_seven_stage.py audit-final PROJECT --config route-final-c
 If the approved Freerouting `.rules` is present, pass `--rules-file FILE --expected-rules-sha256 HASH`; a silently autodiscovered adjacent rules file is blocked. Use actual available NetClass names: examples are **not** automatic categories.
 
 The same plan/audit interfaces are registered as `workflow.py --task pcb.routing_seven_plan`, `pcb.routing_import_audit`, and `pcb.routing_final_audit` with `--routing-stage-config`. The `pcb.freerouting_candidate` task calls only the offline Freerouting adapter; the accepted Konnect native import remains a separately discovered and authorized operation.
+
+## Freerouting 2.5.0 fanout and optimization safety
+
+Native KiCad 10.0.8 + Freerouting 2.5.0 regression showed that even
+with GND correctly assigned to the effective GND NetClass and -inc GND
+specified, the router's initial SMD fanout stage could still add GND
+copper. The approved R10 ordinary-net CLI adapter therefore explicitly
+sets --router.fanout.enabled=false and --router.optimizer.enabled=false.
+Only the constrained ordinary autorouter pass remains active. This
+may reduce routing completion on very dense boards; never re-enable
+fanout or optimizer without a separate version-pinned native protected-
+object test. If a design cannot finish with these protections, return
+BLOCKED/engineer handoff instead of silently routing GND.
+
+The real KiCad SES import must still prove no newly added/removed GND
+tracks/vias or protected copper in the saved and reloaded board.
+
+## Mandatory native NetClass membership proof (R10 protected-GND fix)
+
+A DSN file can declare a class called GND without placing the actual GND net
+in that class. In particular, headless KiCad 10 SWIG LoadBoard() loads the
+PCB but not the separate .kicad_pro net settings; a naive ExportSpecctraDSN()
+may emit a GND declaration yet put GND in kicad_default. Freerouting -inc GND
+only applies to the effective imported class. R10 now inspects the direct
+membership inside the real DSN network/class blocks, not a regex for the
+class name alone. A GND net assigned to a non-excluded class is BLOCKED.
+
+Before using the adapter with --apply, independently read actual KiCad
+NetClass membership from a project-aware editor and supply the complete
+source/DSN-bound map:
+
+~~~json
+{
+  "schema_version": 1,
+  "board_sha256": "actual saved KiCad board SHA-256",
+  "dsn_sha256": "actual exported DSN SHA-256",
+  "net_to_class": {"GND": "GND", "GPIO": "SIGNAL"}
+}
+~~~
+
+Pass the map and its SHA-256 via --netclass-map and
+--expected-netclass-map-sha256. Every DSN class member must match the native
+map exactly and the DSN hash must match; the adapter does not infer or repair
+the project rules and must reject mismatch. Use native project-aware Konnect
+DSN export and independent readback. An isolated native test can explicitly
+restore .kicad_pro settings into a disposable headless board before its
+genuine KiCad ExportSpecctraDSN() call, but this is not authorization to write
+the user's live PCB through pcbnew.
+
+After SES import, compare saved board tracks, vias and protected copper,
+including GND, against the original. A clean DSN map and a successful SES
+generation **alone** never close G4.
 
 ## Important limitations and test gate
 

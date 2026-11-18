@@ -61,6 +61,74 @@ def specctra_netclasses(path):
     return {quoted or bare for quoted, bare in matches}
 
 
+def specctra_netclass_members(path):
+    """Read actual Specctra DSN net-to-class membership, not mere declarations."""
+    source = path.read_text(encoding="utf-8", errors="strict")
+    if len(source) > 32 * 1024 * 1024:
+        raise ValueError("DSN_NETCLASS_INVENTORY_TOO_LARGE")
+    token_re = re.compile(r'\s+|;[^\n]*|"(?:\\.|[^"\\])*"|[()]|[^\s();]+')
+    roots, stack, pos = [], [], 0
+    for match in token_re.finditer(source):
+        if match.start() != pos:
+            raise ValueError("DSN_SYNTAX_UNRECOGNIZED")
+        pos = match.end()
+        token = match.group()
+        if not token.strip() or token.startswith(";"):
+            continue
+        if token == "(":
+            node = []
+            if stack:
+                stack[-1].append(node)
+            else:
+                roots.append(node)
+            stack.append(node)
+        elif token == ")":
+            if not stack:
+                raise ValueError("DSN_UNBALANCED_PARENTHESES")
+            stack.pop()
+        else:
+            if not stack:
+                raise ValueError("DSN_CONTENT_OUTSIDE_ROOT")
+            if token.startswith('"'):
+                token = token[1:-1].replace(r'\"', '"').replace(r'\\', "\\")
+            stack[-1].append(token)
+    if pos != len(source) or stack or len(roots) != 1:
+        raise ValueError("DSN_INCOMPLETE_SEXPR")
+    pcb = roots[0]
+    if not pcb or str(pcb[0]).lower() != "pcb":
+        raise ValueError("DSN_PCB_ROOT_MISSING")
+    networks = [part for part in pcb if isinstance(part, list) and
+                part and str(part[0]).lower() == "network"]
+    if len(networks) != 1:
+        raise ValueError("DSN_NETWORK_SCOPE_MISSING_OR_DUPLICATE")
+    members, declared_nets, classes = {}, set(), set()
+    for entry in networks[0][1:]:
+        if not isinstance(entry, list) or len(entry) < 2:
+            continue
+        kind = str(entry[0]).lower()
+        if kind == "net":
+            if not isinstance(entry[1], str):
+                raise ValueError("DSN_NET_NAME_INVALID")
+            declared_nets.add(entry[1])
+        if kind != "class":
+            continue
+        name = entry[1]
+        if not isinstance(name, str) or not name or name in classes:
+            raise ValueError("DSN_DUPLICATE_OR_INVALID_NETCLASS")
+        classes.add(name)
+        for net in entry[2:]:
+            if isinstance(net, list):
+                continue
+            if not isinstance(net, str) or not net or net in members:
+                raise ValueError("DSN_DUPLICATE_OR_INVALID_NET_MEMBER")
+            members[net] = name
+    if not members:
+        raise ValueError("DSN_NETCLASS_MEMBERSHIP_ABSENT")
+    if declared_nets and declared_nets != set(members):
+        raise ValueError("DSN_CLASS_NET_INVENTORY_INCOMPLETE")
+    return members
+
+
 def class_exclusions(value):
     """CLI -inc is a CLASS exclusion, not a net-name exclusion."""
     if not value:
@@ -86,6 +154,10 @@ def main():
                    help="Comma-separated PROTECTED NetClass names; routed with Freerouting -inc")
     p.add_argument("--expected-dsn-sha256",
                    help="SHA-256 of reviewed KiCad-exported DSN; required for --apply")
+    p.add_argument("--netclass-map", type=Path,
+                   help="Native net_to_class readback JSON (required for --apply)")
+    p.add_argument("--expected-netclass-map-sha256",
+                   help="SHA-256 of approved native netclass map (required for --apply)")
     p.add_argument("--rules-file", type=Path,
                    help="Optional approved Freerouting .rules file (never trust implicit sidecar)")
     p.add_argument("--expected-rules-sha256",
@@ -127,6 +199,15 @@ def main():
         missing = sorted(set(excluded) - declared)
         if missing:
             return blocked("EXCLUDED_NETCLASS_NOT_IN_DSN", missing_netclasses=missing)
+    # A named class does not prove that the expected net belongs to it.
+    try:
+        # Preserve the documented no-JAR/no-routing manual fallback. Any
+        # requested exclusion, actual router, apply or bound map requires a
+        # complete native DSN network inventory before proceeding.
+        inventory_required = bool(a.jar or a.apply or excluded or a.netclass_map)
+        actual_map = specctra_netclass_members(dsn) if inventory_required else {}
+    except (ValueError, UnicodeError, OSError) as exc:
+        return blocked("DSN_NETCLASS_MEMBERSHIP_UNVERIFIABLE", detail=str(exc))
     implicit_rules = dsn.with_suffix(".rules")
     rules = a.rules_file.resolve() if a.rules_file else None
     if implicit_rules.is_file() and rules != implicit_rules.resolve():
@@ -143,6 +224,35 @@ def main():
                 return blocked("RULES_SHA256_MISMATCH")
         elif a.apply:
             return blocked("RULES_HASH_REQUIRED_FOR_EXECUTION")
+
+    if "GND" in actual_map and actual_map["GND"] not in excluded:
+        return blocked("GND_EFFECTIVE_CLASS_NOT_EXCLUDED",
+                       actual_class=actual_map["GND"])
+    native_map_sha = None
+    if a.netclass_map:
+        native_path = a.netclass_map.resolve()
+        if not native_path.is_file() or native_path.suffix.lower() != ".json":
+            return blocked("NATIVE_NETCLASS_MAP_NOT_FOUND")
+        native_map_sha = sha256(native_path)
+        if not a.expected_netclass_map_sha256:
+            return blocked("NATIVE_NETCLASS_MAP_HASH_REQUIRED")
+        if native_map_sha != a.expected_netclass_map_sha256.lower():
+            return blocked("NATIVE_NETCLASS_MAP_HASH_MISMATCH")
+        try:
+            native = json.loads(native_path.read_text(encoding="utf-8"))
+            expected_map = native["net_to_class"]
+            if not isinstance(expected_map, dict) or not expected_map:
+                raise ValueError("missing net_to_class entries")
+            if native.get("dsn_sha256") != base["dsn_sha256"]:
+                return blocked("NATIVE_NETCLASS_MAP_DSN_HASH_MISMATCH")
+            if expected_map != actual_map:
+                return blocked("NATIVE_NETCLASS_MAP_MEMBERSHIP_MISMATCH",
+                               native_net_count=len(expected_map),
+                               exported_net_count=len(actual_map))
+        except (KeyError, ValueError, TypeError) as exc:
+            return blocked("NATIVE_NETCLASS_MAP_INVALID", detail=str(exc))
+    elif a.apply:
+        return blocked("NATIVE_NETCLASS_MAP_REQUIRED_FOR_EXECUTION")
 
     if a.jar is None or not a.jar.is_file():
         print(json.dumps({**base, "status": "MANUAL_ROUTING_FALLBACK",
@@ -171,7 +281,8 @@ def main():
     ses = dest / (dsn.stem + ".ses")
     command = [java_executable, "-jar", str(jar), "-de", str(dsn),
                "-do", str(ses), "-mp", str(a.passes), "-mt", str(a.threads),
-               "--gui.enabled=false", "-da"]
+               "--gui.enabled=false", "-da",
+               "--router.fanout.enabled=false", "--router.optimizer.enabled=false"]
     if excluded:
         command.extend(["-inc", ",".join(excluded)])
     if rules:
@@ -179,7 +290,9 @@ def main():
     report = {**base, "excluded_netclasses": excluded,
               "dsn_classes_declared": sorted(specctra_netclasses(dsn)) if excluded else [],
               "rules_file": str(rules) if rules else None, "rules_sha256": rules_hash,
-              "class_mapping_limit": "DSN class name existence does not prove every protected net is assigned; independently verify KiCad native net classes and pre/post copper.",
+              "effective_dsn_netclasses": actual_map,
+              "native_netclass_map_sha256": native_map_sha,
+              "class_mapping_limit": "Must match native NetClass readback and protect copper by independent saved KiCad board audit.",
               "jar": str(jar), "jar_sha256": digest,
               "jar_identity": reason, "java": java_executable, "command": command,
               "ses": str(ses), "note": "KiCad SES import, DRC and engineering review are mandatory."}

@@ -37,7 +37,7 @@ def registry(root=ROOT):
     path = _file(root, 'references/component-manifest.json')
     data = json.loads(path.read_text(encoding='utf-8-sig'))
     if (data.get('schema_version') != 1 or data.get('skill_name') != 'kicad-pcb-ai-workflow'
-            or data.get('release_channel') != 'alpha'
+            or data.get('release_channel') not in ('alpha', 'stable')
             or data.get('engineering_gates') != list(GATES)):
         raise ValueError('Unsupported component contract or engineering gates removed')
     rows = data.get('modules')

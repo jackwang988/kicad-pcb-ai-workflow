@@ -714,6 +714,8 @@ def command(root, name, bundle, task, options):
         args = ['--dsn', str(local(root, required('dsn'))),
                 '--output-dir', required('output_dir'),
                 '--expected-dsn-sha256', required('expected_dsn_sha256'),
+                '--netclass-map', str(local(root, required('netclass_map'))),
+                '--expected-netclass-map-sha256', required('expected_netclass_map_sha256'),
                 '--exclude-netclasses', required('exclude_netclasses'),
                 '--jar', required('jar'),
                 '--expected-jar-sha256', required('expected_jar_sha256')]

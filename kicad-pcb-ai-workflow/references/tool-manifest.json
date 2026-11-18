@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "package_kind": "universal_runtime",
-  "revision": "2026-11-18-R10-freerouting-seven-stage-routing-audit-preview",
+  "revision": "2026-11-18-R10-native-netclass-guard-fix",
   "active": [
     {
       "file": "scripts/assembly_guard.py",
@@ -113,7 +113,7 @@
     },
     {
       "file": "scripts/freerouting_adapter.py",
-      "sha256": "2c6c9d2c4b3f9729fd8b50f38daf1693d97cc4ef73367dee5cfc2a83b87e3ebd",
+      "sha256": "7cd50d43e41b2741f91666e3d285610f9dd4a9e5b64c08b664b08cef7921c3b8",
       "version": "R10.0-alpha.3",
       "command": "python3 scripts/freerouting_adapter.py --help",
       "input": "Reviewed DSN SHA; explicit protected NetClass exclusions; optional approved .rules + SHA; verified Freerouting 2.5.0 JAR",
@@ -122,7 +122,7 @@
         "0": "preview/manual fallback/SES candidate only",
         "2": "blocked or failure"
       },
-      "validation_scope": "Class-name existence only; protected net membership and native KiCad geometry/DRC require independent evidence; live GUI E2E pending"
+      "validation_scope": "Validated DSN member net-to-class mapping and hash-bound native map required before execute; SES needs real KiCad import and G4 review."
     },
     {
       "file": "scripts/freeze_candidate.py",
@@ -647,7 +647,7 @@
         "1": "Search/comparison incomplete where documented",
         "2": "BLOCKED or invalid input"
       },
-      "sha256": "fa9fea859eec45de731d5de4efd7519f95b7ff046bfb23792b2f35ccc77bd4a6",
+      "sha256": "babb2a4cd494fd75d16774d4b2e2644ad98e0c449bb94ebd57e6b0d507b546a2",
       "version": "R10.0-alpha.3",
       "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
     },
@@ -721,7 +721,7 @@
     },
     {
       "file": "scripts/workflow.py",
-      "sha256": "85d1c9fe661d57004a41c9d4666e8d5555b5e2c46c1d681a550079e79dc3153a",
+      "sha256": "7d4bc8c0a5ae711f524f2f36df4a8b0f9ecfee787b5e6c956e551603e2c3ee03",
       "version": "R10.0-alpha.3-local.5+cache-first-1",
       "command": "python3 scripts/workflow.py --help (includes architecture.sources_resolve and architecture.sources_register tasks)",
       "input": "One shared master; immutable flow/static/npi bundles; explicit fixed task and typed arguments",

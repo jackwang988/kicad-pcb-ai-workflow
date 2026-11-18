@@ -1,3 +1,12 @@
+# R10.0.0 stable Skill software — 2026-11-18 — real protected Freerouting native roundtrip
+
+- [R10.0.0 正式软件版说明](R10_STABLE_RELEASE_NOTES.md) · [正式 Release 和 SHA-256 核对](https://github.com/jackwang988/kicad-pcb-ai-workflow/releases) · [完整架构](docs/r10/06-current-skill-full-flow.md)。
+- [PR #9](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/9) 修复 headless DSN 的有效NetClass成员校验并用独立哈希映射阻断漂移；普通网 Freerouting 2.5.0 禁用可能绕过 GND 排除的 Fanout/Optimizer 阶段。
+- [真实 KiCad 10.0.8 / Freerouting 2.5.0 回导测试](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44295612537)：**PASS_NOT_G4**，8条普通走线、0新增GND；示例项目尚有9项原生DRC违规和2项未连接，**G4并未通过**。
+- 稳定发行仅代表受测试软件功能与受控失败阻断逻辑，**不代表所有 PCB 可自动布通或制造授权**。发布前 [CI](.github/workflows/release-r10-stable.yml) 必须在 main 上复核测试并生成全新ZIP/SHA；旧 RC 和 R9.4 不变。
+
+---
+
 # R10 main source integration · 2026-11-18 · Freerouting 2.5.0 七阶段布线
 
 - 维护者指示下，依次合并 [PR #6](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/6) 与 [PR #7](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/7) 到 `main`。工作区保护、原理图预布局、英文版模块化Skill、关键网保护、NetClass排除、Freerouting DSN/SES候选、保存板审计及G3/G4分界已纳入源码。
