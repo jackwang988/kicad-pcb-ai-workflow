@@ -6,3 +6,7 @@
 4. **G4:** Inspect actual copper layers, trace and via geometry, reference planes, return loops, RF/antenna clearance, differential skew and manufacturing constraints. Reuse verified cards without skipping project-specific evidence or engineer approval.
 
 Konnect MCP is the sole active writer; Python is for algorithms/verification. If a necessary operation lacks a compatible accepted tool, block it rather than downgrade engineering rules or secretly use legacy `pcbnew` writes. Use [engineering rules](engineering-rules.md), [routing policy](constraint-routing.md), [placement quality](placement-quality.md) and [latest workflow](latest-complete-workflow.md).
+
+## Rules-first functional-module layout planning (R10 preview)
+
+Run `pcb.layout_preflight` after approved stack-up/fabricator rules are applied to the synchronized KiCad PCB and before any automated G3 move. It reuses the existing `design_intent_audit.py` native effective-NetClass check and verifies actual Board Setup minima; then `pcb.layout_plan` computes bounded intra-module locations and small global module translations while preserving current connector/mechanical anchors. See [rules-first PCB module layout](pcb-module-layout.md). These tasks never edit EDA: apply through Konnect only, then run saved readback, native DRC and the existing placement-review G3 gate. Do not lower copper, via or courtyard rules to make a candidate fit.

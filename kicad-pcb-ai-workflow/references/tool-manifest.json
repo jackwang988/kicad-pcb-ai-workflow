@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "package_kind": "universal_runtime",
-  "revision": "2026.11.18-R10-native-symbol-geometry-preview",
+  "revision": "2026.11.18-R10-pcb-module-layout-draft",
   "active": [
     {
       "file": "scripts/assembly_guard.py",
@@ -680,6 +680,19 @@
         "2": "BLOCKED/pending required inputs"
       },
       "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
+    },
+    {
+      "file": "scripts/pcb_module_layout.py",
+      "sha256": "f1debcdbcfdfe86f94a99c7dbf12b12067e57eeccb1b1a1e353d131166c58ace",
+      "version": "R10-two-level-pcb-preview",
+      "command": "python scripts/pcb_module_layout.py {preflight|plan} /project --request REQUEST [--receipt RECEIPT]",
+      "input": "Actual current KiCad PCB/project, XML netlist, sourced fabrication minima, placement policy and native design-intent audit",
+      "output": "Read-only native rules readiness receipt or bounded local-module/whole-board placement proposal",
+      "validation_scope": "Synthetic offline software tests; real KiCad 10/Konnect placement and DRC remain unverified",
+      "exit_codes": {
+        "0": "Scoped read-only plan; not production acceptance",
+        "2": "BLOCKED or REPLAN_REQUIRED; no KiCad write"
+      }
     }
   ]
 }

@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "source": {
+    "file": null,
+    "sha256": null,
+    "locator": null
+  },
+  "minimums_mm": {
+    "min_clearance_mm": null,
+    "min_track_width_mm": null,
+    "min_via_diameter_mm": null,
+    "min_via_drill_mm": null,
+    "min_annular_width_mm": null,
+    "min_copper_edge_clearance_mm": null,
+    "min_hole_to_hole_mm": null
+  },
+  "courtyard_clearance_mm": null
+}

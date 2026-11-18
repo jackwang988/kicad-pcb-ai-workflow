@@ -43,6 +43,7 @@ TASKS = {
     'schematic.resources_lock': 'resource_guard', 'schematic.resources_check': 'resource_guard',
     'schematic.prepare': 'static_review', 'schematic.gate': 'static_review_gate',
     'pcb.prepare': 'static_review', 'pcb.gate': 'static_review_gate',
+    'pcb.layout_preflight': 'pcb_module_layout', 'pcb.layout_plan': 'pcb_module_layout',
     'pcb.placement_pre': 'placement_review', 'pcb.placement_final': 'placement_review',
     'pcb.rules_pre': 'design_intent_audit', 'pcb.rules_final': 'design_intent_audit',
     'pcb.routing_preflight': 'routing_policy', 'pcb.routing_plan': 'routing_policy',
@@ -483,6 +484,16 @@ def command(root, name, bundle, task, options):
         raise ValueError('--require-ipc only applies to IPC discovery tasks')
     if task in ('environment.bridge_plugin','environment.open_editor','pcb.edit'):
         raise ValueError('LEGACY_WRITE_DISABLED: use Konnect MCP as the sole EDA writer; no silent kicad_bridge fallback')
+    if task in ('pcb.layout_preflight', 'pcb.layout_plan'):
+        if not options.get('layout_request'):
+            raise ValueError('PCB module layout needs --layout-request')
+        request=local(root,options['layout_request'])
+        args=['preflight' if task=='pcb.layout_preflight' else 'plan',str(root),'--request',str(request.relative_to(root))]
+        if options.get('layout_receipt'):
+            args+=['--receipt',str(Path(options['layout_receipt']).resolve())]
+        elif task=='pcb.layout_plan':
+            raise ValueError('PCB module layout plan requires --layout-receipt')
+        return 'pcb_module_layout',args
     if task in ('schematic.preplacement_plan', 'schematic.preplacement_check'):
         if not options.get('preplacement_request'):
             raise ValueError('Schematic pre-placement needs --preplacement-request')
@@ -946,7 +957,7 @@ def main():
             a.add_argument('--format', choices=('text', 'json','compact'), default='text')
         if cmd in ('plan', 'run'):
             a.add_argument('--task', choices=TASKS, required=True)
-            for key in ('output-dir', 'state', 'packet', 'ai-review', 'engineer-review', 'netlist', 'destination', 'candidate-dir', 'kicad-cli', 'board', 'resource-manifest', 'resource-lock', 'routing-request', 'after-attempt', 'route-problem', 'bridge-request', 'session-dir', 'sessions-root', 'python-executable', 'candidate-manifest', 'pcb-editor', 'runtime-dir', 'installation', 'high-speed-policy', 'device-cache', 'device-inventory', 'device-output', 'konnect-executable','konnect-config','konnect-enrollment','konnect-registry','konnect-tool','konnect-scope','konnect-toolset','source-board','arguments-json','expected-json','preplacement-request','preplacement-receipt'):
+            for key in ('output-dir', 'state', 'packet', 'ai-review', 'engineer-review', 'netlist', 'destination', 'candidate-dir', 'kicad-cli', 'board', 'resource-manifest', 'resource-lock', 'routing-request', 'after-attempt', 'route-problem', 'bridge-request', 'session-dir', 'sessions-root', 'python-executable', 'candidate-manifest', 'pcb-editor', 'runtime-dir', 'installation', 'high-speed-policy', 'device-cache', 'device-inventory', 'device-output', 'konnect-executable','konnect-config','konnect-enrollment','konnect-registry','konnect-tool','konnect-scope','konnect-toolset','source-board','arguments-json','expected-json','preplacement-request','preplacement-receipt','layout-request','layout-receipt'):
                 a.add_argument('--' + key)
             a.add_argument('--mode', choices=('prototype', 'mass_production'), default='mass_production')
             a.add_argument('--apply', action='store_true')

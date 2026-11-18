@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "project": "01_WORKING/main.kicad_pro",
+  "board": "01_WORKING/main.kicad_pcb",
+  "netlist": "03_REPORTS/layout/current.xml",
+  "design_intent": "03_REPORTS/layout/intent.json",
+  "placement_policy": "03_REPORTS/layout/placement.json",
+  "fab_rules": "03_REPORTS/layout/fab.json",
+  "grid_mm": null,
+  "max_candidates_per_ref": 120,
+  "fixed_refs": []
+}
