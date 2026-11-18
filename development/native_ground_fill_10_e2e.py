@@ -101,9 +101,11 @@ def main():
                 "stitched_board":binds(stitched),
                 "final_refilled_board":binds(final),
                 "gnd_zone_layers":{"GND":["F.Cu","B.Cu"]},
+                "copper_layer_stack":["F.Cu","B.Cu"],
                 "approved_stitching_vias":[{
                     "uuid":approved_uuid, "net":"GND", "at_mm":[5,15],
                     "layers":["F.Cu","B.Cu"],
+                    "ground_contact_layers":["F.Cu","B.Cu"],
                     "min_diameter_mm":0.6, "min_drill_mm":0.3,
                     "purpose":"Approved 2-layer GND plane interconnection in isolated fixture"}],
             }
