@@ -25,7 +25,7 @@ they are NOT the G4 full-board DRC.
    layers. Via stitching does NOT automatically make every copper region
    continuous; no proof without native connectivity and engineering review.
 4. **Only required, approved stitching vias** — Via placement is bounded and
-   explicit (UUID, net GND, X/Y, layers, diameter, drill, purpose). Check
+   explicit (UUID, net GND, X/Y, actual via span, approved GND contact layers, diameter, drill, purpose). Check
    copper-to-hole / via-to-pad clearance, drill/annular ring/edge/keepout,
    signal/return clearance, antenna exclusion, layer span, current/heat/EMC
    where applicable. Use the accepted sole KiCad/Konnect writer; save/reload
@@ -70,9 +70,11 @@ and actual newly added GND vias must also be zero.
   "stitched_board": {"file":"checkpoints/stitched.kicad_pcb", "sha256":"<actual-sha>"},
   "final_refilled_board": {"file":"checkpoints/final-refilled.kicad_pcb", "sha256":"<actual-sha>"},
   "gnd_zone_layers": {"GND":["F.Cu","B.Cu"]},
+  "copper_layer_stack": ["F.Cu","B.Cu"],
   "approved_stitching_vias": [
     {"uuid":"<actual-via-uuid>", "net":"GND",
      "at_mm":[12.0,8.0], "layers":["F.Cu","B.Cu"],
+     "ground_contact_layers":["F.Cu","B.Cu"],
      "min_diameter_mm":0.6, "min_drill_mm":0.3,
      "purpose":"Bridge verified separate ground copper regions"}
   ]
