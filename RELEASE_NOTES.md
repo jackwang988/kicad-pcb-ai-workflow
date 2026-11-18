@@ -3,6 +3,7 @@
 - 维护者指示下，依次合并 [PR #6](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/6) 与 [PR #7](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/7) 到 `main`。工作区保护、原理图预布局、英文版模块化Skill、关键网保护、NetClass排除、Freerouting DSN/SES候选、保存板审计及G3/G4分界已纳入源码。
 - [最新版 README](README.md) · [七阶段布线说明](kicad-pcb-ai-workflow/references/freerouting-seven-stage.md) · [16节点/七阶段架构图](docs/r10/06-current-skill-full-flow.md) · [更新版R10说明](R10_RELEASE_NOTES.md)。
 - [PR #6 软件CI](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44278478257) 与 [PR #7 软件CI](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44287952061) 均成功。用户报告Windows/Konnect本机验收通过；新Freerouting原生往返CI与跨项目投产级验证单独计算，未得到最终PASS不得宣称。
+- **原生阻断（2026-11-18）**：[Freerouting回导CI](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44286105239) 失败；真实导入后GND仍被布线，错误 `GND_AUTOROUTED_DESPITE_EXCLUSION`。R10.0.0-rc.2为预发布，不能默认开启该自动布线路径。
 - 历史 `R10.0.0-rc.1` ZIP不随 `main` 的代码合并而改变；发布R10新版安装包时必须重新构建、独立测试并生成新的SHA-256。R9.4原稳定包继续保留。
 
 ---
