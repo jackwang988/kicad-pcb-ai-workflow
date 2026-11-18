@@ -42,6 +42,8 @@ TASKS = {
     'schematic.preplacement_check': 'schematic_incremental_gate',
     'schematic.resources_lock': 'resource_guard', 'schematic.resources_check': 'resource_guard',
     'schematic.prepare': 'static_review', 'schematic.gate': 'static_review_gate',
+    # G4 only: static_review --stage pcb runs full native PCB DRC.
+    # G3 uses pcb.placement_pre (pre_route) and MUST NOT run full-board DRC.
     'pcb.prepare': 'static_review', 'pcb.gate': 'static_review_gate',
     'pcb.layout_preflight': 'pcb_module_layout', 'pcb.layout_plan': 'pcb_module_layout',
     'pcb.fab_preview': 'pcb_fab_approval', 'pcb.fab_confirm': 'pcb_fab_approval',
@@ -66,9 +68,9 @@ METHODS = {
     'schematic_review': 'Run current ERC/static checks; actual AI and engineer review at G1.',
     'footprints': 'Compare actual MPN pinout and land pattern; engineer confirms G2.',
     'stackup': 'Obtain approved factory stackup and validate actual rule/netclass bindings.',
-    'placement': 'Place actual components and review module/local geometry at G3.',
-    'routing': 'Route with supported tools; refill, save, reload and inspect current PCB.',
-    'pcb_review': 'Review actual layers/critical paths; AI and engineer confirm G4.',
+    'placement': 'G3: Konnect save/position readback then placement_review pre_route; NO full-board DRC or unconnected-net gate.',
+    'routing': 'After G3, route all nets and power/GND, refill zones, save and reload; then full DRC.',
+    'pcb_review': 'G4 after routing/zone refill: full native DRC including unconnected items, then AI/engineer review.',
     'npi': 'Run actual DFX/NPI pre-export checks; unresolved blockers forbid export.',
     'manufacturing': 'Freeze source and export a new isolated candidate, not a released package.',
     'cam_release': 'Actual CAM/factory EQ/assembly review and authorized G5 release.',

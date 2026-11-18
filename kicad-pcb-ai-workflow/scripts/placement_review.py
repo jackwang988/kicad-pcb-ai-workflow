@@ -130,7 +130,7 @@ def audit(root,policy_file,graph,board,edges,board_file,phase='pre_route'):
                     for ev in manual.get('evidence',[]):evidence(ev)
                     checks.append({'ref':ref,'scope':'manual_geometry_evidence_only','reason':manual.get('reason')})
         if len(module_ids)!=len(set(module_ids)) or len(assigned)!=len(set(assigned)) or set(assigned)!=set(fs):raise ValueError('Every PCB component must belong to exactly one module')
-        # Conservative same-side courtyard envelopes; candidates require native DRC/manual confirmation.
+        # Conservative same-side courtyard envelopes; G3 needs placement/mechanical review; full native DRC is deferred to G4 after routing.
         for i,a in enumerate(board['footprints']):
             pa=meta[a['ref']]['courtyard']
             if not pa:continue
@@ -138,7 +138,7 @@ def audit(root,policy_file,graph,board,edges,board_file,phase='pre_route'):
                 pb=meta[b['ref']]['courtyard']
                 if not pb or a['layer']!=b['layer']:continue
                 overlap=[min(max(p[k] for p in pa),max(p[k] for p in pb))-max(min(p[k] for p in pa),min(p[k] for p in pb)) for k in (0,1)]
-                if min(overlap)>1e-6:risk('PLACE.COURTYARD.CANDIDATE','Potential same-side courtyard-envelope overlap '+json.dumps({'overlap_mm':overlap})+'; not a full body-collision test; requires native DRC/mechanical review',a['ref']+'/'+b['ref'],'\u9ad8\u98ce\u9669')
+                if min(overlap)>1e-6:risk('PLACE.COURTYARD.CANDIDATE','Potential same-side courtyard-envelope overlap '+json.dumps({'overlap_mm':overlap})+'; not a full body-collision test; requires G3 mechanical review and later G4 native DRC',a['ref']+'/'+b['ref'],'\u9ad8\u98ce\u9669')
         sub=q.get('critical_subcircuits',[]);subids=[s['id'] for s in sub]
         if len(subids)!=len(set(subids)):raise ValueError('Duplicate local subcircuit ID')
         critical_roles={'decoupling','clock','power','termination','filter','feedback','rf','protection','reserve'}
@@ -230,14 +230,14 @@ def audit(root,policy_file,graph,board,edges,board_file,phase='pre_route'):
             except Exception as e:risk('PLACE.REVIEW.'+name.upper(),str(e),name)
     except Exception as e:risk('PLACE.CONTRACT',str(e))
     snapshots={'placement_sha256':placement_digest(board,meta) if meta else None,'netlist_sha256':digest(graph),'policy_sha256':digest({k:v for k,v in q.items() if k!='reviews'}) if q else None,'board_sha256':sha256(board_file)}
-    return {'status':'BLOCKED' if any(f['level']=='\u963b\u65ad\u7ea7' for f in findings) else 'DECLARED_LAYOUT_CHECKS_COMPLETE','phase':phase,'scope':'static_placement_only','production_authorized':False,'native_geometry_verified':board.get('engine')!='static_preview','findings':findings,'checks':checks,'inputs_sha256':inputs,'snapshots':snapshots,'placement_metadata':meta,'modules':q.get('modules',[]),'critical_subcircuits':q.get('critical_subcircuits',[]),'limits':['No automatic placement, full DFM/3D/return-current/SI/thermal proof or reviewer authentication','Visual preferences never override hard electrical constraints']}
+    return {'status':'BLOCKED' if any(f['level']=='\u963b\u65ad\u7ea7' for f in findings) else 'DECLARED_LAYOUT_CHECKS_COMPLETE','phase':phase,'scope':'static_placement_only','review_context':'G3_PRE_ROUTE_LAYOUT_ONLY' if phase=='pre_route' else 'G4_POST_ROUTE_PLACEMENT_RECHECK','full_board_drc_executed':False,'full_board_drc_schedule':'DEFERRED_TO_G4_AFTER_ROUTING_AND_ZONE_REFILL','unconnected_nets_are_g3_blocker':False,'production_authorized':False,'native_geometry_verified':board.get('engine')!='static_preview','findings':findings,'checks':checks,'inputs_sha256':inputs,'snapshots':snapshots,'placement_metadata':meta,'modules':q.get('modules',[]),'critical_subcircuits':q.get('critical_subcircuits',[]),'limits':['No automatic placement, full DFM/3D/return-current/SI/thermal proof or reviewer authentication','Visual preferences never override hard electrical constraints']}
 
 def write_artifacts(result,board,out):
     out=Path(out)
     if out.exists():raise ValueError('Report directory must be new')
     out.mkdir(parents=True,exist_ok=False)
     (out/'placement-report.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
-    lines=['# PCB Placement Review Report',f"Status: {result['status']}; phase: {result['phase']}; static placement only, no manufacturing authorization.",'', 'Input revision: `'+json.dumps(result['inputs_sha256'],ensure_ascii=False)+'`','']
+    lines=['# PCB Placement Review Report',f"Status: {result['status']}; phase: {result['phase']}; {result['review_context']}; static placement only, no manufacturing authorization.", 'Full-board native DRC was NOT executed. Unconnected nets do not block G3; run full-board DRC only after routing and zone refill at G4.','', 'Input revision: `'+json.dumps(result['inputs_sha256'],ensure_ascii=False)+'`','']
     for f in result['findings']:lines.append(f"- 【{f['level']}】{f['location']}：{f['description']}；Basis: {f['reference']}；Remediation: {f['suggestion']}")
     lines+=['','Check details:']+[f"- {c.get('id',c.get('ref',''))}：{json.dumps(c,ensure_ascii=False)}" for c in result['checks']]
     (out/'placement-report.md').write_text('\n'.join(lines)+'\n', encoding='utf-8')
@@ -274,7 +274,7 @@ def write_artifacts(result,board,out):
         parts.append('</svg>');(out/name).write_text(''.join(parts), encoding='utf-8')
     drawing(list(fs),'module-map.svg')
     for i,s in enumerate(result['critical_subcircuits']):drawing([r for r in s['refs'] if r in fs],f'local-{i+1}.svg',s.get('check_ids',[]))
-    (out/'visual-review.md').write_text('# Visual Placement Review and Exceptions Pending\n\nCheck alignment/orientation/spacing, routing corridors, readable silkscreen/polarity/pin 1, test/rework accessibility. Electrical/mechanical constraints take priority. Module diagrams are geometric only; inspect actual copper and assembly/mechanical drawings. Rerun affected constraints after moves; never fabricate PASS.\n', encoding='utf-8')
+    (out/'visual-review.md').write_text('# Visual Placement Review and Exceptions Pending\n\nCheck alignment/orientation/spacing, routing corridors, readable silkscreen/polarity/pin 1, test/rework accessibility. G3 is layout-only: do not run full-board DRC or treat unrouted nets as errors; defer full native DRC to G4 after copper zone refill. Electrical/mechanical constraints take priority. Module diagrams are geometric only; inspect actual copper and assembly/mechanical drawings. Rerun affected constraints after moves; never fabricate PASS.\n', encoding='utf-8')
 
 def validate_review_binding(root,config):
     entry=config['placement_review'];q=read(local(Path(root).resolve(),entry['policy']));tasks=[t for t in config['stages']['pcb']['tasks'] if t.get('category')=='placement_quality' and t.get('check',{}).get('kind')=='semantic']
