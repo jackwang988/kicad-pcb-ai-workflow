@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "skill_name": "kicad-pcb-ai-workflow",
-  "version": "R10.0-alpha.3-local.5+G1-G4+konnect-single-writer-migration-1",
+  "version": "R10.0-alpha.3-local.5+G1-G4+konnect-single-writer-migration-1+schematic-preplacement-v1+native-geometry-auto-preview+rules-first-pcb-module-layout-preview+jlcpcb-fab-consent-v1-preview+courtyard-native-polygon-hardrules-preview",
   "release_channel": "alpha",
   "engineering_gates": [
     "G1",
@@ -13,28 +13,28 @@
   ],
   "execution_policy": {
     "single_project_writer": true,
-    "project_writes": "konnect_only_in_independent_candidate_after_acceptance",
+    "project_writes": "konnect_only_current_protected_working_candidate_with_post_write_check",
     "routing_strategy": "script_planned",
     "preferred_router": "native_script_after_profile_acceptance",
     "fallback_router": "freerouting_after_rule_fidelity_and_profile_acceptance",
     "external_skills_auto_install": false,
     "native_ipc_write_backend": "experimental_not_default_live_edit_acceptance_incomplete",
-    "schematic_incremental_editor": "not_integrated",
+    "schematic_incremental_editor": "native_read_only_symbol_geometry_and_receipt_gate; live_Konnect_schematic_write_not_integrated",
     "schematic_to_pcb_sync": "native_or_independently_verified_adapter_required",
     "single_project_writer_scope": "OS lease among bridges sharing sessions_root; GUI/third-party writers are not locked",
-    "preferred_execution_backend": "konnect_mcp_dynamic_discovery_scope_acceptance",
+    "preferred_execution_backend": "konnect_mcp_dynamic_discovery_l1_l2_first_use_postcheck_l3_fixture",
     "missing_execution_backend": "block_live_mutations_no_automatic_backend_switch",
     "integration_installer": "official_commercial_backend_separate_local_migration",
     "legacy_kicad_bridge_write": "disabled",
     "native_pcbnew_write": "disabled_in_default_freeze",
     "pcbnew_read": "optional_migration_compatibility_only",
-    "capability_registry": "external_build_schema_kicad_scope_bound_fixture_receipts",
+    "capability_registry": "external_build_schema_kicad_scope_bound_optional_fixture_or_verified_postcheck",
     "native_export": "remains_blocked_until_independently_verified_geometry_and_freeze_equivalence"
   },
   "modules": [
     {
       "id": "environment",
-      "label": "环境与KiCad连接",
+      "label": "Environment and KiCad Connection",
       "state": "implemented",
       "intents": [
         "onboard",
@@ -61,7 +61,7 @@
     },
     {
       "id": "requirements",
-      "label": "需求、架构与器件依据",
+      "label": "Requirements, Architecture, Manufacturer References",
       "state": "implemented",
       "intents": [
         "requirements",
@@ -86,7 +86,7 @@
     },
     {
       "id": "resources",
-      "label": "符号、封装与项目资源",
+      "label": "Symbols, Footprints and Project Resources",
       "state": "implemented",
       "intents": [
         "parts",
@@ -107,7 +107,7 @@
     },
     {
       "id": "schematic",
-      "label": "原理图与PCB衔接",
+      "label": "Schematic Design and PCB Sync",
       "state": "implemented",
       "intents": [
         "schematic",
@@ -120,7 +120,9 @@
         "references/module-schematic.md",
         "references/schematic-style.md",
         "references/schematic-ai-layout-rules.md",
-        "references/static-ai-review.md"
+        "references/static-ai-review.md",
+        "references/schematic-preplacement.md",
+        "references/schematic-native-geometry.md"
       ],
       "tools": [
         "schematic_candidate",
@@ -128,12 +130,18 @@
         "schematic_style",
         "system_integration",
         "static_review",
-        "static_review_gate"
+        "static_review_gate",
+        "schematic_geometry",
+        "schematic_space_map",
+        "schematic_preplacement",
+        "schematic_wire_planner",
+        "schematic_incremental_gate",
+        "schematic_native_geometry"
       ]
     },
     {
       "id": "pcb",
-      "label": "规则、布局与脚本优先布线",
+      "label": "PCB Rules, Placement and Controlled Routing",
       "state": "experimental",
       "intents": [
         "pcb",
@@ -150,7 +158,11 @@
         "references/constraint-routing.md",
         "references/script-route-search.md",
         "references/freerouting-adapter.md",
-        "references/konnect-backend.md"
+        "references/konnect-backend.md",
+        "references/pcb-module-layout.md",
+        "references/jlcpcb-rigid-fr4-presets.json",
+        "references/jlcpcb-fab-confirmation.md",
+        "references/pcb-courtyard-hard-rules.md"
       ],
       "tools": [
         "design_intent",
@@ -160,12 +172,15 @@
         "script_route_search",
         "freerouting_adapter",
         "freeze_candidate",
-        "link_audit"
+        "link_audit",
+        "pcb_module_layout",
+        "pcb_fab_approval",
+        "pcb_placement_geometry"
       ]
     },
     {
       "id": "manufacturing",
-      "label": "工程评审与制造候选",
+      "label": "Engineering Review and Manufacturing Candidate",
       "state": "implemented",
       "intents": [
         "review",
@@ -191,7 +206,7 @@
     },
     {
       "id": "lifecycle",
-      "label": "样机、ECO与归档",
+      "label": "External Prototype, ECO and Archive",
       "state": "implemented",
       "intents": [
         "prototype",

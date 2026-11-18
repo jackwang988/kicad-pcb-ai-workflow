@@ -20,7 +20,7 @@ def main():
     result['required_ok']=bool(pair_compatible(result) or cli_compatible(result))
     result['verification_scope']='KiCad CLI smoke does not require pcbnew. Konnect dynamic discovery/fixture acceptance is separate. Legacy pcbnew read compatibility is optional. No manufacturing authorization.'
     result['python']=sys.version.split()[0]
-    result['optional_note']='ngspice/供应链配置仅检测存在性；不联网、不输出密钥、不自动仿真。'
+    result['optional_note']='ngspice/supply-chain configuration is checked for presence only; no browsing, key exposure or automatic simulation.'
     print(json.dumps(result,ensure_ascii=False,indent=2))
     return 0 if result['required_ok'] else 2
 

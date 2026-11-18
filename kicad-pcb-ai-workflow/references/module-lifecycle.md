@@ -1,12 +1,5 @@
-> 本地修订：先读[主流程与执行修订](design-execution-local.md)。下文六组/16节点与G5/G6为历史兼容资料；当前AI设计主线删除第六阶段，截止DESIGN_PACKAGE_READY_FOR_REVIEW。外部制造/样机/ECO仅按另行任务调用；既有安全门禁保留。
+# External Lifecycle: CAM, Prototype Tests and ECO
 
-# 样机、ECO与归档
+Nodes 14–16 are outside the default AI design execution. Actual factory CAM/EQ and production approval, EVT/DVT/PVT prototypes, electrical and EMC measurements, hardware troubleshooting and ECO decisions require separately authorized people, equipment and real evidence. AI can plan, summarize, diagnose and draft follow-up engineering changes, but cannot fabricate measurements, physical prototypes or engineer signatures.
 
-适用：实际制板后的功能/性能验收、问题定位、器件或PCB变更。
-
-- 按 [16节点流程](full-workflow.md) 进行项目适用的EVT/DVT/PVT、环境/安全/认证及测试。
-- 记录实际样机版本、测试条件、数据、未测项和问题；软件测试或静态几何不能代替必要实测。
-- ECO评估需求、原厂依据、资源、原理图、布局/布线、制造和实测的影响，受影响证据失效后重新审查。
-- 保留已批准历史，不直接刷新哈希复用旧结论。G6归档绑定实际版本和未关闭风险。
-
-子模块共享同一工程状态，不另外创建可绕过G1–G6的生命周期审批链。
+When an ECO is authorized, identify impacted sources, netlist/pin/footprint changes, copper geometry, rules, assembly variant, manufacturing outputs and tests. Preserve the previous release immutable and rerun every affected native check and G1–G4 review before preparing a new candidate.

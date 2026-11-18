@@ -2,5 +2,25 @@
   "schema_version": 1,
   "pages": {},
   "require_sheet_pin_wire": false,
-  "source": null
+  "source": null,
+  "composition": {
+    "schema_version": 1,
+    "required": true,
+    "geometry": {
+      "file": null,
+      "sha256": null,
+      "evidence_file": null,
+      "evidence_sha256": null,
+      "locator": null
+    },
+    "power": {
+      "rails": [],
+      "allow_rail_labels": []
+    },
+    "partition": {
+      "mode": "auto",
+      "modules": [],
+      "max_occupancy": 0.75
+    }
+  }
 }

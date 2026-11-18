@@ -23,8 +23,8 @@ def number(n):
 
 def audit(root,policy,graph,stage='schematic',board=None,board_file=None,bom=None,cpl=None,variant=None):
     root=Path(root).resolve();policy=Path(policy).resolve();inputs={str(policy):sha256(policy)};findings=[];checks=[]
-    def risk(code,desc,loc='工程级',level='阻断级',fix='修复配置、装配状态或补充当前版本的实际工程评审证据；不得凭空确认。'):
-        findings.append(dict(rule=code,level=level,location=loc,description=desc,reference='具体器件原厂约束、项目需求和备用方案装配/制造契约',suggestion=fix))
+    def risk(code,desc,loc='project-wide',level='\u963b\u65ad\u7ea7',fix='Repair policy/assembly state or supply real current-revision evidence; do not invent approval.'):
+        findings.append(dict(rule=code,level=level,location=loc,description=desc,reference='Exact manufacturer constraints, product requirements and reserve/assembly/manufacturing contract',suggestion=fix))
     def evidence(record):
         need(record,('file','sha256'));p=local(root,record['file'])
         if not p.is_file() or not p.stat().st_size or sha256(p)!=record['sha256']:raise ValueError('Missing/changed reserve evidence '+record['file'])
@@ -50,11 +50,11 @@ def audit(root,policy,graph,stage='schematic',board=None,board_file=None,bom=Non
                 absent=row.get('absent_refs',[])
                 if not isinstance(absent,list) or len(absent)!=len(set(absent)):raise ValueError('Explicit unique removed-reference list required')
                 for ref in absent:
-                    if ref in parts or (board is not None and ref in {f['ref'] for f in board['footprints']}):risk('RESERVE.ABSENT','声明已移除的预留位号仍在原理图/PCB',ref)
+                    if ref in parts or (board is not None and ref in {f['ref'] for f in board['footprints']}):risk('RESERVE.ABSENT','Declared removed reserve reference still exists in schematic/PCB',ref)
                 if stage=='npi' and bom:
-                    if set(absent).intersection(r['Reference'] for r in read_bom(bom) if r['Variant']==variant):risk('RESERVE.ABSENT','声明移除的预留位号仍在所选生产BOM',row['id'])
+                    if set(absent).intersection(r['Reference'] for r in read_bom(bom) if r['Variant']==variant):risk('RESERVE.ABSENT','Removed reserve reference still appears in selected production BOM',row['id'])
                 if row.get('refs'):raise ValueError('no_reserve has active refs; archive removed options through ECO')
-                if row['required']:risk('RESERVE.REQUIRED','明确要求的预留未实现',row['id'])
+                if row['required']:risk('RESERVE.REQUIRED','Required reserve option is not implemented',row['id'])
                 else:checks.append({'id':row['id'],'status':'NO_RESERVE_DECLARED','reason':row['reason']})
                 continue
             if row.get('context') not in CONTEXTS or row.get('role') not in ROLES:raise ValueError('Explicit supported context/role required')
@@ -65,9 +65,9 @@ def audit(root,policy,graph,stage='schematic',board=None,board_file=None,bom=Non
             for ref in selected:
                 if ref not in parts or ref not in default:raise ValueError('Reserve part absent from default schematic/matrix: '+ref)
                 actual=parts[ref];state=default[ref]
-                if actual['value']!=state['value'] or actual.get('fields',{}).get('DNP','').lower()!=('no' if state['fitted'] else 'yes'):risk('RESERVE.DEFAULT','默认value或明确DNP字段与实际原理图不一致',ref)
-                if state['fitted'] and actual.get('fields',{}).get('MPN')!=state['mpn']:risk('RESERVE.MPN','默认已贴器件MPN与原理图字段不一致',ref)
-            if not row.get('safety_evidence'):risk('RESERVE.SAFETY','缺默认安全状态、切换条件及未贴状态的实际评审记录',row['id'])
+                if actual['value']!=state['value'] or actual.get('fields',{}).get('DNP','').lower()!=('no' if state['fitted'] else 'yes'):risk('RESERVE.DEFAULT','Default value or DNP field differs from actual schematic',ref)
+                if state['fitted'] and actual.get('fields',{}).get('MPN')!=state['mpn']:risk('RESERVE.MPN','Fitted default MPN differs from schematic field',ref)
+            if not row.get('safety_evidence'):risk('RESERVE.SAFETY','No verified default safe state, switch conditions or DNP-state review',row['id'])
             for ev in row.get('safety_evidence',[]):evidence(ev)
             for v in variants:
                 for ref in selected:
@@ -77,27 +77,27 @@ def audit(root,policy,graph,stage='schematic',board=None,board_file=None,bom=Non
                         need(state,('mpn',))
                         if re.fullmatch(r'0+(?:\.0+)?(?:[rkm]0*|ω|ohms?)?',re.sub(r'\s+','',state['value']).lower()):
                             zero=row.get('zero_ohm',{});need(zero,('reason',))
-                            if zero.get('allowed') is not True or not zero.get('evidence'):risk('RESERVE.ZERO',f"变体{v['name']}的0Ω缺适用依据，不能默认代替反馈/限流/匹配等关键参数",ref)
+                            if zero.get('allowed') is not True or not zero.get('evidence'):risk('RESERVE.ZERO',f"Variant {v['name']} zero-ohm option lacks support; cannot replace feedback/current-limit/matching parameters implicitly",ref)
                             for ev in zero.get('evidence',[]):evidence(ev)
                             if row['context']=='power':
-                                if number(zero.get('approved_current_a'))<number(zero.get('required_current_a')):risk('RESERVE.CURRENT',f"变体{v['name']}的0Ω批准载流低于需求",ref)
+                                if number(zero.get('approved_current_a'))<number(zero.get('required_current_a')):risk('RESERVE.CURRENT',f"Variant {v['name']} zero-ohm approved ampacity is below the requirement",ref)
             if stage in ('pcb','npi'):
                 if board is None or board_file is None:raise ValueError('PCB-stage requires actual board and hash')
                 available={f['ref'] for f in board['footprints']}
-                if not set(selected).issubset(available):risk('RESERVE.FOOTPRINT','DNP预留焊盘/器件在实际PCB中缺失',row['id'])
+                if not set(selected).issubset(available):risk('RESERVE.FOOTPRINT','DNP reserve footprint or pads missing from actual PCB',row['id'])
                 layout=row.get('layout_review',{});need(layout,('reason','reviewer','date','board_sha256'))
                 dt.date.fromisoformat(layout['date'])
-                if layout['board_sha256']!=sha256(board_file):risk('RESERVE.LAYOUT.STALE','预留方案布局评审与当前板不匹配',row['id'])
-                if not layout.get('evidence'):risk('RESERVE.LAYOUT','缺残桩、阻抗/回流、载流、装配和结构适用性证据',row['id'])
+                if layout['board_sha256']!=sha256(board_file):risk('RESERVE.LAYOUT.STALE','Reserve layout review is not bound to current PCB',row['id'])
+                if not layout.get('evidence'):risk('RESERVE.LAYOUT','No stub/impedance/return/current/assembly/mechanical applicability evidence',row['id'])
                 for ev in layout.get('evidence',[]):evidence(ev)
                 inputs[str(Path(board_file).resolve())]=sha256(board_file)
-                if row['context'] in ('high_speed','rf','clock') and layout.get('sensitive_path_checked') is not True:risk('RESERVE.SENSITIVE','高速/RF/时钟预留未核对实际分支与寄生影响',row['id'])
+                if row['context'] in ('high_speed','rf','clock') and layout.get('sensitive_path_checked') is not True:risk('RESERVE.SENSITIVE','High-speed/RF/clock option lacks actual stub and parasitic-effect review',row['id'])
             if stage=='npi':
                 disposition=row.get('production',{});need(disposition,('action','reason'))
-                if disposition['action'] not in ('retain','dnp_only'):risk('RESERVE.PRODUCTION','量产预留尚未收敛；删除方案需ECO更新实际设计及清单',row['id'])
-                if not disposition.get('evidence'):risk('RESERVE.PRODUCTION','缺量产保留/不装决定的真实证据',row['id'])
+                if disposition['action'] not in ('retain','dnp_only'):risk('RESERVE.PRODUCTION','Production reserve disposition unresolved; removal requires ECO in real design and BOM',row['id'])
+                if not disposition.get('evidence'):risk('RESERVE.PRODUCTION','No actual evidence for production retain/DNP decision',row['id'])
                 for ev in disposition.get('evidence',[]):evidence(ev)
-                if disposition['action']=='dnp_only' and any(v['parts'][r]['fitted'] for v in variants for r in selected):risk('RESERVE.PRODUCTION','声明全部不装但仍有变体贴装',row['id'])
+                if disposition['action']=='dnp_only' and any(v['parts'][r]['fitted'] for v in variants for r in selected):risk('RESERVE.PRODUCTION','Declared all DNP but at least one variant still fits the part',row['id'])
         if len(ids)!=len(set(ids)):raise ValueError('Duplicate block decision IDs')
         for v in variants:
             if set(v['parts'])!=refs:raise ValueError('Each declared variant must contain every reserved ref exactly once')
@@ -108,22 +108,22 @@ def audit(root,policy,graph,stage='schematic',board=None,board_file=None,bom=Non
             if any(isinstance(n,bool) or not isinstance(n,int) for n in (lo,hi)) or not 0<=lo<=hi<=len(members):raise ValueError('Invalid group bounds')
             for v in variants:
                 count=sum(v['parts'][r]['fitted'] for r in members)
-                if not lo<=count<=hi:risk('RESERVE.MUTEX',f"变体{v['name']}装配数量{count}违反互斥/必选范围{lo}..{hi}",group['id'])
+                if not lo<=count<=hi:risk('RESERVE.MUTEX',f"Variant {v['name']} fitted-count {count} violates mutual-exclusion/required range {lo}..{hi}",group['id'])
         # Every selection/architecture alternative needs explicit grouping; physical electrical conflicts still need AI/human review.
         grouped={r for g in q.get('groups',[]) for r in g['members']}
         for row in items:
-            if row['decision']=='reserve' and row['role'] in ('selection_link','architecture_option') and not set(row['refs']).issubset(grouped):risk('RESERVE.MUTEX.MISSING','切换/架构备选缺明确互斥装配约束',row['id'])
+            if row['decision']=='reserve' and row['role'] in ('selection_link','architecture_option') and not set(row['refs']).issubset(grouped):risk('RESERVE.MUTEX.MISSING','Selector/architecture alternatives lack explicit mutex fit constraints',row['id'])
         if stage=='npi':
             if not bom or not cpl or variant not in names:raise ValueError('NPI requires actual selected-variant production BOM/CPL')
             rows=read_bom(bom);check_cpl(rows,cpl,variant);actual={r['Reference']:r for r in rows if r['Variant']==variant}
             expected=next(v['parts'] for v in variants if v['name']==variant)
             for ref,state in expected.items():
                 row=actual.get(ref)
-                if not row or row['DNP'].lower()!=('no' if state['fitted'] else 'yes') or row['Specification']!=state['value'] or (state['fitted'] and row['MPN']!=state['mpn']):risk('RESERVE.BOM','实际量产BOM的DNP/规格值/MPN与所选装配矩阵不一致',ref)
+                if not row or row['DNP'].lower()!=('no' if state['fitted'] else 'yes') or row['Specification']!=state['value'] or (state['fitted'] and row['MPN']!=state['mpn']):risk('RESERVE.BOM','Production BOM DNP/value/MPN differs from selected assembly matrix',ref)
             inputs[str(Path(bom).resolve())]=sha256(bom);inputs[str(Path(cpl).resolve())]=sha256(cpl)
         checks.append({'status':'DECLARED_SCOPE_CHECKED','decisions':len(items),'reserved_refs':sorted(refs),'variants':names})
     except Exception as e:risk('RESERVE.CONTRACT',str(e))
-    return {'status':'BLOCKED' if any(f['level']=='阻断级' for f in findings) else 'STATIC_CHECKS_COMPLETE','scope':'declared_reserve_options_only','stage':stage,'production_authorized':False,'findings':findings,'checks':checks,'inputs_sha256':inputs,'limits':['No automatic reserve insertion or complete IC/risk discovery','No electrical simulation, true SI/stub solving or authentication of evidence/reviewer']}
+    return {'status':'BLOCKED' if any(f['level']=='\u963b\u65ad\u7ea7' for f in findings) else 'STATIC_CHECKS_COMPLETE','scope':'declared_reserve_options_only','stage':stage,'production_authorized':False,'findings':findings,'checks':checks,'inputs_sha256':inputs,'limits':['No automatic reserve insertion or complete IC/risk discovery','No electrical simulation, true SI/stub solving or authentication of evidence/reviewer']}
 
 def validate_review_binding(root,config,stage):
     policy=read(local(Path(root).resolve(),config['reserve_review']['policy']))
@@ -159,7 +159,7 @@ def integrate(r,root,config,candidate=None,board_file=None):
         result=audit(root,local(root,entry['policy']),facts['netlist'],stage,facts['board'],board_file,bom,cpl,variant)
         r.inputs.update(result['inputs_sha256']);r.evidence.append({'reserve_review':result})
         for f in result['findings']:r.risk(f['rule'],'npi',f['level'],f['description'],f['location'],f['reference'],f['suggestion'])
-    except Exception as e:r.risk('RESERVE.NPI','npi','阻断级',str(e),fix='填写按风险的预留/不预留决策，完成当前PCB评审；生产时检查实际所选BOM/CPL。')
+    except Exception as e:r.risk('RESERVE.NPI','npi','\u963b\u65ad\u7ea7',str(e),fix='Document risk-backed reserve/omit rationale and review current PCB and selected production BOM/CPL.')
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('project');p.add_argument('--policy',required=True);p.add_argument('--netlist',required=True);p.add_argument('--stage',choices=['schematic','pcb','npi'],default='schematic');p.add_argument('--board');p.add_argument('--bom');p.add_argument('--cpl');p.add_argument('--variant');p.add_argument('--static-preview',action='store_true');a=p.parse_args()

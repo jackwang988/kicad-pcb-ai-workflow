@@ -1,50 +1,7 @@
-# 可选 Freerouting v2.5.0 适配器（实验性）
+# Optional Freerouting v2.5.0 Adapter (Experimental)
 
-## local.5的两条执行路径
+Freerouting is a separately installed external routing program, not a mandatory bundled Skill dependency. The adapter may prepare or validate bounded DSN→SES exchange under explicit tool/version/rule acceptance; it does not guarantee that a router's SES was imported, transformed into real PCB copper, saved and independently validated. The alternative native/script route-planning path is likewise **only a proposal** until the accepted Konnect backend writes actual copper.
 
-- **首选可选MCP路径**：Konnect-EDA 0.14.1调用`check_freerouting`确认engine/native MCP/bridge都ready后，按实际schema执行`export_specctra_dsn`→`route_specctra_dsn`→`plan_specctra_ses_import`→`apply_specctra_ses`，只写新的PCB候选，随后独立原生检查。在两器件夹具中已验证无新增DRC问题、必要未连接为零；其他板型不自动继承通过。
-- **下面保留的旧CLI脚本**：仍只负责已有DSN到新SES，导出、回导和原生验收不由该脚本执行。不要把MCP路径的实测能力记到旧CLI上。
+Use the adapter only after verifying the selected board's accurate source and factory rules, protected geometry, differential/high-current/high-speed constraints, layer mapping, via allowances and the actual external executable/build. Validate route and mask-rule fidelity on a separate candidate. An unavailable router leaves the design unmodified and requires an explicit alternate accepted execution plan; it cannot silently downgrade to unverified manual or `pcbnew` writes.
 
-本机测试使用Freerouting 2.5.0 JAR及独立Temurin Java25；实测Java21不能运行该JAR。使用本机安装记录中的明确Java/JAR路径和哈希，不修改系统默认Java，不随Skill分享程序。Konnect服务器工作目录中的freerouting.jar可被发现，或通过工具的jar_path显式指定；没有通用config.jar_path参数。
-
-Rust DSN导出默认使用native_bridge_mode=disable，认证的KiCad原生导出桥未验收，不依赖它。已锁定直线/通孔等支持范围按实际版本核对；未锁定既有走线、弧、铜区或其他不支持几何不得删除/降级来适配导出。脚本优先规划和关键网络保护继续生效；这个兜底不替代高速、差分、功率或RF专项。
-
-以下章节描述旧CLI适配器本身。
-
-适用范围：**已布局的 KiCad PCB → 用户在 KiCad PCB Editor 导出 Specctra DSN → Freerouting CLI 产生 SES → 用户在 KiCad PCB Editor 导入 SES → 原生 DRC/逐层审查**。
-
-不随 Skill 捆绑 Java 或 Freerouting，也不添加必需安装依赖。未安装/未识别 v2.5.0 时输出 `MANUAL_ROUTING_FALLBACK`，继续原有 KiCad 人工交互布线。适配器是**独立可选命令**，现已登记进运行时工具白名单，但**未作为强制执行任务**，不能声称已进入 R9 的统一工作流门禁。
-
-官方对应版本资料：
-- https://github.com/freerouting/freerouting/tree/v2.5.0/docs
-- https://github.com/freerouting/freerouting/blob/v2.5.0/docs/command_line_arguments.md
-- https://github.com/freerouting/freerouting/releases/tag/v2.5.0
-
-## 使用方法
-
-1. KiCad 10 PCB Editor 完成正确封装/网络/叠层/板框/布局，在 GUI 中运行前置 DRC，按项目评审确定可由自动布线器处理的网络。**控制阻抗、RF、差分、高速、功率/热关键路径优先由工程师布线并审定**。
-2. 在 KiCad GUI 使用 File → Export → Specctra DSN，将 `board.dsn` 导出到隔离目录。不要假设 `kicad-cli` 有经过验证的统一 DSN 导出命令。
-3. 预览：
-
-```bash
-python3 scripts/freerouting_adapter.py --dsn /path/board.dsn --jar /path/freerouting-2.5.0.jar --output-dir /path/new-routing-result
-```
-
-4. 预览确认后，重复同一命令加 `--apply`。可选 `--passes 10 --threads 1 --timeout 1800 --expected-jar-sha256 <trusted_sha256>`。输出隔离目录必须不存在。只验证来自 JAR 元数据的 v2.5.0 身份；分发包若缺失版本证据，会安全回退人工布线，不能通过改名绕过。严格供应链要求必须同时提供可信校验值。
-5. 找到生成的 `board.ses` 和 `freerouting-result.json`。在 **KiCad PCB Editor** 中将 SES 导入**工程副本**，检查导入错误、实际未连线、所有网络/过孔、DRC、布局干涉、阻抗和回流；确认后再由工程师合入正式工程。SES 存在**不等于**可生产。
-6. 保存 PCB，按既有 `pcb.placement_final`、`pcb.prepare`、AI/工程师评审以及 `pcb.gate` 走完整质量门禁，不能复用导入前的检查报告。
-
-### 失败、回退和限制
-
-- 未传 `--jar`、版本无法由 JAR 元数据证明或 Java 不可用时：`MANUAL_ROUTING_FALLBACK`；不会创建输出目录，也不会动项目。
-- 指定的 Jar SHA-256 不符：`BLOCKED`，不可静默切换。
-- 输出目录已经存在：拒绝覆盖。
-- 运行超时/异常、进程非零退出或空 SES：`ROUTING_FAILED`，保留证据但不得导入并批准。
-- 缺 `--apply`：仅 `PREVIEW_NOT_EXECUTED`，不调用 router。
-- 本适配器**不自动导出 DSN、不自动导入 SES、不自动覆铜、不执行 KiCad DRC、不保证布线完成率**。
-- 此实现只针对经元数据识别的 v2.5.0 JAR CLI；MCP/API、桌面版安装器、不同 Java 发行包、KiCad 10 端到端兼容与复杂板规则保真尚未实测。
-- 注意 Freerouting 可能读取与 DSN 同目录的 `board.rules`；请确保其来源可信，且已审核规则；外部路由器行为及规则保真必须通过最终 KiCad DRC 和工程审核验证。
-
-## 集成状态
-
-本分支增加**实验性工具脚本 + 文档 + 单元测试**，并将脚本及 SHA-256 登记进运行时工具清单，不改变原有强制路由路径。仍需真实 KiCad/Freerouting 端到端验收，旧 ZIP 安装包尚未重建。
+For supported command details inspect `scripts/freerouting_adapter.py --help` and [routing contract](constraint-routing.md). Native import/save/reload/DRC, G4 and engineer approval remain independent steps. Failure/partial route/unsupported topology must be declared, never counted as completed routing.

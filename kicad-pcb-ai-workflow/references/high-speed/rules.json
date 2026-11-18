@@ -5,7 +5,7 @@
     {
       "id": "HSPCB-STACK-001",
       "category": "stackup_material",
-      "title": "叠层必须完整且可追溯",
+      "title": "Approved stack-up must be complete and traceable",
       "severity": "BLOCKER",
       "automation": "CONFIG_CHECK",
       "check_type": "stackup_complete",
@@ -18,7 +18,7 @@
         "stackup.fabricator",
         "stackup.source"
       ],
-      "action": "缺少层数、铜厚、介质厚度、Dk/Df、材料或板厂来源时停止阻抗/布线约束生成。",
+      "action": "Block impedance/routing-rule generation if copper layers, copper weight, dielectric thickness, Dk/Df, materials or fabricator provenance are missing.",
       "source_ids": [
         "BOOK-01",
         "BOOK-03A",
@@ -26,12 +26,12 @@
         "IPC-2141A",
         "INTEL-AN958"
       ],
-      "limitations": "Dk/Df 必须注明测试频率、材料牌号和来源；材料名不能替代电气参数。"
+      "limitations": "Dk/Df requires material grade, test frequency and provenance; a material name is not an electrical parameter."
     },
     {
       "id": "HSPCB-STACK-002",
       "category": "stackup_material",
-      "title": "阻抗计算必须使用实际叠层构造",
+      "title": "Impedance must use the actual layer-stack construction",
       "severity": "BLOCKER",
       "automation": "FIELD_SOLVER",
       "check_type": "solver_evidence_required",
@@ -45,7 +45,7 @@
         "stackup.soldermask",
         "solver.impedance_report"
       ],
-      "action": "调用板厂阻抗计算器或经过验证的二维/三维场求解器；未取得结果不得冻结线宽/间距。",
+      "action": "Obtain a board-house impedance result or verified 2D/3D field solve before freezing trace widths and spacing.",
       "source_ids": [
         "BOOK-01",
         "BOOK-03B",
@@ -53,12 +53,12 @@
         "IPC-2141A",
         "INTEL-AN958"
       ],
-      "limitations": "本包不提供脱离叠层的万能线宽/阻抗公式。"
+      "limitations": "There is no universal width/impedance formula independent of actual stack-up."
     },
     {
       "id": "HSPCB-IMP-001",
       "category": "controlled_impedance",
-      "title": "每个受控阻抗网络必须声明目标及依据",
+      "title": "Every impedance-controlled net needs a sourced target",
       "severity": "BLOCKER",
       "automation": "CONFIG_CHECK",
       "check_type": "controlled_impedance_targets",
@@ -72,7 +72,7 @@
         "nets[].target_source",
         "nets[].reference_layer"
       ],
-      "action": "从芯片手册/接口规范/系统约束录入阻抗目标，并关联来源；禁止根据接口名称自动猜测。",
+      "action": "Enter impedance targets from the exact device datasheet, interface specification or system contract and cite that source; never guess from bus name.",
       "source_ids": [
         "BOOK-01",
         "BOOK-02",
@@ -80,12 +80,12 @@
         "IPC-2141A",
         "INTEL-AN958"
       ],
-      "limitations": "目标值不是几何验证结果；仍需场求解器和阻抗测试。"
+      "limitations": "A target impedance is not a measured or field-solved geometry result."
     },
     {
       "id": "HSPCB-IMP-002",
       "category": "controlled_impedance",
-      "title": "阻抗几何必须有求解器或板厂计算证据",
+      "title": "Impedance geometry requires solver or fabricator evidence",
       "severity": "BLOCKER",
       "automation": "FIELD_SOLVER",
       "check_type": "solver_evidence_required",
@@ -95,18 +95,18 @@
       "requires": [
         "solver.impedance_report"
       ],
-      "action": "归档线宽、间距、介质、铜厚、阻抗、容差、求解器版本和报告。",
+      "action": "Archive width, clearance, dielectric, copper, characteristic impedance, tolerance, solver version and actual report.",
       "source_ids": [
         "IPC-2141A",
         "INTEL-AN958",
         "BOOK-03B"
       ],
-      "limitations": "KiCad DRC 只能检查输入的几何规则，不能自行求解真实特性阻抗。"
+      "limitations": "KiCad DRC checks supplied geometry, not the true transmission-line impedance."
     },
     {
       "id": "HSPCB-ROUTE-001",
       "category": "routing_constraints",
-      "title": "高速网络按边沿/接口约束分类",
+      "title": "Classify high-speed nets using edge and interface conditions",
       "severity": "HIGH",
       "automation": "CONFIG_CHECK",
       "check_type": "high_speed_net_metadata",
@@ -118,19 +118,19 @@
         "nets[].signal_edge_or_rate",
         "nets[].net_class"
       ],
-      "action": "记录接口、数据速率/时钟、上升下降时间（可获得时）、拓扑和网络类别。按边沿时间及互连长度判断传输线效应，不只看时钟频率。",
+      "action": "Record interface, data rate/clock, rise/fall time where known, topology and net class; judge transmission-line effects from edges and interconnect length, not clock alone.",
       "source_ids": [
         "BOOK-01",
         "BOOK-02",
         "IPC-2141A",
         "INTEL-AN958"
       ],
-      "limitations": "本包只检查字段完整性，不自动判定某网络是否达到高速阈值。"
+      "limitations": "The current tool checks required fields; it does not independently detect a universal high-speed threshold."
     },
     {
       "id": "HSPCB-ROUTE-002",
       "category": "differential_routing",
-      "title": "差分对必须成对定义并具有时序预算",
+      "title": "Differential pairs need exact pairing and a timing budget",
       "severity": "BLOCKER",
       "automation": "CONFIG_CHECK",
       "check_type": "differential_pair_definition",
@@ -143,7 +143,7 @@
         "differential_pairs[].target_impedance_ohm",
         "differential_pairs[].length_tolerance_source"
       ],
-      "action": "依据接口规范定义差分阻抗、P/N 配对、允许层、长度/偏斜预算和来源。",
+      "action": "Define P/N identity, impedance, permitted layers, topology, length/skew budget and source from the applicable interface specification.",
       "source_ids": [
         "BOOK-01",
         "BOOK-03A",
@@ -151,12 +151,12 @@
         "IPC-2141A",
         "INTEL-AN958"
       ],
-      "limitations": "不把所有差分对强制为固定阻抗或固定等长误差；预算必须来自接口/器件要求。"
+      "limitations": "Do not impose one fixed impedance or length tolerance on every differential pair."
     },
     {
       "id": "HSPCB-ROUTE-003",
       "category": "length_timing",
-      "title": "长度匹配必须换算到时序预算",
+      "title": "Convert length matching from an explicit timing budget",
       "severity": "HIGH",
       "automation": "CONFIG_CHECK",
       "check_type": "length_budget_source",
@@ -168,18 +168,18 @@
         "propagation_delay_ps_per_mm",
         "source"
       ],
-      "action": "保留原始时间预算，并使用已确认传播延迟换算允许长度差。",
+      "action": "Retain the original time budget and convert allowable length difference using verified propagation delay.",
       "source_ids": [
         "BOOK-01",
         "BOOK-04",
         "INTEL-AN958"
       ],
-      "limitations": "不以任意毫米数代替接口时序预算；不同层/结构的传播延迟可能不同。"
+      "limitations": "Do not replace timing requirements with arbitrary millimetres; velocity depends on layer and structure."
     },
     {
       "id": "HSPCB-RET-001",
       "category": "return_path",
-      "title": "高速信号必须有连续且明确的参考回流路径",
+      "title": "High-speed signals require an identified continuous return path",
       "severity": "HIGH",
       "automation": "HUMAN_REVIEW",
       "check_type": "return_path_review",
@@ -190,7 +190,7 @@
         "nets[].reference_layer",
         "layout.return_path_review"
       ],
-      "action": "审查信号是否跨越参考平面分割/开槽/边界；检查换层时回流电流是否有低电感路径。",
+      "action": "Examine reference-plane splits, openings and boundaries, and verify a low-inductance return transition for layer changes.",
       "source_ids": [
         "BOOK-01",
         "BOOK-02",
@@ -198,12 +198,12 @@
         "IPC-2141A",
         "INTEL-AN958"
       ],
-      "limitations": "单纯查看网络连通性或 DRC 不能证明回流路径良好。"
+      "limitations": "Connectivity and DRC alone do not prove a sound return-current path."
     },
     {
       "id": "HSPCB-VIA-001",
       "category": "vias_and_stubs",
-      "title": "高速换层过孔需要记录不连续与残桩风险",
+      "title": "High-speed via transitions require discontinuity and stub evaluation",
       "severity": "HIGH",
       "automation": "SI_PI_SIMULATION",
       "check_type": "via_transition_evidence",
@@ -216,19 +216,19 @@
         "stub_length_or_backdrill",
         "solver_or_si_evidence"
       ],
-      "action": "记录信号过孔、反焊盘、参考地过孔、残桩/背钻信息；按频率和通道预算评估是否需要背钻/盲埋孔。",
+      "action": "Record signal vias, antipads, reference vias, stub/backdrill conditions; assess backdrilling or blind/buried vias from the real channel budget.",
       "source_ids": [
         "BOOK-02",
         "BOOK-03B",
         "BOOK-04",
         "INTEL-AN958"
       ],
-      "limitations": "不存在适用于所有频率和叠层的固定过孔数量/背钻阈值。"
+      "limitations": "No fixed count or backdrill threshold applies universally to all frequencies and stacks."
     },
     {
       "id": "HSPCB-XTALK-001",
       "category": "crosstalk",
-      "title": "串扰间距必须由预算/仿真确定",
+      "title": "Crosstalk spacing must come from a budget or simulation",
       "severity": "HIGH",
       "automation": "SI_PI_SIMULATION",
       "check_type": "crosstalk_evidence",
@@ -240,7 +240,7 @@
         "coupling_geometry",
         "si_report"
       ],
-      "action": "对并行长度、层结构、线距、参考平面和边沿进行串扰分析，记录 NEXT/FEXT 或适用指标。",
+      "action": "Evaluate parallel length, stack-up, separation, reference plane and edge rate; record NEXT/FEXT or equivalent metrics.",
       "source_ids": [
         "BOOK-01",
         "BOOK-02",
@@ -248,12 +248,12 @@
         "IPC-2141A",
         "INTEL-AN958"
       ],
-      "limitations": "3W 只能作为布局启发式之一，不能单独作为串扰合格证明。"
+      "limitations": "The 3W heuristic alone is not proof that crosstalk passes."
     },
     {
       "id": "HSPCB-PI-001",
       "category": "power_integrity",
-      "title": "电源轨必须计算目标阻抗",
+      "title": "PDN rail target impedance must be calculated",
       "severity": "BLOCKER",
       "automation": "CONFIG_CHECK",
       "check_type": "pdn_target_impedance",
@@ -266,19 +266,19 @@
         "power_rails[].transient_current_a",
         "power_rails[].target_impedance_limit_mohm"
       ],
-      "action": "计算 Ztarget = Vrail × ripple_fraction / Itransient，并检查项目设定上限是否比计算目标更严格或相等。",
+      "action": "Calculate Ztarget = Vrail * ripple_fraction / Itransient and compare the configured limit to the calculation.",
       "source_ids": [
         "BOOK-01",
         "BOOK-03A",
         "BOOK-03B",
         "INTEL-AN958"
       ],
-      "limitations": "该公式给出初始目标阻抗，不等于 PDN 频域仿真；必须定义目标频率范围。"
+      "limitations": "This is an initial target; frequency-domain PDN simulation needs an explicit band and model."
     },
     {
       "id": "HSPCB-PI-002",
       "category": "power_integrity",
-      "title": "去耦网络必须使用真实器件寄生参数和 PDN 证据",
+      "title": "Decoupling requires real parasitics and PDN evidence",
       "severity": "HIGH",
       "automation": "SI_PI_SIMULATION",
       "check_type": "pdn_evidence",
@@ -290,18 +290,18 @@
         "mounting_inductance",
         "pdn_impedance_plot"
       ],
-      "action": "使用电容偏压/温度下的 C、ESR、ESL 和安装/扩散电感，检查目标频段阻抗与反谐振。",
+      "action": "Use bias/temperature-adjusted capacitance, ESR, ESL and mounting/spreading inductance; evaluate impedance and antiresonance across the required band.",
       "source_ids": [
         "BOOK-01",
         "BOOK-03B",
         "INTEL-AN958"
       ],
-      "limitations": "不能用“每个电源脚放一个 0.1uF”替代 PDN 设计。"
+      "limitations": "A generic 0.1uF capacitor per supply pin is not a PDN design method."
     },
     {
       "id": "HSPCB-EMI-001",
       "category": "emi_emc",
-      "title": "关键电流回路与高速回流环路应最小化",
+      "title": "Minimize critical current and high-speed return loops",
       "severity": "HIGH",
       "automation": "HUMAN_REVIEW",
       "check_type": "loop_area_review",
@@ -315,19 +315,19 @@
         "layout.loop_area_review",
         "layout.return_path_review"
       ],
-      "action": "检查开关电源热回路、时钟回路、连接器共模路径、参考平面和屏蔽/滤波策略。",
+      "action": "Inspect switching-converter hot loops, clocks, connector common-mode paths, planes and shielding/filtering choices.",
       "source_ids": [
         "BOOK-05",
         "BOOK-01",
         "BOOK-03B",
         "INTEL-AN958"
       ],
-      "limitations": "最终 EMC 合规需要适用标准、测试配置和实验室测量。"
+      "limitations": "Final EMC compliance needs applicable standards, defined configurations and laboratory measurements."
     },
     {
       "id": "HSPCB-THERM-001",
       "category": "current_thermal",
-      "title": "载流能力与温升按 IPC-2152/热条件验证",
+      "title": "Verify ampacity and temperature rise under IPC-2152 conditions",
       "severity": "HIGH",
       "automation": "HUMAN_REVIEW",
       "check_type": "current_thermal_evidence",
@@ -341,17 +341,17 @@
         "ambient_temp_c",
         "thermal_evidence"
       ],
-      "action": "按导体几何、铜厚、环境温度、允许温升、内外层和热环境评估载流能力。",
+      "action": "Assess actual trace/via geometry, copper thickness, ambient, allowable rise, inner/outer placement and cooling environment.",
       "source_ids": [
         "IPC-2152",
         "BOOK-03B"
       ],
-      "limitations": "不得把单一线宽表当作所有板材/铜厚/散热环境的通用规则。"
+      "limitations": "One line-width chart is not universal across PCB materials, copper weights and thermal environments."
     },
     {
       "id": "HSPCB-DFM-001",
       "category": "manufacturing",
-      "title": "几何工艺规则必须来自目标板厂能力",
+      "title": "Geometry constraints must use the actual fabricator capability",
       "severity": "BLOCKER",
       "automation": "CONFIG_CHECK",
       "check_type": "manufacturing_limits",
@@ -366,19 +366,19 @@
         "manufacturing.min_via_drill_mm",
         "manufacturing.min_via_diameter_mm"
       ],
-      "action": "导入当前板厂、板材、层数、铜厚和工艺等级对应的能力数据；再映射到 KiCad DRC。",
+      "action": "Import the selected fabricator process, material, layer count, copper weight and production class, then map to KiCad DRC.",
       "source_ids": [
         "IPC-2141A",
         "IPC-2152",
         "BOOK-03A",
         "BOOK-03B"
       ],
-      "limitations": "不同板厂、层数、铜厚和工艺等级不同，不能将示例工艺值设为全局默认。"
+      "limitations": "Different process/layer/copper classes are not interchangeable defaults."
     },
     {
       "id": "HSPCB-VERIFY-001",
       "category": "verification",
-      "title": "DRC 与 SI/PI/EMC 证据必须分开记录",
+      "title": "Track native DRC evidence separately from SI PI and EMC evidence",
       "severity": "BLOCKER",
       "automation": "CONFIG_CHECK",
       "check_type": "release_evidence_gate",
@@ -392,7 +392,7 @@
         "evidence.pi",
         "evidence.emc_if_required"
       ],
-      "action": "按项目要求归档报告、工具版本、输入 PCB revision、结论和审查人。",
+      "action": "Archive current PCB revision, engineering report, tool version, input hash, conclusion and authorized reviewer.",
       "source_ids": [
         "BOOK-01",
         "BOOK-03B",
@@ -400,7 +400,7 @@
         "BOOK-05",
         "INTEL-AN958"
       ],
-      "limitations": "DRC 通过不等于电气性能合格；本工具不签发制造放行 PASS。"
+      "limitations": "Passing DRC does not certify electrical performance or grant manufacturing authorization."
     }
   ]
 }

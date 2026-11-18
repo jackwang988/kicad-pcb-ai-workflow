@@ -36,14 +36,14 @@ def registry():
 
 def check(root,contract,through=None):
     root=Path(root).resolve();p=local(root,contract);q=finite_tree(json.loads(p.read_text(encoding='utf-8-sig')));findings=[];inputs={str(p):sha256(p)};stages=[];allowed=registry()
-    def risk(code,where,desc,fix):findings.append({'rule':code,'level':'阻断级','location':where,'description':desc,'reference':'Project specifications, manufacturer/factory constraints and R9 project contract','suggestion':fix})
+    def risk(code,where,desc,fix):findings.append({'rule':code,'level':'\u963b\u65ad\u7ea7','location':where,'description':desc,'reference':'Project specifications, manufacturer/factory constraints and R9 project contract','suggestion':fix})
     def source(src):
         if not isinstance(src,dict) or not src.get('locator'):raise ValueError('Actual source file/hash/locator required')
         f=local(root,src['file'])
         if not f.is_file() or not f.stat().st_size or sha256(f)!=src.get('sha256'):raise ValueError('Source absent or changed')
         inputs[str(f)]=sha256(f)
     if q.get('schema_version')!=1:raise ValueError('Unknown project contract')
-    if not all(isinstance(q.get(k),str) and q[k].strip() for k in ('project_id','revision')):risk('FLOW.IDENTITY','project','项目身份/版本未定','填写真实项目ID和修订。')
+    if not all(isinstance(q.get(k),str) and q[k].strip() for k in ('project_id','revision')):risk('FLOW.IDENTITY','project','Project identity/revision is undefined','Enter actual project ID and revision.')
     for k,suffix in [('schematic','.kicad_sch'),('board','.kicad_pcb'),('project','.kicad_pro')]:
         name=q.get('inputs',{}).get(k)
         try:
@@ -51,9 +51,9 @@ def check(root,contract,through=None):
             f=local(root,name)
             if not f.is_file() or not f.stat().st_size:raise ValueError('Missing project artifact')
             inputs[str(f)]=sha256(f)
-        except Exception as e:risk('FLOW.INPUT',k,str(e),'新工程先完成该阶段实际产物；不得用空文件占位。')
+        except Exception as e:risk('FLOW.INPUT',k,str(e),'Create actual stage artifacts first; do not use empty placeholder files.')
     requirements=q.get('requirements',[]);ids=[]
-    if not isinstance(requirements,list) or not requirements:risk('FLOW.REQUIREMENTS','requirements','尚无量化需求追踪','逐项记录需求、验收条件、来源和验证阶段。');requirements=[]
+    if not isinstance(requirements,list) or not requirements:risk('FLOW.REQUIREMENTS','requirements','No quantitative requirement traceability','Record each requirement, acceptance criteria, source and verification stage.');requirements=[]
     for req in requirements:
         try:
             if not all(isinstance(req.get(k),str) and req[k].strip() for k in ('id','requirement','acceptance')):raise ValueError('Requirement/acceptance missing')
@@ -68,15 +68,15 @@ def check(root,contract,through=None):
                     if len(matches)!=1:raise ValueError('Unknown task or requirement_id binding')
                 elif v.get('kind')=='external_test_plan':source(v['source'])
                 else:raise ValueError('Unsupported requirement verification method')
-        except Exception as e:risk('FLOW.REQUIREMENT',str(req.get('id','unknown')),str(e),'补齐可量化验收和实际来源；不能由当前输出反推预期值。')
-    if len(ids)!=len(set(ids)):risk('FLOW.REQUIREMENT.ID','requirements','需求ID重复','使用唯一ID。')
+        except Exception as e:risk('FLOW.REQUIREMENT',str(req.get('id','unknown')),str(e),'Provide measurable acceptance and real sources; do not derive expected values from the output.')
+    if len(ids)!=len(set(ids)):risk('FLOW.REQUIREMENT.ID','requirements','Duplicate requirement ID','Use a unique ID.')
     for feature in FEATURES:
         item=q.get('features',{}).get(feature,{})
         try:
             if item.get('applicability') not in ('required','not_applicable') or not item.get('reason'):raise ValueError('Applicability undecided or reason missing')
             source(item['source'])
-        except Exception as e:risk('FLOW.APPLICABILITY',feature,str(e),'基于真实产品判断适用性；required不表示已有实现，不适用也须有依据。')
-    if set(q.get('stages',{}))!=set(STAGES):risk('FLOW.STAGES','stages','阶段清单不完整或含未知项','保留16个节点；未到阶段显示待完成，不静默跳过。')
+        except Exception as e:risk('FLOW.APPLICABILITY',feature,str(e),'Decide applicability using real project conditions; required is not proof of implementation, and N/A requires rationale.')
+    if set(q.get('stages',{}))!=set(STAGES):risk('FLOW.STAGES','stages','Stage set incomplete or contains unknown entries','Preserve all 16 nodes; future stages stay pending, never silently skipped.')
     for stage in STAGES:
         spec=q.get('stages',{}).get(stage,{});missing=[]
         if spec.get('executor') not in ('agent','native','engineer','external','combined') or not isinstance(spec.get('method'),str) or not spec['method'].strip():missing.append('explicit executor/method')
@@ -89,7 +89,7 @@ def check(root,contract,through=None):
                 inputs[str(f)]=sha256(f)
             except Exception:missing.append(str(name))
         if any(t not in allowed for t in tools):missing.append('unsupported/legacy tool')
-        if missing and (through is None or STAGES.index(stage)<=STAGES.index(through)):risk('FLOW.STAGE',stage,'缺少：'+', '.join(missing),'按该阶段method补齐输入或真实执行适配器；不得把资料齐备当签核通过。')
+        if missing and (through is None or STAGES.index(stage)<=STAGES.index(through)):risk('FLOW.STAGE',stage,'Missing: '+', '.join(missing),'Supply actual stage inputs/adapter; declared inputs alone are not engineering approval.')
         stages.append({'stage':stage,'status':'NEEDS_INPUT_OR_ADAPTER' if missing else 'DECLARED_INPUTS_READY_NOT_APPROVED','executor':spec.get('executor'),'method':spec.get('method'),'verification_tools':tools,'missing':missing})
     return {'status':'BLOCKED' if findings else 'DECLARED_CONTRACT_READY_NOT_APPROVED','scope':'workflow_intake_only','production_authorized':False,'findings':findings,'stages':stages,'inputs_sha256':inputs,'remaining':['Run actual native/AI/engineer checks for each applicable stage','SI/PI/safety/manufacturing and prototype validation are product-specific; no universal success claim']}
 

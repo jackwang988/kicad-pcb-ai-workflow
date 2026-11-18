@@ -31,6 +31,7 @@ CONSTRAINTS = {
 }
 CATEGORY_RULES = {
     'GND': {'return_path'}, 'REFERENCE_PLANE': {'reference_plane_integrity'},
+    'POWER_DISTRIBUTION': {'power_thermal', 'return_path'},
     'POWER_HIGH_CURRENT': {'power_thermal', 'return_path'},
     'SWITCHING_HOT_LOOP': {'power_thermal', 'return_path'},
     'DIFFERENTIAL_HIGH_SPEED': {'differential_pair', 'timing', 'reference_plane_integrity'},
@@ -53,6 +54,16 @@ CAPABILITIES = BASE_CAPABILITIES | {
 ACCEPTANCE_ARTIFACTS = {'native_drc', 'netlist_parity', 'save_reload',
                         'protected_object_diff', 'rule_hits', 'connectivity'}
 ROUTE_TAGS = {'segment', 'arc', 'via'}
+# User-provided PCB trace-current chart (not IPC-2152 ampacity evidence).
+# Chart did not supply layer location, temperature rise, or test conditions.
+POWER_CHART_WIDTH_MM = (0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0, 1.2, 1.5, 2.0, 2.5)
+POWER_CHART_CURRENT_A = {
+    1.0: (0.2, 0.55, 0.8, 1.1, 1.35, 1.6, 2.0, 2.3, 2.7, 3.2, 4.0, 4.5),
+    1.5: (0.5, 0.7, 1.1, 1.35, 1.7, 1.9, 2.4, 2.6, 3.0, 3.5, 4.3, 5.1),
+    2.0: (0.7, 0.9, 1.3, 1.7, 2.0, 2.3, 2.8, 3.2, 3.6, 4.2, 5.1, 6.0),
+}
+POWER_WIDTH_EXTRA_MM = 0.254
+POWER_CLASSES = {'POWER_DISTRIBUTION', 'POWER_HIGH_CURRENT', 'SWITCHING_HOT_LOOP'}
 SHA = re.compile(r'^[0-9a-f]{64}$')
 COPPER = re.compile(r'^(F|B|In[1-9][0-9]*)\.Cu$')
 
@@ -136,6 +147,53 @@ def finite_parameters(item):
     elif isinstance(item, list):
         for value_ in item:
             finite_parameters(value_)
+
+
+def power_reference_width(current_a, copper_oz):
+    """Conservative table look-up; chart is NOT thermal/safety certification."""
+    need(type(current_a) in (float, int) and math.isfinite(current_a) and current_a > 0,
+         'POWER_CURRENT_MISSING', 'Positive finite design current required')
+    need(type(copper_oz) in (float, int) and copper_oz in POWER_CHART_CURRENT_A,
+         'POWER_COPPER_UNSUPPORTED', 'Chart only 1/1.5/2oz; other copper needs sourced design')
+    for width, capacity in zip(POWER_CHART_WIDTH_MM, POWER_CHART_CURRENT_A[float(copper_oz)]):
+        if current_a <= capacity:
+            return width
+    raise PolicyError('POWER_CURRENT_OUT_OF_CHART', 'Design current above chart range; external thermal sizing required')
+
+
+def validate_power_width(net, net_info, constraints, layers, allowed_layers):
+    """Fail closed for power track width below user-table +0.254mm + thermal/drop."""
+    route_layer = text(net_info.get('route_layer'), net + ': route_layer')
+    need(route_layer in allowed_layers, 'POWER_LAYER_UNAVAILABLE', net + ': ' + route_layer)
+    layer = next((x for x in layers if x.get('name') == route_layer), None)
+    need(layer is not None and type(layer.get('finished_copper_oz')) in (int, float),
+         'POWER_COPPER_NOT_VERIFIED', net + ': stackup.layers[].finished_copper_oz required')
+    rows = [c for c in constraints if c.get('kind') == 'track_width' and net in c.get('nets', [])]
+    need(len(rows) == 1 and rows[0]['nets'] == [net],
+         'POWER_WIDTH_AMBIGUOUS', net + ': unique net-specific track_width rule required')
+    p = rows[0]['parameters']
+    keys = ('design_current_a', 'copper_oz', 'min_mm', 'max_mm',
+            'thermal_min_width_mm', 'voltage_drop_min_width_mm')
+    need(all(key in p for key in keys), 'POWER_WIDTH_EVIDENCE_MISSING',
+         net + ': current, copper, thermal and voltage-drop sizing required')
+    for key in keys:
+        val = p[key]
+        need(type(val) in (int, float) and math.isfinite(val) and val > 0,
+             'POWER_WIDTH_INVALID', net + ': ' + key)
+    need(p['min_mm'] <= p['max_mm'], 'POWER_WIDTH_INVALID', net + ': min exceeds max')
+    need(abs(p['copper_oz'] - layer['finished_copper_oz']) < 1e-9,
+         'POWER_COPPER_MISMATCH', net + ': selected copper differs from stackup')
+    table_width = power_reference_width(p['design_current_a'], p['copper_oz'])
+    required = max(round(table_width + POWER_WIDTH_EXTRA_MM, 6),
+                   p['thermal_min_width_mm'], p['voltage_drop_min_width_mm'])
+    need(p['min_mm'] + 1e-9 >= required and p['max_mm'] + 1e-9 >= required,
+         'POWER_WIDTH_UNDERSIZED', net + ': need >= ' + str(required) +
+         'mm from user table +0.254mm, approved thermal and voltage-drop widths')
+    return {'net': net, 'route_layer': route_layer, 'design_current_a': p['design_current_a'],
+            'copper_oz': p['copper_oz'], 'chart_width_mm': table_width,
+            'extra_width_mm': POWER_WIDTH_EXTRA_MM, 'minimum_required_width_mm': required,
+            'declared_min_width_mm': p['min_mm'],
+            'scope': 'User reference guard; not IPC-2152, actual neckdowns/vias or thermal certification'}
 
 
 def date_value(item, label):
@@ -263,6 +321,7 @@ def _validate_request(root, request_file):
     networks = req.get('networks')
     need(isinstance(networks, list) and bool(networks), 'NETWORK_CLASSIFICATION_MISSING', 'networks required')
     classes = {}
+    network_details = {}
     for net in networks:
         name = text(net.get('name'), 'network name')
         need(name not in classes and name in graph['nets'] and name in board_nets.values(),
@@ -270,6 +329,10 @@ def _validate_request(root, request_file):
         categories = strings(net.get('categories'), name + ' categories')
         need(categories <= CATEGORIES, 'UNKNOWN_NETWORK_CATEGORY', name)
         classes[name] = categories
+        network_details[name] = net
+    required_net_inventory = {n for n in graph['nets'] if not n.startswith('unconnected-')}
+    need(required_net_inventory <= set(classes), 'NETWORK_CLASSIFICATION_INCOMPLETE',
+         'Unclassified XML nets: ' + ', '.join(sorted(required_net_inventory - set(classes))))
     pending = req.get('pending_connections')
     need(isinstance(pending, list) and bool(pending), 'PENDING_CONNECTIONS_MISSING', 'Explicit unresolved connection inventory required')
     connection_map = {}
@@ -293,6 +356,10 @@ def _validate_request(root, request_file):
         need(targets == set(connection_map), 'FINAL_SCOPE_INCOMPLETE', 'Final planning must target every declared pending connection')
     target_nets = {connection_map[cid]['net'] for cid in targets}
     need(not target_nets & protected_nets, 'PROTECTED_NET_TARGET', ', '.join(sorted(target_nets & protected_nets)))
+    ground_targets = {n for n in target_nets if classes[n] & {'GND', 'REFERENCE_PLANE'}}
+    need(not ground_targets, 'GND_ZONE_ONLY',
+         'Ordinary autorouting cannot target GND/reference planes; plan return vias/zone fill separately: '+
+         ', '.join(sorted(ground_targets)))
     need(all('MANUAL_ONLY' not in classes[net] for net in target_nets), 'MANUAL_ONLY_TARGET', 'Manual-only net cannot use automatic backend')
     constraints = req.get('constraints')
     need(isinstance(constraints, list) and bool(constraints), 'RULES_MISSING', 'No required constraints')
@@ -319,6 +386,9 @@ def _validate_request(root, request_file):
         for category in classes[net]:
             required |= CATEGORY_RULES.get(category, set())
         need(required <= by_net[net], 'RULES_MISSING', net + ': ' + ', '.join(sorted(required - by_net[net])))
+    power_widths = [validate_power_width(n, network_details[n], constraints,
+                                         stack['layers'], allowed_layers)
+                    for n in sorted(target_nets) if classes[n] & POWER_CLASSES]
     budgets = req.get('budgets', {})
     need(isinstance(budgets, dict) and set(budgets) == {'total_seconds', 'max_iterations', 'max_vias', 'seed'},
          'BUDGET_MISSING', 'Explicit time/iteration/via/seed budgets required')
@@ -344,7 +414,11 @@ def _validate_request(root, request_file):
     need(isinstance(req.get('backends'), list), 'BACKEND_LIST_MISSING', 'backends must be a list')
     return req, seen, {'input_sha256': {key: bindings[key]['sha256'] for key in sorted(INPUTS)},
         'request_sha256': digest(request_path), 'target_connection_ids': sorted(targets),
-        'target_nets': sorted(target_nets), 'remaining_connections_after_target_scope': sorted(set(connection_map) - targets),
+        'target_nets': sorted(target_nets), 'classified_nets': sorted(classes),
+        'explicit_nc_exceptions': sorted(set(graph['nets']) - required_net_inventory),
+        'power_width_checks': power_widths,
+        'ground_policy': 'GND_ZONE_FILL_WITH_EXPLICIT_RETURNS; NO_GENERIC_GND_TRACK_ROUTING',
+        'remaining_connections_after_target_scope': sorted(set(connection_map) - targets),
         'allowed_signal_layers': sorted(allowed_layers), 'protected_planes': sorted(protected_planes),
         'protected_uuids': sorted(protected_ids | locked), 'reroutable_uuids': sorted(reroutable),
         'preserve_all_existing_objects_except': sorted(reroutable),

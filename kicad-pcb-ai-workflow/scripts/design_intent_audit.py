@@ -50,19 +50,19 @@ def audit(root, intent_file, native=True, effective_provider=None, phase='final'
     root=Path(root).resolve();intent_file=Path(intent_file).resolve()
     findings=[];checks=[];inputs={str(intent_file):sha256(intent_file)};d={}
     if phase not in ('pre_route','final'):raise ValueError('Unknown intent audit phase')
-    def risk(code,description,location='工程级（无坐标）',fix='修复设计意图/生成规则并重新同步、评审；不得降低门禁。'):
-        findings.append({'rule':code,'level':'阻断级','gate':'design_intent','location':location,
-                         'description':description,'reference':'原厂设计指南、批准叠层/工艺；实际KiCad10.0.x规则',
-                         'fix':fix,'method':'设计意图静态核对/原生API/人工证据'})
+    def risk(code,description,location='project-wide (no coordinate)',fix='Repair design intent/native rules, resynchronize and review; never weaken the gate.'):
+        findings.append({'rule':code,'level':'\u963b\u65ad\u7ea7','gate':'design_intent','location':location,
+                         'description':description,'reference':'Manufacturer design guide, approved stack-up/process and actual KiCad rules',
+                         'fix':fix,'method':'design-intent audit / native reader / human evidence'})
     try:
         d=json.loads(intent_file.read_text(encoding='utf-8-sig'));plan=compile_intent(root,d,verify=True);inputs.update(plan['inputs_sha256'])
         for name,expected in plan['proposed'].items():
             p=local(root,name)
             same=p.is_file() and (json.loads(p.read_text(encoding='utf-8-sig'))==json.loads(expected) if p.suffix=='.kicad_pro' else p.read_text(encoding='utf-8-sig')==expected)
-            if not same:risk('INTENT.NOT_APPLIED','设计意图尚未完整写入候选：'+name,name)
+            if not same:risk('INTENT.NOT_APPLIED','Design intent not fully applied to candidate: '+name,name)
             if p.is_file():inputs[str(p)]=sha256(p)
         pro=json.loads(local(root,d['project_file']).read_text(encoding='utf-8-sig'));board=parse_sexpr(local(root,d['board_file']).read_text(encoding='utf-8-sig'))
-        if d.get('demonstration_only'):risk('INTENT.DEMO','演示参数禁止用于生产')
+        if d.get('demonstration_only'):risk('INTENT.DEMO','Demonstration-only parameters must not be used for production')
         classes={c['name']:c for c in d['classes']};nets={n['name']:n for n in d['nets']}
         netnames={int(n[1]):n[2] for n in children(board,'net')}
         for fp in children(board,'footprint'):
@@ -70,15 +70,15 @@ def audit(root, intent_file, native=True, effective_provider=None, phase='final'
                 net=child(p,'net',[])
                 if len(net)>2:netnames[int(net[1])]=net[2]
         declared=set(nets)
-        if not declared.issubset(set(netnames.values())):risk('INTENT.NETS','声明网络未同步到PCB：'+str(sorted(declared-set(netnames.values()))))
+        if not declared.issubset(set(netnames.values())):risk('INTENT.NETS','Declared nets not synchronized to PCB: '+str(sorted(declared-set(netnames.values()))))
         # Naming heuristic is a warning against omissions, never a proof of total coverage.
         candidates={s for s in netnames.values() if s.endswith(('_P','_N'))}
-        if candidates-declared:risk('INTENT.COVERAGE','发现未声明的P/N候选网络：'+str(sorted(candidates-declared)))
+        if candidates-declared:risk('INTENT.COVERAGE','Undeclared differential P/N candidate nets detected: '+str(sorted(candidates-declared)))
         effective=None
         if native:
             try:effective=(effective_provider or native_effective)(root,d)
             except Exception as e:risk('INTENT.NATIVE',str(e))
-        else:risk('INTENT.STATIC','静态预览不能证明实际生效网络类，不允许生产放行')
+        else:risk('INTENT.STATIC','Static preview cannot prove effective NetClasses or authorize production')
         if effective is not None:
             for name,n in nets.items():
                 actual=effective.get(name,{})
@@ -86,9 +86,9 @@ def audit(root, intent_file, native=True, effective_provider=None, phase='final'
                 expected={'clearance_mm':c['clearance_mm'],'track_width_mm':g['width_mm']}
                 if n['kind']=='differential':expected.update(diff_width_mm=g['width_mm'],diff_gap_mm=g['gap_mm'])
                 if not actual.get('contains_expected') or any(not isinstance(actual.get(k),(int,float)) or not math.isclose(actual[k],v,rel_tol=0,abs_tol=1e-6) for k,v in expected.items()):
-                    risk('INTENT.EFFECTIVE','实际生效网络类/参数与批准值不符：'+str(actual),name)
+                    risk('INTENT.EFFECTIVE','Effective NetClasses/parameters differ from approved values: '+str(actual),name)
                 tuning='DI_'+c['name'] if c['kind']!='power' else ''
-                if actual.get('tuning_profile')!=tuning:risk('INTENT.TUNING','实际Tuning Profile不符',name)
+                if actual.get('tuning_profile')!=tuning:risk('INTENT.TUNING','Actual tuning profile mismatch',name)
         primitives={name:[] for name in nets}
         for tag in ('segment','arc'):
             for t in children(board,tag):
@@ -98,16 +98,16 @@ def audit(root, intent_file, native=True, effective_provider=None, phase='final'
                 length=distance(a,b) if tag=='segment' else arc_length(a,xy(t,'mid'),b)
                 width=float(value(t,'width'));layer=value(t,'layer');pos=str(a)
                 c=classes[nets[name]['netclass']];g=next((g for g in c['geometry'] if g['layer']==layer),None)
-                if not g:risk('INTENT.LAYER','走线使用了未批准的层',name+' '+pos)
-                elif not g['min_width_mm']-1e-9<=width<=g['max_width_mm']+1e-9:risk('INTENT.WIDTH','实际线宽不在批准范围内',name+' '+pos)
+                if not g:risk('INTENT.LAYER','Track uses a layer that is not approved',name+' '+pos)
+                elif not g['min_width_mm']-1e-9<=width<=g['max_width_mm']+1e-9:risk('INTENT.WIDTH','Actual track width is outside the approved range',name+' '+pos)
                 primitives[name].append({'length_mm':length,'layer':layer,'width_mm':width})
         layout=layout_digest(board)
         for name,n in nets.items():
-            if phase=='final' and not primitives[name]:risk('INTENT.UNROUTED','关键网络无已布线路径；不能用类分配代替布线完成',name)
+            if phase=='final' and not primitives[name]:risk('INTENT.UNROUTED','Critical net has no actual routed path; a class assignment is not finished copper',name)
             total=sum(e['length_mm'] for e in primitives[name])
             if n['kind']=='power':
                 p=n['power']
-                if total>p['max_path_length_mm']:risk('POWER.LENGTH','保守累计路径超过压降预算使用的最大长度',name)
+                if total>p['max_path_length_mm']:risk('POWER.LENGTH','Conservative path sum exceeds the maximum length used for voltage-drop budget',name)
                 checks.append({'net':name,'power_budgets':plan['power_budgets'][name]})
                 if phase=='pre_route':continue
                 review=p.get('layout_review',{})
@@ -119,32 +119,32 @@ def audit(root, intent_file, native=True, effective_provider=None, phase='final'
                 except Exception as e:risk('POWER.LAYOUT',str(e),name)
             if n['kind']=='rf':
                 rf=n['rf']
-                if total>rf['max_path_length_mm']:risk('RF.LENGTH','射频累计路径超过批准长度',name)
-                if rf['reference_net'] not in netnames.values():risk('RF.REFERENCE','声明参考地未出现在PCB',name)
+                if total>rf['max_path_length_mm']:risk('RF.LENGTH','Accumulated RF path exceeds approved length',name)
+                if rf['reference_net'] not in netnames.values():risk('RF.REFERENCE','Declared reference-ground net not found in current PCB',name)
                 for key in (() if phase=='pre_route' else ('return_review','matching_review')):
-                    if rf[key].get('layout_sha256')!=layout:risk('RF.REVIEW','射频参考/匹配评审未绑定当前布局：'+key,name)
+                    if rf[key].get('layout_sha256')!=layout:risk('RF.REVIEW','RF reference/matching review is not bound to current placement: '+key,name)
         footprints={}
         for f in children(board,'footprint'):
             props={p[1]:p[2] for p in children(f,'property') if len(p)>2};footprints[props.get('Reference')]=f
         for region in d.get('regions',[]):
             matches=[z for z in children(board,'zone') if value(z,'name')=='DI_'+region['id']]
-            if len(matches)!=1:risk('RF.KEEPOUT','缺少唯一的原生天线禁布区',region['id']);continue
+            if len(matches)!=1:risk('RF.KEEPOUT','No unique native antenna keepout found',region['id']);continue
             z=matches[0];k=child(z,'keepout',[]);pts=children(child(child(z,'polygon',[]),'pts',[]),'xy')
             actual_points=[[float(v) for v in p[1:3]] for p in pts]
             layer_values=child(z,'layers',[])[1:] or [value(z,'layer')]
             if set(layer_values)!=set(region['layers']) or actual_points!=region['polygon_mm'] or any(value(k,name)!='not_allowed' for name in ('tracks','vias','pads','copperpour','footprints')):
-                risk('RF.KEEPOUT','禁布范围/层/限制与批准值不符',region['id'])
+                risk('RF.KEEPOUT','Keepout region/layers/restrictions differ from approved conditions',region['id'])
             anchor=region['anchor'];f=footprints.get(anchor['ref']);at=child(f or [],'at',[])
             if not f or len(at)<3 or list(map(float,at[1:3]))!=anchor.get('position_mm') or (float(at[3]) if len(at)>3 else 0)!=anchor.get('rotation_deg'):
-                risk('RF.ANCHOR','天线位置或方向已变化，必须重新定位净空区域',anchor['ref'])
+                risk('RF.ANCHOR','Antenna position/orientation changed; rebind and inspect keepout geometry',anchor['ref'])
         for loop in d.get('loops',[]):
             if phase=='pre_route':continue
             review=loop['review']
             if review.get('layout_sha256')!=layout or not review.get('method'):
-                risk('LOOP.REVIEW','实际回路面积缺少当前布局的测量/求解证据',loop.get('id','?'));continue
+                risk('LOOP.REVIEW','Actual loop area lacks current-placement measurements/solver evidence',loop.get('id','?'));continue
             try:
                 measured=positive(review.get('measured_area_mm2'),'measured loop area',zero=True)
-                if measured>loop['max_area_mm2']:risk('LOOP.AREA','实际回路面积超过批准上限',loop['id'])
+                if measured>loop['max_area_mm2']:risk('LOOP.AREA','Actual loop area exceeds approved limit',loop['id'])
             except Exception as e:risk('LOOP.REVIEW',str(e),loop.get('id','?'))
         # Capture potentially changing dependencies again in the enclosing release gate.
         checks.append({'declared_nets':len(nets),'declared_pairs':len(d.get('pairs',[])),
@@ -157,7 +157,7 @@ def audit(root, intent_file, native=True, effective_provider=None, phase='final'
 def integrate(r,root,config):
     entry=config.get('design_intent')
     if not entry:
-        r.risk('INTENT.MISSING','schematic','阻断级','缺少差分/电源/射频设计意图配置',fix='设置design_intent，声明完整关键网络、原厂依据与批准几何；不能由网络类存在推断正确。');return
+        r.risk('INTENT.MISSING','schematic','\u963b\u65ad\u7ea7','Differential/power/RF design-intent profile missing',fix='Populate design_intent with exact critical nets, manufacturer basis and approved geometry; a class name alone is not proof.');return
     try:
         path=local(root,entry);d=json.loads(path.read_text(encoding='utf-8-sig'))
         if d.get('project_file')!=config.get('inputs',{}).get('project') or d.get('board_file')!=config.get('inputs',{}).get('board'):
@@ -165,7 +165,7 @@ def integrate(r,root,config):
         result=audit(root,path,True);r.inputs.update(result['inputs_sha256']);r.evidence.append({'design_intent':result})
         for item in result['findings']:
             r.risk(item['rule'],'routing',item['level'],item['description'],item['location'],item['reference'],item['fix'],item['method'])
-    except Exception as e:r.risk('INTENT.CONFIG','routing','阻断级',str(e))
+    except Exception as e:r.risk('INTENT.CONFIG','routing','\u963b\u65ad\u7ea7',str(e))
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('project');p.add_argument('--intent',required=True);p.add_argument('--static-preview',action='store_true');p.add_argument('--phase',choices=['pre_route','final'],default='final');a=p.parse_args()

@@ -1,121 +1,125 @@
-# 原理图 AI 设计：拓扑驱动绘制与可验证图面规范
+# Topology-Driven Schematic Drawing and Verifiable Page Geometry
 
-版本：1.0；适用 KiCad 原理图生成、重排、层次页评审；项目无关。本文是**设计规范与验收契约**，不是现有脚本已实现的自动检查声明。与 `schematic-style.md`、`system-integration.md`、`engineering-rules.md` 配合使用。
+**Scope:** KiCad schematic generation, rearrangement, hierarchical sheets, and visual review. This is an engineering design and acceptance specification, **not** a claim that the current Skill implements a general geometric schematic solver. Apply together with [schematic-style](schematic-style.md), [system-integration](system-integration.md), and [engineering rules](engineering-rules.md).
 
-## 0. 目标、输入与禁止事项
+## 0. Design goal, required inputs, and prohibited shortcuts
 
-目标是让读图者在二维图面中快速恢复真实电气拓扑、器件角色与设计意图，而非仅追求对齐。**先拓扑、后相对位置、再绝对坐标**。禁止以固定页面坐标或页面中心推断引脚出线方向；禁止套用任何项目的元件坐标、纸张尺寸或 POWER 页布局模板。
+The reader must be able to reconstruct the **actual electrical topology, device roles, and design intent** from the 2D drawing. Optimize **topology first, relative layout second, absolute coordinates last**. Never derive pin exit directions from page center or reuse another project's coordinates, sheet size, or power-page layout as an assumed template.
 
-开始前取得：批准的需求/系统架构与接口契约、器件完整 MPN/封装/数据手册/勘误、原理图符号库定义（含单元/隐藏引脚/旋转镜像）、独立建立的预期器件与引脚—网络映射、适用电源域和安全约束、项目文字及分页策略。缺少关键事实标记 BLOCKED，不能用图面推断电气连接，更不能让生成网表自证正确。
+Before drawing, obtain: approved product requirements and system/interface contract; exact device MPN, package, datasheet and errata; actual KiCad symbol definitions including units, hidden pins, rotation and mirroring; an **independently authored expected component/pin/net graph**; power-domain and safety constraints; and project sheet/text conventions. Missing critical facts are **BLOCKED**. The generated image or netlist must not be used to invent the expected electrical graph against which it will be checked.
 
-## 1. L0–L5 分层及规则优先级
+## 1. L0–L5 precedence and disposition
 
-| 层 | 内容 | 裁决属性 |
+| Layer | Subject | Required interpretation |
 |---|---|---|
-| L0 电气事实 | 引脚号、器件身份/参数、引脚网络、串并联、电源域、极性、NC/DNP、原厂约束 | 硬阻断，不得因美观改变 |
-| L1 几何不变量 | 真引脚端点、出线向量、导线/主体相交、标签锚点、文字/边框碰撞 | 经验证的违反项硬阻断 |
-| L2 电路语义 | 串联主路、并联支路、反馈、去耦、总线/差分、连接器、功能边界 | 先按真实角色表达；例外需理由 |
-| L3 页面原型 | 能量转换、MCU/SoC、连接器、存储总线、模拟音频、离散 I/O、架构首页 | 页面分类后应用策略 |
-| L4 软目标 | 可读路径、交叉、拐点、标签、对齐、平衡、利用率 | 多目标优化，不能覆盖硬约束 |
-| L5 证据与验收 | 独立预期网表等价、ERC、机器几何预筛、整页及局部审图、人审 | 明确 AUTO/REVIEW/UNAVAILABLE |
+| **L0 electrical truth** | Pin numbers, MPN/values, pin-to-net relations, series/parallel topology, supply domains, polarity, NC/DNP, manufacturer conditions | Hard blocking; aesthetics never justify a connection change |
+| **L1 geometric invariants** | Real pin attachment point, transformed exit vector, wires through bodies, label anchors, collisions, sheet regions | Verified hard violations block; unsupported automatic detection requires an explicit review path |
+| **L2 circuit roles** | Main series paths, parallel protection/bias/decoupling branches, feedback, buses/differential signals, connectors, functional blocks | Express genuine function with a documented reason for exceptions |
+| **L3 sheet archetypes** | Conversion/power, MCU/SoC, connectors, memory buses, analog/audio, discrete I/O, architecture overview | Classify the page and select local composition rules |
+| **L4 soft objectives** | Readable wire paths, crossings, bends, labels, grouping, whitespace, alignment and density | Optimize only after L0–L3, never overrule hard constraints |
+| **L5 evidence and acceptance** | Independent expected-vs-native netlist, ERC, geometric screening, full-page and local views, engineer review | Report **AUTO**, **REVIEW** or **UNAVAILABLE** honestly |
 
-全局事实优先级：适用法律/安全标准 > 器件手册及勘误 > 已批准项目需求及工程约束 > 独立预期拓扑/网表 > 图面规则 > 美观。来源冲突不得静默处理，应停止并提交工程决定；变更预期电路须重新批准。
+Priority for conflicting requirements: **applicable law/safety standards > manufacturer datasheet and errata > approved product/engineering requirements > independently established topology > page constraints > appearance**. Stop and obtain an engineering decision for unresolved conflicts; an approved circuit change requires re-approval of the expected graph.
 
-## 2. 从拓扑生成画面
+## 2. Convert topology into a readable page
 
-1. 按功能、电源域、接口、复用和跨页复杂度构建电路功能块图，建立每个块的输入、输出、供电、参考地及跨块端口。
-2. 从真实元件—引脚—网络图识别串联路径、并联保护/偏置/去耦支路、反馈闭环、差分对、总线、分叉与接口边界。**视觉上像串联/并联不能替代电气事实**。
-3. 识别符号实例的单元、坐标、旋转、镜像以及库中每个引脚相对坐标、连接端点、角度/长度；将点和向量变换到页面坐标。引脚外向方向来自符号定义及变换，不来自页面中心。
-4. 先求功能块相对顺序和器件相对锚点，再基于网格量化绝对坐标；为局部连接/文字保留通道。先解反馈与保护支路，再求跨块连通表达。
-5. 对短局部线优先直连；跨功能块、跨页、高扇出或需绕行时使用明确命名的局部/全局/层次标签，遵从 KiCad 网络作用域及系统接口契约。不得为“少标签”产生半页长线。
-6. 单独布局 Reference、Value、引脚名/号、标签和注释，计算文字包围盒并检查接触；最后基于**全部相关可见对象联合包围盒**在有效版心整体平移。页面框、标题栏是排除区域，不是居中主体；项目明确的边栏/注释区另行建模。
-7. 完成电气与图面双通道验证，按未通过项局部重排；禁止通过改变引脚网络、随意 NC、删器件或隐藏文字让检查通过。
+1. Construct a functional block graph by feature, supply domain, interface, reuse, and hierarchy. Identify every block's inputs, outputs, power, ground/reference, and cross-boundary ports.
+2. From real component-pin-net connections classify series paths, parallel protection/bias/decoupling, feedback loops, differential pairs, buses, branches, and boundaries. **Visual alignment does not prove electrical series/parallel topology.**
+3. Read actual symbol unit, center, rotation/mirror and each library pin's local position, attachment point, orientation, and length. Transform coordinates and outward vectors to the page. Never infer exit direction from which side of the page a pin appears on.
+4. Solve relative block order and symbol anchors, then quantize coordinates to the schematic grid. Reserve wire/text corridors; prioritize feedback and protection branches before cross-block connectors.
+5. Use short direct wiring locally. For cross-block, hierarchical, high-fanout or unavoidable long links, use named local/global/hierarchical labels as allowed by KiCad scoping and the system interface contract. Do not draw half-page wires merely to reduce label count.
+6. Place reference/value text, pin names/numbers, labels and notes independently. Check rendered bounding boxes. Apply any final page offset to the **combined bounding box of all pertinent visible objects**, excluding title/border/reserved regions from the usable page area.
+7. Verify both electrical and visual channels. Locally reroute/reposition failures; never remove a required component, silently declare NC, hide necessary text, or mutate a pin net to make a report pass.
 
-## 3. L1 几何约束：精确定义
+## 3. L1 exact geometric definitions
 
-- **真实连接端点**：wire 起点/终点和 pin attachment 点按 KiCad 数据模型及量化容差判定；不能把引脚可见线段任意位置当作连线点。连接/结点/跨线不连接语义由原生网表确认。
-- **引脚出线**：第一段非零 wire 的方向与 transformed pin outward vector 同向；仅针对直接从该 pin attachment 出发的引线，非轴对齐符号或例外须使用经过验证的几何处理。不能凭“引脚在左”推出方向。对于复合接点/电源引脚符号单独判断合法几何。
-- **穿越符号**：wire 不得穿过其它符号主体的真实图形/禁入区；矩形包围盒只是保守 broad-phase，不得把合法靠边/凹形接近都误判。允许从合法引脚接点连接，不能由“矩形碰到引脚”放行穿越主体。
-- **标签**：标签 attachment anchor 必须是与线端/合法节点同坐标并经网表验证的实际连接点；标签姿态与相邻线段轴向一致，文字应朝可阅读空白区展开。水平 0°/180°、竖直 90°/270° 可作初筛，**具体角度与文字朝向要按 KiCad label 类型、坐标变换、镜像与渲染确认**；不应把 0/180 机械等同于最终方向。
-- **文字碰撞**：检测真实文本对象渲染包围盒（包含字体、大小、角度、位置、可见性），与符号主体、导线、标签及其它文字的非法重叠；合法说明性标注和隐藏字段按项目规则单独处理。单靠字符数估算不可作为 PASS。
-- **纸面边界**：任何功能图面对象不得溢出有效版心或进入标题栏/保留区；图框与标题本身不作为违规对象。
-- **拓扑不变量**：串/并联属于 L0 网表谓词，视觉共线只是 L2 默认表达；不可强制牺牲实际连接。禁止将并联 TVS/去耦画成主路径串联、将串联电阻画成并联支路。
-- **长线预算**：同块 wire 路径总长超过该块可用宽度、转折大于 2 次、或穿越其它块时产生 review/re-layout 事件；跨块穿越原则上改标签/层次端口。相对长度属于启发式，不能替代可读性审图。
-- **串联共轴**：默认两端连接沿主流向同轴且元件位于局部两节点间；只在封装符号/端口几何兼容时优化。中心偏差 `<= 1 grid` 是可配置优化指标，不是全部串联拓扑的电气硬门禁。
-- **并联支路**：TVS/去耦/上拉/下拉默认短正交支路，指向正确电源域/参考节点；方向随真实结构可变，不得把“电源在上、GND 在下”升级为硬规则。
-- **居中和密度**：联合包围盒包括符号、wire、junction、标签、可见 Reference/Value、功能注释与层次对象；有效版心排除标题栏、边框和指定预留区。水平/竖直中心偏差 <= 可用跨度 5% 是建议目标而非硬门槛，允许有意留白。纸张选择以实际尺寸、字体可读性、布图密度与项目要求决定，不固定 A3/A4。
+- **Native connection point:** Only a real pin attachment point or other legal KiCad electrical node qualifies. A contact anywhere along a drawn pin line is not automatically a connection. Use a native exported netlist to distinguish junctions from nonconnecting crossings.
+- **Pin exit:** For the first nonzero wire segment leaving a pin attachment, compare its direction against the **transformed library-defined outward pin vector**, considering rotation and mirroring. Handle off-axis symbols, composite nodes, and power symbols using verified geometry or explicit review. “The pin is on the left” is not a valid direction algorithm.
+- **Wire through a symbol:** The wire must not cross another symbol's real body or prohibited region. A rectangular bounding box is only a conservative broad-phase test; permit legal near-edge/nonrectangular cases after actual geometry review. A line contacting a bounding box near a pin does not automatically legalize a body crossing.
+- **Label connection:** The label attachment anchor must coincide with a real wire end or legal node and have native netlist evidence. The text should extend into readable free space and follow neighboring wire direction. Horizontal 0°/180° and vertical 90°/270° are **initial screening only**; verify actual KiCad label type, mirror, transform and rendered text orientation. Do not treat angle alone as proof.
+- **Text collision:** Use actual visible text geometry, including font, size, angle and field visibility. Screen illegal overlap with bodies, wires, labels and other text. Hidden fields and legitimate notes follow explicit exceptions; character-count approximations cannot grant PASS.
+- **Page boundaries:** Functional objects must remain inside the usable canvas, outside title block, border and reserved annotations. Page frame/title elements themselves are excluded from object violations.
+- **Topology versus appearance:** Series and parallel relationships are **L0 netlist predicates**; collinearity is an **L2 readability default**. A parallel TVS/decoupler must not appear as a series main-path element, or vice versa.
+- **Long-wire trigger:** Intra-block path length beyond the available block width, more than **two bends**, or crossing another function block triggers **REVIEW/re-layout**. Prefer boundary labels/ports for cross-block links. Relative length is a heuristic, not an electrical acceptance gate.
+- **Collinear series path:** Prefer components lying between their actual connected nodes along the primary flow where the symbol geometry permits. **Center offset ≤1 grid** may be a configurable soft target, not a universal electrical requirement.
+- **Parallel branches:** TVS, decoupling and pull-up/down components normally form short orthogonal branches to the correct rail/reference. Actual topology controls orientation; “power up, ground down” is not an inflexible rule.
+- **Visual center/density:** The overall bounding box includes symbols, wires, junctions, labels, visible reference/value, notes and hierarchy. Exclude the frame/title/reserved region. Offset within **5% of the usable span** is a soft recommendation; intentional whitespace is allowed. Select A3/A4/other sheet size by genuine legibility and project requirements, not a fixed template.
 
-## 4. L2 角色表达
+## 4. L2 semantic layout by circuit role
 
-| 拓扑角色 | 默认表达 | 必须核查 |
+| Role | Default visual expression | Verify |
 |---|---|---|
-| 串联电阻/磁珠/保险丝 | 主信号/电源流同轴，短进短出 | 电气确实串联、旁路无误 |
-| 去耦/旁路 | 所属电源轨旁短支路至正确参考地 | 供电域、值、数量及原厂要求 |
-| TVS/钳位/滤波 | 被保护节点至参考轨的并联支路 | 极性、耐压、地参考及位置 |
-| 上拉/下拉 | 节点经电阻接正确参考轨 | 目标电平/使能/上电状态 |
-| 反馈/补偿 | 紧贴所属控制 IC 的局部闭环 | 采样点、极性、反馈网络完整性 |
-| 差分对 | 相邻、同向、清晰标 P/N | 网络极性及接口角色；原理图等距非 PCB 等长 |
-| 同名多引脚电源/信号 | 合法时局部汇合再标注 | 不能短接本应隔离的管脚 |
-| 多引脚连接器 | 有效端朝内，短线标签扇出 | pin1、壳体、屏蔽、NC、引脚映射 |
+| Series resistor, ferrite bead or fuse | Short aligned entrance/exit on main path | It is truly series; no unintended bypass |
+| Bypass/decoupling | Short rail-to-reference branch | Correct supply domain, count, values and device guidance |
+| TVS/clamp/filter | Parallel branch from protected node to reference | Polarity, voltage, ground and placement context |
+| Pull-up/down | Node → resistor → proper reference rail | Power-up levels, enable/boot behavior |
+| Feedback/compensation | Local loop near controlling device | Sense node, loop polarity and complete network |
+| Differential pair | Adjacent, aligned, unambiguous P/N names | Physical pin/net polarity; drawing symmetry is **not** PCB length matching |
+| Shared pins/nets | Merge locally when actually allowed | Never short isolated pins simply because their function names match |
+| Multipin connector | Functional face inward; short labeled fanout | Pin 1, case/shield, NC and full pin map |
 
-## 5. L3 页面原型策略
+## 5. L3 per-sheet archetypes
 
-- **能量转换**：输入→保护→变换→储能/滤波→输出；把反馈/使能环路靠近控制器表达。
-- **MCU/SoC**：按引脚功能群和模块边界分区；高扇出跨模块信号优先标签/层次端口；不得为美观重定义物理 pin number 或原厂符号含义。
-- **USB/多引脚接口**：连接器短线扇出，ESD/CC/VBUS 等按真实拓扑及方向放置；差分极性清楚。
-- **SD/存储/总线**：控制器侧→匹配/串联器件→连接器侧；上拉就近形成支路；标签不能掩盖信号方向。
-- **模拟/音频**：输入→处理→输出，反馈与电源去耦局部化，模拟/数字域清楚。
-- **DEBUG/端口展开**：短线扇出、标签分组、位号可读，避免假造长链路。
-- **USER_IO/离散**：按按键、LED、蜂鸣器等独立功能块布图。
-- **层次首页**：按系统真实流向、模块/电源域和接口契约表达关系，不只是平铺空白图框。
+- **Power conversion:** Input → protection → conversion → energy storage/filter → output; place feedback/enable near the controller.
+- **MCU/SoC:** Group by actual pin functions and modules; use proper cross-module hierarchy. Do not change physical pin numbers or manufacturer symbol semantics to improve appearance.
+- **USB/multipin interface:** Short connector fanout; CC/VBUS/ESD placed by actual connectivity; clearly distinguish differential polarity.
+- **SD/memory/bus:** Controller → optional series/matching → connector or target; pull-ups are actual branches, and labels must not conceal direction.
+- **Analog/audio:** Input → conditioning → output; keep feedback and decoupling local; distinguish analog/digital supply and references.
+- **Debug/port expansion:** Short labeled branches, grouped nets, visible references; avoid artificial series-chain presentation.
+- **User I/O:** Button, LED, buzzer, actuator etc. grouped as independent functions.
+- **Hierarchy overview:** Show real flow, modules, supply domains and explicitly bound interfaces; not merely decorative blocks.
 
-页面可同时含多个原型；先划分区域再组合，不能强行整个页面指定单一 POWER 策略。
+One sheet may contain multiple archetypes; partition regions instead of imposing one global POWER page pattern.
 
-## 6. 统一冲突裁决
+## 6. Deterministic conflict resolution
 
-遇到冲突按序求解：①保持 L0 不变→②移动外围器件→③合法旋转/镜像器件→④仅在经工程允许的**符号库替代表示/多单元组织**下调整功能组，绝不随意改引脚编号、符号库电气身份或已锁定引脚映射→⑤短正交连线→⑥功能块边界标签/层次端口→⑦扩大间距→⑧更换纸张/合理拆页。
+Apply in this order: **(1)** preserve L0; **(2)** reposition peripheral devices; **(3)** legal rotation/mirror; **(4)** only approved alternate symbol or multiunit presentation, never altered pin numbering/net identity; **(5)** short orthogonal wires; **(6)** local/global/hierarchical boundary labels; **(7)** increase spacing; **(8)** resize or split sheets.
 
-若“直连 vs 交叉”先移动再标签；“少标签 vs 长线”选标签；“居中 vs 流向”保持流向并整体平移；“GND 向下 vs 多折线”允许合规旋转符号；“标签角度 vs 阅读”保持锚点真实并优化文字方向。**不允许直接用绕长线解冲突。**
+For “direct wire versus crossing,” move objects before introducing labels. For “few labels versus long wire,” favor accurate labels. For “center versus signal flow,” preserve flow and shift the combined drawing. For “ground down versus excessive bends,” consider legal symbol rotation. For “label orientation versus anchoring,” preserve the electrical anchor and adjust text. Do **not** resolve layout conflicts by blindly extending wires.
 
-## 7. L4 软目标及调参
+## 7. L4 optimization without changing the circuit
 
-采用词典序优化：先满足 L0–L3；在有效可行解内依次优化可读路径长度、跨线/交叉数量、折点数量、冗余标签、组内对齐、视觉平衡和版面利用率。优化权重与阈值存项目策略，不能无条件固定全项目数值。对功能流向有特定约定的页采用显式例外和审阅记录。不同角色的“标签最少”和“线最短”不得等权打架。
+Use lexicographic priorities: achieve L0–L3 feasibility; then optimize readable length, illegal crossings, bend count, redundant labels, alignment, balance and usable area. Store thresholds/weights in project policies rather than global magic constants. Different sheet roles may require explicit exceptions; “minimum labels” and “minimum wire length” are not equal-weight objectives if they conflict.
 
-## 8. L5 验证矩阵（不能假装工具已实现）
+## 8. L5 evidence matrix and implementation honesty
 
-| 检查 | 合格证据 | 实施状态/责任 |
+| Check | Evidence | Current implementation boundary |
 |---|---|---|
-| 元件集合、器件值/封装、pin→net、单端网、NC、DNP 等价 | 独立预期数据 vs KiCad 原生网表及原文件语义；对未被 XML 导出的属性直接检查源文件 | 部分现有 `schematic_candidate.py`/原生工具；NC/DNP 等需单独核实 |
-| ERC | KiCad 原生 ERC 结果，忽略项逐项审查 | 已有原生通路；ERC 不是功能证明 |
-| 页/层次/图框引脚与策略 | `schematic_style.py` 报告与接口端点检查 | 已有有限自动预筛 |
-| 引脚外向向量、穿主体、标签方向/锚点 | 对实例化符号与实际几何解析的检测报告 | **待开发自动检测器**；现阶段必须逐页人工审图 |
-| 全部文字碰撞、联合包围盒/中心与边界 | 渲染或等效真实字体几何数据 + 规则计算 | **待开发检测器**；现阶段 PDF/SVG 视觉核验 |
-| 串/并联视觉角色、局部反馈、长线/交叉 | 带功能块和电路角色标注的审图报告 | 规则+人工工程评审 |
-| 整页与 200% 局部视觉 | 真实导出/GUI 截图，记录页码、坐标/对象、问题与修复 | AI 审查 + 工程师确认，不可自动签字 |
+| Component set, values/footprints, pin-net mapping, NC/DNP and one-pin nets | Independently specified expected graph versus KiCad native netlist plus source properties not exported in XML | Partial `schematic_candidate.py` and native commands; NC/DNP need separate inspection |
+| ERC | Actual native ERC report with disposition of exemptions | Supported pathway; ERC alone does not prove electrical application correctness |
+| Sheet/hierarchy/frame and pin scope | `schematic_style.py`, system interface pin endpoints | Limited static screening |
+| Pin outward vectors, body crossing, label transform and actual anchor | Symbol-instance geometry with transformed pins | **Geometric auto-checker not yet fully implemented**; review every sheet manually |
+| All text collision, combined bounding box and page edges | Actual font/rendered geometry plus exact rule calculation | **Not fully implemented**; PDF/SVG visual review required |
+| Series/parallel role, feedback, long wires and crossings | Explicit functional block and topology review | AI plus engineer review, with independent actual netlist |
+| Full page and ~200% local views | Actual KiCad export/GUI views with sheet and object locations | AI/engineer acceptance; no self-signature |
 
-机器检查只能对**其实际覆盖的范围**宣告 PASS。未实现的强检项标 `UNAVAILABLE` 并转真实人工审查；若项目要求“全自动门禁”，则未实现时 BLOCKED。发现硬违例，无论脚本退出码如何均不可放行。所有失败记录：页面/对象、网络、严重度、依据、复现、修改前后哈希、重检结果。失败不得静默改网或跳过检查。
+An automatic checker may declare PASS **only for the part it actually measures**. Unsupported mandatory checks become `UNAVAILABLE` with manual evidence; if the project explicitly requires a fully automatic gate, absence of an implementation means **BLOCKED**. Every violation should include sheet/object, net, severity, source rule, reproduction, before/after hashes and retest. Do not bypass a hard geometry violation because a script returned zero.
 
-跨原型推广与三遍绘制的审图步骤见 [三遍绘制与跨页面原型验证](schematic-cross-archetype.md)；适用时使用 prototype_validation 记录不同页面覆盖，不得把证据存在误称为几何算法自动验收。
+For independent archetype tests and three-pass drawing evidence, see [cross-archetype validation](schematic-cross-archetype.md). A prototype_validation record is evidence of what was tested, not evidence of an implemented general geometry engine.
 
-## 9. 阶段管线、回退及完成定义
+## 9. Execution, rollback and completion
 
 ```text
-原厂资料 + 独立预期拓扑 + 系统接口契约
-  → 功能块图/页面原型识别
-  → 串联路径/并联支路/跨块端口提取
-  → 符号引脚变换及合法出线向量
-  → 相对布局求解 → 网格绝对坐标
-  → 局部短线 → 边界标签/层次端口
-  → 独立文字布局 → 联合包围盒版心优化
-  → 原生导出/独立网表等价/ERC
-  → 几何预筛 + 全页/200%审图
-  → AI 问题报告 → 工程师本人核验/确认
+Manufacturer data + independent expected topology + system interface contract
+  → function graph / page archetypes
+  → series/parallel/feedback roles and cross-block ports
+  → exact symbol pin transforms and outward vectors
+  → relative anchors and grid coordinates
+  → short local wires + legal labels/hierarchy
+  → independent visible text layout + combined-bounds centering
+  → native export + expected-netlist equivalence + ERC
+  → bounded geometry screening + full-page and ~200% view
+  → sourced AI review + actual engineer approval
 ```
 
-任何 L0/实际 L1 违反：阻断候选，先局部重排并重新导出/核对；重排改动网络必须退回 L0 复核。软目标不达标：给出分数/待改建议，但不伪称为电气失败。多次布局失败则改版心、拆页或提出需要人审的符号/模块结构调整，不无限循环尝试。
+A verified L0/L1 hard violation blocks the current candidate; fix locally and rerun native checks. Any net change returns to L0 validation. Soft objectives produce improvement recommendations, not fictional electrical failures. Repeated layout failures warrant page partition or explicit engineering review, not infinite retry loops.
 
-完成定义：独立预期拓扑与原生导出一致、ERC 的违规/豁免均有处理结论、现有自动门禁按当前工程通过、所有几何硬约束被实际检测或经完整人工核读、整页/200%审查有证据、工程师确认。即使完成，也不替代系统电气性能、原厂推荐电路语义与样机实测。
+Completion requires independently established topology equal to native export, dispositions for all relevant ERC findings, actual available hard checks, full visual review for unsupported geometry, recorded AI issues and approval by the engineer for the **current** version. This does not replace manufacturer application validation or real hardware performance.
 
-## 10. Skill 接入约定
+## 10. Integration and adversarial test requirements
 
-此文是 `schematic-style.md` 的子规范，Agent 在**原理图设计、生成、重排及 AI 静态审查前必须阅读并应用**。现有 `schematic_style.py`、`schematic_candidate.py` 不因新增本规则自动获得新检查能力；开发几何检查器时需加入反例测试：芯片内短线、标签镜像/锚点偏离、穿越主体、跨块长线、Reference/Value 重叠、标题栏侵入、串并联误绘、全图偏心及移动后网表变化。必须同时有合法图例，避免误杀。
+Read this specification for new schematic drawing, rearrangement and static visual review. Existing `schematic_style.py` and `schematic_candidate.py` do not acquire new capability merely because this document exists. New geometry engines need positive and negative fixtures covering: shorting inside a symbol, mirrored label anchor, body-crossing wires, long cross-block links, reference/value overlap, title-block incursion, false series/parallel depiction, off-center drawing, and post-edit netlist changes. Include legal counterexamples to avoid false positives.
+
+## Executable R10 composition extension
+
+[Professional schematic composition checks](schematic-composition-gates.md) implement evidence-bound title-block/notes collision screening, native power-symbol policy and read-only page planning/partition screening. Use them on new projects, while preserving existing L0–L5 priorities. These checks require a verified rendered-bounds manifest and **do not** implement a complete autonomous KiCad symbol placement, wire routing, worksheet geometry extractor or automated text collision solver. Unavailable measurements must remain unapproved.

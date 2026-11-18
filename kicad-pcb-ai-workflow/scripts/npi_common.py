@@ -68,7 +68,7 @@ def pair_compatible(env):
         return bool(env['version_pair_compatible'])
     return cli_compatible(env) and pcbnew_compatible(env)
 
-LEVELS = ['阻断级', '高风险', '中风险', '优化建议']
+LEVELS = ['\u963b\u65ad\u7ea7', '\u9ad8\u98ce\u9669', '\u4e2d\u98ce\u9669', '\u4f18\u5316\u5efa\u8bae']
 
 # Release contract: removing a required checker from a manifest cannot disable
 # its inventory gate. Historical project scripts are not runtime dependencies.
@@ -80,7 +80,9 @@ static_review_gate device_knowledge environment_start reserve_review placement_r
 schematic_io schematic_style schematic_candidate project_flow manufacturing_export
 system_integration workflow freerouting_adapter skill_modules resource_guard
 routing_policy kicad_ipc_probe script_route_search kicad_bridge konnect_backend konnect_capabilities
-high_speed hs_board_snapshot hs_rule_engine hs_solver'''.split())
+high_speed hs_board_snapshot hs_rule_engine hs_solver
+schematic_geometry schematic_space_map schematic_preplacement
+schematic_wire_planner schematic_incremental_gate schematic_native_geometry pcb_module_layout pcb_fab_approval pcb_placement_geometry'''.split())
 
 def sha256(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()

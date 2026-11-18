@@ -1,99 +1,70 @@
-> 本地修订：先读[主流程与执行修订](design-execution-local.md)。下文六组/16节点与G5/G6为历史兼容资料；当前AI设计主线删除第六阶段，截止DESIGN_PACKAGE_READY_FOR_REVIEW。外部制造/样机/ECO仅按另行任务调用；既有安全门禁保留。
+# Modular, Pin-Level and Visual PCB Placement Review
 
-# 模块化、引脚级与视觉布局评审 · R9.3
+## Execution order
 
-## 目录
+First derive the actual board outline, mounting holes, connector positions, mechanical keepouts and manufacturability/courtyard restrictions. Then assign functional modules and anchor critical locations: power loops, oscillators, resets, analog filters, RF feed/antenna, high-speed connectors and escape paths. Solve physical routing corridors and pin-level current return before seeking aesthetic symmetry.
 
-1. 原则与执行顺序
-2. 模块、角色与局部布局
-3. 自动检查的确切范围
-4. 布线前、最终与美观复验
-5. AI/工程师与NPI门禁
-6. 命令和四类交付
-7. 实现边界
+The model plans component placement based on actual schematic net topology, verified G3 device cards and board-house rules. Accepted Konnect MCP tools apply real moves/rotations in bounded batches to the *current authorized working project*; Python `placement_review.py` reads and assesses the resulting geometry. It is not an implemented auto-placement optimizer. Check actual pad centers and pin identities, footprint orientation/side, courtyard BBox, module occupancy, shortest critical return loops, antenna/mounting restrictions, thermal airflow and assembly/test accessibility.
 
-## 1. 原则与执行顺序
+## Four evidence classes
 
-先满足适用安全/结构/制造硬约束，按实际器件电路与返回路径完成电气布局，再做可装配/测试/返修与视觉整理。美观建议不能抵消任何硬约束。不是所有R/C靠近IC外壳：应根据具体用途靠近相应引脚/驱动端/接收端/连接器/取样点。功能分区不等于切地，主控不强制居中，晶振/RF铜区按具体手册；历史legacy规则不能覆盖本规范。
+1. **Mechanical geometry:** Board and mounting constraints, courtyard footprints, connector mating clearances, edge/keepout and assembly height limitations.
+2. **Electrical local geometry:** Actual decoupling pin-to-cap pad connections, oscillator/clock loop geometry, RF matching/antenna positions, sensitive analog and power loop interactions; pad-center distance is not the full return path.
+3. **Routing feasibility:** Access/escape channels, real narrow-pitch geometry, net classification, protected paths and current/thermal widths. An approximate airwire count is not proof of completed routing.
+4. **Human visual quality:** Functional grouping, reference/value readability, silkscreen orientation, drawing legibility and service access, without weakening hard rules.
 
-布局按五步执行：固定板框/孔/接口/限高和净空→规划模块关系/关键通道→关键局部电路及外围→布线前扇出/参考面/通道评审→视觉整理并复验受影响约束。模块之间需要迭代，不是一轮放完再让布线迁就。
+## G3 pre-route layout-only versus G4 post-route DRC
 
-## 2. 模块、角色与局部布局
+**G3:** `pcb.layout_plan` → Konnect accepted placement moves → save/position readback → `pcb.placement_pre` / `placement_review.py --phase pre_route`. Check supported Courtyard/collision, mechanical keepouts, module ownership, source-bound pin proximity/decoupling, corridor and anticipated routing access. **No full-board KiCad DRC is run and unconnected nets are never a G3 failure.** Do not call `pcb.prepare`/`pcb.gate` during G3.
 
-assets/placement-plan.template.json对应schema_version=1。每个模块含id、anchor、refs、roles、bounds_mm与source(file/sha256/locator)。当前PCB的每个封装（含机械/测试/DNP）必须唯一归属一个模块，明确核心锚点与允许区域；模块区域可按实际架构重叠，但器件不能重复归属。区域是功能布局约束，不创建地缝或自动禁布。
+**After G3:** complete signal and power/GND routing → zone fill/refill → save/reload. **G4:** `pcb.prepare` invokes native full-board KiCad DRC (including unconnected items and schematic parity); `pcb.gate` requires AI and engineer review. `pcb.placement_final` may recheck final placement but cannot replace G4 DRC.
 
-roles允许controller/decoupling/clock/power/connector/protection/termination/filter/feedback/rf/analog/passive/test/mechanical/reserve/other。角色由原厂功能与实际网络确认，脚本不从C/R前缀猜用途。原理图器件原则上在PCB库存中找到；确为仅原理图用途的符号用schematic_only逐项列ref/reason/evidence，不能无依据忽略缺封装。机械件可只存在PCB。漏分、错分和用other掩盖关键角色由AI/工程师核对。
-
-critical_subcircuits逐项记录id/type/reason/refs/check_ids/source。类型为decoupling/power_loop/crystal/termination/protection/filter/feedback/rf/reserve/other。关键角色必须被局部清单覆盖；每个声明去耦电容必须关联一条引脚级decoupling规则。其他局部类型不能用普通距离证明功能，需具体原厂图示/网络与当前布局评审。
-
-典型执行重点：
-
-| 局部电路 | 应针对的具体位置/路径 | 不允许通用化 |
-|---|---|---|
-| 去耦 | 对应电源脚、电容电源端、地端和有效返回锚点 | 最近任意焊盘不等于有效去耦 |
-| 开关电源 | 原厂定义的高di/dt热回路、反馈安静取样 | 包围盒不等于真实环路，SW区不按美观扩展 |
-| 晶振/时钟 | 指定引脚、负载/回路与噪声隔离 | 不一律强制同种挖空或包地 |
-| 串联/并联终端 | 根据终端拓扑选择驱动端/接收端 | 不把所有电阻都挤到芯片旁 |
-| ESD/接口滤波 | 入口、保护前后走线和泄放路径 | 不只测到IC的距离 |
-| 模拟/反馈 | 具体采样/驱动/滤波/取样要求 | 短线不自动证明建立时间/稳定性 |
-| RF/天线 | 原厂匹配拓扑、参考地、辐射净空 | 不全局挖空RF下方铜 |
-| 备用 | 默认装配与所有备选的寄生/返修条件 | 不贴器件的支线/焊盘仍存在 |
-
-## 3. 自动检查的确切范围
-
-placement_review.py只读，不移动器件，不改旧脚本。constraints每条含id/kind/level/source。硬规则不被例外或美观评分抵消；所有阈值由实际项目/原厂资料提供，不预设通用毫米。
-
-| kind | 字段/自动核对 | 限制 |
-|---|---|---|
-| fixed | ref/position_mm/angle_deg/position_tolerance_mm/angle_tolerance_deg | 实际参考点/文件角度；不等于3D结构已验收 |
-| pad_proximity | a/b明确ref/pad/net，max_mm，可指定same_side | 真正指定焊盘中心间距；不证明实际路由 |
-| decoupling | ic_power、cap_power、cap_ground、return_anchor；max_power_mm/max_return_mm、same_side布尔 | 比较真实XML与PCB焊盘网名，明确电容两个不同端子、电源/返回不同网络；返回锚可为具体地焊盘或已识别地过孔UUID。只做几何，不证明地平面连续或电流路径 |
-| corridor | bounds_mm/allowed_refs/margin_mm | 检查支持courtyard的保守AABB侵入；不是布线容量、层资源或SI求解 |
-| alignment | refs/axis(x或y)/tolerance(mm) | 组内器件参考点对齐偏差，仅优化建议 |
-| uniform_spacing | refs/axis/tolerance(mm) | 至少3个器件的投影中心间隔变化，仅优化建议；不是实体DFM间距 |
-| orientation | refs/allowed_angles_deg/tolerance(deg) | 明确分组方向偏好，仅优化建议；不强制所有器件统一角度 |
-
-模块边界按实际支持的courtyard完整顶点检查，不再只用中心。在本版支持顶层单闭合直线/矩形轮廓；非零旋转需用原生实际焊盘坐标验证变换，无法验证、底面、曲线/多轮廓或缺courtyard均标manual_required，不猜测形状。可在manual_geometry[ref]提交board_sha256/reason/evidence，表示由真实原生DRC/结构或工程复核完成；输出标人工证据，不变成自动几何PASS。courtyard本身是否符合原厂仍由封装评审负责。
-
-无原生API时，底面/旋转焊盘的引脚级距离直接拒绝猜测。静态预览不授予原生或生产许可；native_geometry_verified只描述提取来源，不表示约束全部通过。
-
-美观规则只能level=优化建议。适用普通器件组和重复通道，保留电气/结构例外：exception={reason,evidence:{file,sha256}}仅可用于美观。其他类型即使写exception也不能豁免失败。丝印遮挡/极性/引脚1/3D/焊接可达性需实际图纸/DRC和AI/工程师检查，本脚本没有完整文字包围盒/装配仿真引擎。
-
-## 4. 布线前、最终与美观复验
-
-reviews.pre_route与final必须是真实记录，含reviewer/date/reason/evidence，不能自动填批准。每次audit输出snapshots供核对版本，生成快照不是批准，不得只刷新哈希保留旧结论。
-
-pre_route绑定placement_sha256（封装/焊盘/角色相关几何与叠层）、netlist_sha256、policy_sha256（不含reviews）；topics.routability/return_paths/source_layouts/mechanical逐项真实完成，并列出全部subcircuits。检查扇出方向/空间、通道与层资源、参考面、局部原厂布局、结构/装配。没有完整自动可布通性求解器，需读实际工程和原生工具结果。
-
-final再次要求同一当前布局的pre_route记录，并绑定最终board_sha256；topics另含visual/moves_rechecked，确认全部局部电路、实际布线与覆铜及视觉整理后复验。单纯增加走线不会使布局快照失效，但会使final整板记录失效；任何位置/焊盘/规则/来源相关变化都要求相应重新审查。先布完再虚构早期评审不可接受；脚本验证绑定、不认证时间过程或人员身份。
-
-## 5. AI/工程师与NPI门禁
-
-静态配置新增require_placement_review=true、placement_review={"policy":"placement-plan.json"}，PCB stage增加placement_quality semantic任务。sources/locator覆盖模块、局部电路与每条约束来源；targets.footprints覆盖全体物理封装，targets.nets涵盖命名端点电源/返回网。AI观察物理对象用footprint与detail；电气引脚仍用ref/pin/net。机械封装不能冒充网表器件。
-
-static_review.py将策略/证据纳入基线，运行final布局检查并生成四类资料；gate重算结果、验证物理观察/来源/实际版本。AI必须实际查看全部铜层、模块图和局部图，判断功能分区、关键路径与美观例外，不能用图中矩形或距离PASS替代回流/滤波证明。之后仍需硬件工程师对当前AI报告确认。
-
-量产NPI必须有placement_review.policy，且与已确认PCB资料包和板文件一致；final检查未完成、旧证据或硬约束失败阻断。高风险沿用既有逐项审批，美观建议不阻断，也不会取消其他模块风险。原型诊断不授予生产权限。
-
-## 6. 命令和四类交付
+Run phase-specific placement reviews before routing and again after saved final copper/zone fill whenever relevant placement changed. Retain per-stage reports with current board SHA, source-card basis, actual component IDs/coords, observed violations and independent engineer decision. Fail/unknown/missing knowledge cannot become PASS to optimize appearance. See [schematic source](module-schematic.md), [G3/G4 workflow](latest-complete-workflow.md), [PCB rules](module-pcb.md).
 
 ```bash
-# 布局完成、布线前检查。输出新报告，不修改工程
-python3 scripts/placement_review.py /path/project --policy placement-plan.json --netlist current.xml --board board.kicad_pcb --phase pre_route --output-dir /path/new-placement-report
-# 布线/覆铜保存并完成视觉整理后，执行最终复验
-python3 scripts/placement_review.py /path/project --policy placement-plan.json --netlist current.xml --board board.kicad_pcb --phase final --output-dir /path/new-final-placement-report
+# Read-only G3 report, always into a new immutable report directory.
+python scripts/placement_review.py /project --policy placement-plan.json --netlist actual-netlist.xml --board actual-board.kicad_pcb --phase pre_route --review-config /project/static-review.json --output-dir /project/03_REPORTS/layout-r1
 ```
 
-无pcbnew时可显式--static-preview，仅预筛；未知/不支持几何仍阻断或要求真实人工几何证据。输出目录必须新建，报告写入不需要--apply；没有工程变更。
+## Exact policy inputs and implementation boundaries
 
-四类交付：module-map.svg模块几何图；local-N.svg关键局部几何图；placement-report.json/.md约束与风险报告；visual-review.md视觉与例外待评审说明。SVG来自真实坐标，但只是courtyard/焊盘中心示意，不含完整铜层/丝印/实体，不是原生PCB/CAM。正式原生逐层图纸由既有static_review导出。
+Use `assets/placement-plan.template.json` (schema version 1), binding every policy source by project-local file SHA-256 and document locator. Every actual PCB footprint, including DNP, mechanical and test parts, must belong to exactly one module; module regions may overlap but component ownership cannot. Assign anchors, members, real `refs`, roles and allowed `bounds_mm`. Typical roles are controller, decoupling, clock, power, connector, protection, termination, filter, feedback, RF, analog, passive, test, mechanical, reserve and other. Roles follow pin/net application, never a C/R prefix. Schematic-only symbols need an explicit ref/reason/evidence exception; mechanical footprints need not appear in the schematic. Use `other` only after reviewing electrical applicability.
 
-## 7. 实现边界
+`critical_subcircuits` must explicitly list `id/type/reason/refs/check_ids/source`. Types include decoupling, power_loop, crystal, termination, protection, filter, feedback, rf, reserve and other. Each known decoupling capacitor must have a dedicated pin-level decoupling rule; do not treat arbitrary nearby pads as an effective decoupling circuit.
 
-不保证自动布局最优、任意几何支持、真实滤波/抗干扰/热/SI性能；不会生成自动合格的原厂局部模板。Agent根据具体MPN资料填写可追溯实例，而非套固定数值。当前TEST示例故意失败，资料和阈值仅软件测试；不得制造或当工程师批准。真实KiCad10.0.7与产品验收仍待执行。
+| Local circuit | Locate relative to | What the geometry does not prove |
+|---|---|---|
+| Bypass capacitors | Named IC power pin, capacitor power/ground pads and explicit return anchor | Pad-center proximity cannot establish return-loop inductance or copper continuity |
+| Switching regulator | Manufacturer-identified high-di/dt loop and quiet sense/feedback point | Courtyard envelope does not define the actual current loop |
+| Oscillator/clock | Specified pins, load capacitance path and noise-sensitive neighbors | No universal copper cutout or blanket ground-fence rule |
+| Series/parallel termination | Actual driver or receiver as required by topology | Do not place every resistor next to the IC by default |
+| Interface protection/ESD | Connector entry, upstream/downstream nets and low-inductance discharge path | Short path to controller is not the same as effective ESD return |
+| RF feed/matching/antenna | Device-specific topology, reference plane and radiating keepout | Do not remove copper beneath all RF circuitry by default |
+| Feedback/analog filtering | Specific sense point, source impedance and return/reference requirements | Track length alone does not establish accuracy or stability |
+| Optional/DNP branches | Installed variant and physical stub/pad parasitics | Unpopulated pads may still affect the RF/high-speed topology |
 
-官方参考供Agent查具体适用章节：KiCad10 PCB/CLI文档；ADI混合信号布局指南；器件对应厂商硬件设计指南。通用经验和视觉偏好低于适用产品/原厂/制造约束。
+### Supported constraints and verification limits
 
-## 独立试跑修订
+`placement_review.py` is **read-only**, not an automatic placer. Every constraint has unique `id`, `kind`, risk `level` and source. Physical units and thresholds must come from the current design or a relevant manufacturer/fabricator source, never a generic hard-coded distance.
 
-同面受支持courtyard另做包围框重叠候选筛查，输出高风险；它可能保守误报，不能当实体碰撞或完整贴装间距结论，必须用原生DRC和结构/装配复核。局部SVG包含规则实际端点（含指定返回过孔）、引脚/网名、坐标和距离/阈值；图外引线标注避免位号互压。灰框为模块允许区，不是板框。Markdown列输入哈希、逐项实测与阈值及准确来源定位。pre_route/final缺项独立汇总；测试夹具标记始终单列阻断。策略结构错误仍可导致后续依赖项无法检查，需先修复契约错误再运行。
+- `fixed`: actual footprint reference position and angle against `position_mm`, `angle_deg`, `position_tolerance_mm` and `angle_tolerance_deg`; does not prove 3D fit.
+- `pad_proximity`: exact `(ref,pad,net)` endpoints, maximum distance and optional same-side rule; cross-check real XML netlist and actual pad identities.
+- `decoupling`: `ic_power`, `cap_power`, `cap_ground`, `return_anchor`, `max_power_mm`, `max_return_mm` and side rule. The capacitor's power and ground endpoints must be distinct, with a named return pad or validated via UUID. Even a passing geometry result does not prove reference-plane continuity.
+- `corridor`: protected rectangle, margin and explicit allowed footprint refs. Only conservative supported courtyard AABB intrusion is checked; routing capacity is not computed.
+- `alignment`, `uniform_spacing` (three or more refs) and `orientation`: aesthetic constraints only, never grounds to override electrical or manufacturing violations.
+
+Courtyard/physical boundary checks require supported real vertices rather than footprint center only. Supported static geometry is limited to simple same-side rectilinear closed outlines; rotated, bottom-side, curved/multi-outline or missing-courtyard cases may require native or manual evidence. If the exact pad transform cannot be independently established, return `manual_required` / blocked instead of computing a guessed position. For `manual_geometry[ref]`, require a current board SHA-256, reason and actual native/mechanical evidence. This records a human-supplied exception, not an automatic PASS.
+
+Only aesthetic rules may declare an `exception={reason,evidence:{file,sha256}}`; hard rules never inherit such a waiver. Silkscreen obscuration, polarity, pin 1, 3D interference, thermal access, placement height and repairability require actual design/assembly review beyond the basic geometric checker.
+
+### Pre-route, final review and invalidation
+
+`reviews.pre_route` must bind `placement_sha256`, `netlist_sha256`, `policy_sha256` (excluding the review record), reviewer, date, reason and evidence. Review routability/escape, return paths, manufacturer source layouts and mechanical constraints for **every** declared critical subcircuit. It does not prove automatic routability. `reviews.final` must correspond to the same actual placement and final `board_sha256`, and cover final visual quality and all `moves_rechecked` after routing/fill. Board changes can invalidate final review even when the pre-route placement remains unchanged; changes to pads, constraints, source data or component position require the affected pre-route review again. Never reconstruct or backdate a missing earlier review.
+
+For PCB static AI review, set `require_placement_review=true`, bind `placement_review.policy`, and add a `placement_quality` semantic task. Cover all physical footprints and critical nets; mechanical objects are observed as footprints, electrical pins as `(ref,pin,net)`. Native layer views and source layouts are separate evidence. Missing pre-route/final evidence or hard-constraint failure blocks the relevant G3/G4 and manufacturing gates; **unrouted nets alone never block G3**. Human/AI review is required even when the visual plot looks tidy.
+
+Deliver four classes of *read-only* artifacts: `module-map.svg`, `local-N.svg` local circuit views, `placement-report.json/.md`, and `visual-review.md`. They are coordinate illustrations, not KiCad native copper/CAM/3D proof. Where native PCB extraction is unavailable, `--static-preview` is screening only; unsupported geometry remains a reported gap. Strict reports use new immutable report directories; do not clone a fresh KiCad engineering project merely for another report.
+
+## Placement prerequisite: effective rules and module zoning
+
+Use the [rules-first module layout](pcb-module-layout.md) preflight before generating new candidate positions. It checks actual KiCad source/effective rules and source-backed fabrication minima instead of duplicating G3's post-write electrical and mechanical review. The modular heuristic is read-only; no proposal is a placed PCB, routed copper, verified SI/PI or G3 approval. Read back current Konnect moves and continue with this original G3 reviewer.

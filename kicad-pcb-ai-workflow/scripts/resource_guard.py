@@ -365,7 +365,7 @@ def main(argv=None):
             result = check(args.project, args.lock_file, args.output, args.apply, args.review_config)
     except (ValueError, OSError, TypeError, KeyError, UnicodeError) as exc:
         result = {'status': 'BLOCKED', 'scope': SCOPE, 'production_authorized': False,
-                  'written': False, 'findings': [{'rule': 'RESOURCE.CONSISTENCY', 'level': '阻断级',
+                  'written': False, 'findings': [{'rule': 'RESOURCE.CONSISTENCY', 'level': '\u963b\u65ad\u7ea7',
                     'description': str(exc), 'suggestion': 'Restore explicit current resources and independent manufacturer evidence; do not weaken the mapping or overwrite a prior lock.'}]}
     print(json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False))
     return 2 if result['status'] == 'BLOCKED' else 0

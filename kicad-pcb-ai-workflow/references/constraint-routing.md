@@ -1,97 +1,79 @@
-> 本地修订：先读[主流程与执行修订](design-execution-local.md)。下文六组/16节点与G5/G6为历史兼容资料；当前AI设计主线删除第六阶段，截止DESIGN_PACKAGE_READY_FOR_REVIEW。外部制造/样机/ECO仅按另行任务调用；既有安全门禁保留。
+# Script-Planned Routing: Request Contract, Backend Acceptance and Safe Fallback
 
-# 脚本优先的受控布线请求与后端预检
+## Plan versus execution
 
-`routing_policy.py` 是实际可运行的只读策略工具，负责校验请求、核对绑定文件、选择具备适用验收记录的后端并输出计划。它不是通用 Router，不执行后端、shell、KiCad编辑或DRC，不生成走线，不授予制造许可。所有结果均含 `execution_scope=planning_only`、`executed=false`、`production_authorized=false`。
+`routing_policy.py` validates and structures routing requests and backend selections. It does not automatically lay final KiCad copper. `script_route_search.py` provides a bounded offline grid/A* path *proposal*, not a manufacturing-approved track. An externally routed Freerouting SES is also only a candidate until successfully imported, saved, reloaded and natively verified.
 
-继续复用 `design_intent.py` 的项目化规则编译和 `design_intent_audit.py` 的核对基础，不再编译第二套规则。NetClass推荐线宽/差分间距不等于min/max DRC约束；规则编译、实际命中及故意违规反例需另外验证。此工具只检查声明与文件，不证明参数计算正确、原厂资料适用或原生规则已经生效。
+## Required request inputs
 
-## 1. 调用与状态
+Specify current project/board identity and source hashes; factory-approved layer order, copper weight and trace/clearance/via limits; allowed net layers and NetClass assignments; protected components, objects, existing tracks, keepouts, board edge; net priorities and endpoints; accepted backend identity; engineer-supplied differential, timing, RF, power and return-path constraints; and operation budgets. Unknown nets, unknown source rules and unsupported geometric constraints cannot default to safe ordinary routing.
+
+Execution must be confined to an authorized independent candidate or the explicitly authorized working project, respecting the single Konnect MCP writer. Record the command/plan revision, object identities, source/target geometry and whether the operation can be safely undone. A new external version, changed schema or broader net/geometry scope requires new relevant capability evidence.
+
+## Failure and controlled recovery
+
+Read back after each bounded routing batch; on timeout or unknown result do **not** replay the same non-idempotent action. If rules, protected objects, design intent or net identity conflict, stop. Do not disable DRC, relax manufacturer tolerances, remove required nets or silently switch to an unverified native script as a fallback. When a supported Freerouting adapter is used, treat DSN→SES→import→native save/DRC as distinct acceptance steps.
+
+Intermediate routing may report explicitly approved incomplete connections; final pre-G4 routing must resolve all *required* unconnected items and applicable blockers. Always verify actual saved copper geometry, fill, via transitions, clearance, return/reference planes and full native DRC. See [PCB module](module-pcb.md) and [workflow node 10](latest-complete-workflow.md).
+
+## Exact request and source-binding contract
+
+Use `assets/routing-request.template.json` (schema version 1). Required request fields include `request_id`, `strategy=script_planned`, `phase=incremental|final`, explicit `runtime` (`platform`, KiCad and API versions), hashed project-relative `inputs`, per-net engineering constraints, stable pending connection IDs and bounded resource budgets. A sample `null`/placeholder does not satisfy the contract. Each input must bind the board, actual XML netlist, stackup, native rules and protected-object file by `file/sha256` and must not follow project-escaping symlinks. Hash drift is a **blocker**, not an invitation to refresh hashes silently.
+
+Each target net needs a documented class, manufacturer/project source locator and bounded allowed layers, width, copper clearance, edge/keepout clearance, vias and return requirements. Distinguish continuous voltage/current, high current and thermal, clock/reset, differential/high-speed, RF/analog/Kelvin, ordinary, ground and explicit manual-only. Unknown nets cannot be silently downgraded to ordinary signals. `parameters` must be explicit finite numeric engineering values with units and applicability. Differential/RF/timing/power classes need their corresponding additional constraints; this policy parser is not an impedance or SI/PI solver.
+
+`pending_connections` are stable IDs bound to explicit `(ref,pin)` endpoints in actual schematic XML; `target_connection_ids` declares the batch. Preflight checks declared endpoints and net partition, not actual existing copper continuity or completeness of the pending list. `budgets` must bound time, iteration count, maximum via count and random seed. Zero vias may be allowed; if vias are allowed, specify per-net actual via geometry and hole clearance. An execution backend must enforce budgets, not merely echo them in a plan.
+
+Declare actual copper layer order and roles in a hashed layer file. Only `signal` or explicitly permitted `mixed` copper supports signal routing; `reference_plane` and `power_plane` remain protected unless a justified project-specific rule explicitly allows something different. `allowed_signal_layers` cannot reference absent/forbidden layers. For four or more copper layers, require real fabricator stackup and adjacent reference/return review; layer names or nominal stackup count alone do not establish characteristic impedance.
+
+Protected-object contract example:
+
+```json
+{"schema_version":1,"locked_policy":"preserve_all","object_uuids":[],"plane_layers":["B.Cu"],"nets":["GND"]}
+```
+
+Existing locked footprints and copper are inherently protected. Only explicitly identified, previously reviewed `reroutable_uuids` of eligible segment/arc/via objects may be modified. They cannot include locked objects, excluded nets, plane layers or nonrouting geometry. Every actual edit delta must be reconciled against the protection set.
+
+## Backend registration and acceptance
+
+`routing_policy.py` supports *planning-only* backend kinds `native_script|freerouting`; this is a **historical backend-acceptance contract**, not an authorization for a second active KiCad writer. Under R10 the final real KiCad write still goes through the supported Konnect MCP tool with its separate per-build/schema/scope acceptance. Never blindly execute an offline router's script against the active GUI project.
+
+Backend records bind `id`, `kind`, version, artifact SHA and acceptance SHA. Acceptance must specify `record_type=routing_backend_acceptance`, `decision=accepted`, `scope=kicad_end_to_end`, checked and expiry dates, actual reviewer/reason, exact runtime platform/KiCad/API versions, supported constraints, geometry/capabilities and independent evidence for `native_drc`, `netlist_parity`, `save_reload`, `protected_object_diff`, `rule_hits`, `connectivity`. Merely producing DSN or SES, placing `passed=true` in JSON, or running synthetic fixtures is not manufacturing/physical qualification. If the exact required capability lacks current acceptance, choose `PENDING_BACKEND_ACCEPTANCE` rather than fabricate a plan to execute it.
+
+For the current constrained policy, prefer accepted native script planning to equally qualified Freerouting only when *all* hard constraints are supported; same-kind alternatives sort deterministically. The external `freerouting_adapter.py` currently handles limited DSN→SES staging; it does not establish successful KiCad import, rule fidelity, layer mapping, zone fill, save/reload or DRC without separate evidence. This remains a reason to block the unsupported operation rather than silently switch an unverified writer.
+
+| Planning status | Meaning |
+|---|---|
+| `PREFLIGHT_READY_NOT_EXECUTED` | Inputs, declared policy and acceptance records are eligible, **no copper written** |
+| `PLAN_READY_NOT_EXECUTED` | Bounded planning information produced, **no copper written** |
+| `PENDING_BACKEND_ACCEPTANCE` | Missing/expired/insufficient backend proof; not ready to execute |
+| `BLOCKED` | Missing source/rules, changed hash, unsupported feature, protected-object conflict or malformed request |
+
+Use:
 
 ```bash
-python scripts/routing_policy.py preflight /path/project --request routing-request.json
-python scripts/routing_policy.py plan /path/project --request routing-request.json --output-dir /path/new-routing-plan
-python scripts/routing_policy.py plan /path/project --request routing-request.json --after-attempt failed-attempt.json
+python scripts/routing_policy.py preflight /project --request routing-request.json
+python scripts/routing_policy.py plan /project --request routing-request.json --output-dir /project/03_REPORTS/route-plan-r1
+python scripts/routing_policy.py plan /project --request routing-request.json --after-attempt failed-attempt.json
 ```
 
-`--request`、`--after-attempt` 中的相对路径以项目为根；输入和证据仅接受项目内文件，不跟随符号链接逃出项目。可选报告目录必须全新；缺参数模板不自动补数值。
+### Failure handling and fallback
 
-| 状态 | 含义 |
-|---|---|
-| `PREFLIGHT_READY_NOT_EXECUTED` | 请求和适用后端记录符合声明检查，未执行布线 |
-| `PLAN_READY_NOT_EXECUTED` | 已选择后端并列出范围/预算，未执行布线 |
-| `PENDING_BACKEND_ACCEPTANCE` | 没有后端或缺少/过期的验收记录；不能假装已接通 |
-| `BLOCKED` | 缺规则、哈希失配、未知能力、保护冲突、不适用后端或其他请求错误 |
+Only a real, source-bound `NO_ROUTE_WITHIN_BUDGET` may trigger planning for another **equally accepted** backend. It must carry `schema_version=1`, current request SHA, initial board SHA, failed backend ID, real log evidence hashes and a nonempty list of remaining connection IDs. An attempt that violates rules, moves protected objects, loses source identity or lacks a supported capability cannot be rescued by changing backend or increasing constraints without reapproval. Budget exhaustion does not prove the connection impossible.
 
-就绪状态退出0，其余退出2。就绪不表示PCB、DRC或电气检查通过。
+A fallback is planned from the original checkpoint; do not reuse unverified partial copper from a failed execution. To retain completed segments, independently validate and save the partial candidate, then create a **new** request anchored to its actual board, netlist, protection and rule hashes. For intermediate routing, explicitly track only approved remaining connection IDs; do not waive an entire DRC category. For final routing, independently rescan *all* required connections, including ground, after final fill. A green plan never means a routed board; connection, DRC, pin-to-pad parity, protected-object integrity, stackup/return path and project-specific timing/SI/PI still need separate verification. G1–G4 and `EXPORTED_NOT_RELEASED` remain unaffected.
 
-## 2. 请求与工程绑定
 
-从 `assets/routing-request.template.json` 建立请求。`null` 是待补输入，模板本身不能通过检查。
+## Power traces: tabulated main width, +0.254 mm, and controlled pad escapes
 
-- `schema_version=1`、`request_id`、`strategy=script_planned`、`phase=incremental|final`。
-- `runtime` 明确声明 `platform=windows|linux|macos`、精确KiCad版本、API版本。这里不探测运行进程，实际执行前仍需环境与连接验证。
-- `inputs` 分别绑定 `board`、原生XML `netlist`、`stackup`、有效 `rules`、`protected_objects` 的 `file/sha256`。文件修改即失效，不替换为自动更新哈希。
-- 每个目标网络有显式工程类别、必要约束及原厂/项目依据的文件哈希与定位。名称和前缀不推导参数。`parameters` 不允许空对象、null或非有限数；具体阈值的单位、正负值及电气适用性仍需现有规则编译器和工程审查负责。
-- `pending_connections` 用稳定ID记录当前待连接项，端点精确绑定网表 `ref/pin`；`target_connection_ids` 选择本轮范围。程序核对声明端点的网表归属，不自行推算真实铜连通或认证待布清单完整性。
-- `budgets` 必填总秒数、迭代数、最大过孔数与种子；允许0个过孔。若允许过孔，每个目标网络必须另有 `via_geometry/hole_clearance`。预算是计划上限，后端执行器仍须实施这些上限。
+**Current R10 software guard:** `routing_policy.py` now requires the complete named XML-net inventory to be categorized, rejects ordinary-router targets classified `GND` or `REFERENCE_PLANE`, and sizes declared **power trunk** `track_width` from the user-supplied 1/1.5/2 oz current table **plus 0.254 mm minimum additional copper width**, then compares approved thermal and voltage-drop width floors. This chart is **experience data with unspecified temperature rise, inner/outer placement and source provenance**; it does not certify IPC-2152 ampacity. A copper thickness absent from the chart (for example 0.5 oz inner copper), too-high current, or missing thermal/drop evidence **blocks**, instead of extrapolating a false safe width. Select an actual available KiCad routing width **rounded upward**, not downward. Width margin is not clearance.
 
-所有目标至少声明铜间距、线宽、板边间距和keepout约束。差分/时序/RF/大电流等类别会额外要求对应约束；这不是完整电路分类或SI/PI求解器。`MANUAL_ONLY`不得自动布线。不明特殊要求应先补资料与规则，不能改为普通网络绕过。
+**Important exception: a fine-pitch power pad is not the wide trunk.** A narrowly scoped, short **pad-escape/neckdown** can join a small pad to a wider trunk; the trunk's +0.254 mm margin must not be imposed as the **global Board Setup minimum trace width** or as an unconditional every-segment absolute minimum. Global Board Setup minimum remains the verified board-house absolute fabrication floor; KiCad netclass/custom rules should maintain the wide trunk away from a tightly scoped pad escape. **No blanket rule relaxation:** a neckdown must be permitted only for its named net, exact `reference/pad`, layer, source-backed region and length. A footprint-wide courtyard alone may be too permissive; use the smallest independently verified scoped rule area. KiCad's official custom-rule example supports localized `track_width` using `intersectsCourtyard`, but the actual rule priority/effective scope must be read back and tested with a deliberately failing fixture before use.
 
-### 层策略文件
+**Required proposed neckdown contract (NOT YET AUTOMATICALLY ENFORCED):** exact `net`, `ref`, `pad`, approved `layer`, actual pad and adjacent-pad copper geometry, `escape_width_mm`, source-backed `max_escape_length_mm`, allowable exception count, region polygon/UUID, trunk `main_width_mm`, design current carried by that branch, copper thickness, estimated/reviewed drop and temperature rise, reference-plane/return requirements, approved native rule scope and authoritative source/evidence hashes. The width must not drop below actual fab minima, violate neighboring pad clearances, or exceed local heat/current/voltage-drop limits; a short escape is **not automatically current-safe**. Consider parallel power pins, multiple stitching vias or copper zones when necessary, and verify connector/pad/via ratings. If any required evidence is missing, use `NEEDS_NECKDOWN_ENGINEERING_REVIEW` / `BLOCKED`, not an invented default.
 
-它是绑定于实际PCB铜层的路由使用声明，不是叠层或阻抗计算器。铜层名称与顺序必须匹配PCB，示例数值不提供制造依据：
+**Execution target:** parse actual footprint pads/neighbors → calculate feasible escape width and shortest legal exit path → bind exact source-backed local native rules → reserve escape zone → create short narrow section, then widen as soon as legal (optional verified teardrops between pad/track/track) → Konnect save and independently read back actual object UUIDs/widths/lengths/clearances → bound the actual width exceptions to their approved areas → complete routing/zone fill → full G4 native KiCad DRC, connectivity and electrical/thermal review. An effective minimum clearance/track-width rule cannot be overridden below KiCad's global fabrication minimum. KiCad teardrops improve transition geometry; **they do not establish a narrow segment's thermal safety**.
 
-```json
-{"schema_version":1,"layers":[
-  {"name":"F.Cu","role":"signal","signal_enabled":true},
-  {"name":"B.Cu","role":"reference_plane","signal_enabled":false}
-]}
-```
+The current generic `script_route_search.py` uses **one width per simple ordinary connection** and has no mixed-width pad-escape solver, automatic native per-segment DRC-rule application or acceptance receipt. Do **not** claim it currently executes power-neckdown routing just because the above contract is documented. For signal classes with a wide default width, the same short-escape geometry principle may apply; for differential, clock or RF, independently verify discontinuity, symmetry, impedance and timing, never silently change width.
 
-允许 `role=signal|reference_plane|power_plane|mixed`。参考/电源平面不得启用信号走线，必须列入保护；`allowed_signal_layers`只能选实际允许的信号铜层。四层及更复杂情况需真实叠层、参考/回流与平面完整性专项验证，不因声明层数就视为支持。该工具读取静态铜层/UUID/部分几何特征以筛查能力，不执行原生精确几何或连续参考面分析。
-
-### 保护对象文件
-
-```json
-{"schema_version":1,"locked_policy":"preserve_all",
- "object_uuids":[],"plane_layers":["B.Cu"],"nets":["GND"]}
-```
-
-显式UUID必须真实存在。所有已锁对象隐含保护；默认保留全部既有对象，只有请求 `reroutable_uuids` 中的既有segment/arc/via可供后续执行器重布。白名单不能包含锁定对象、保护对象、保护网、保护平面的走线或非走线对象。后续实际delta必须逐项对账，预检不代替修改后保护验证。
-
-## 3. 后端登记与验收记录
-
-请求 `backends` 为描述数组；字段严格限定为 `id/kind/version/artifact/acceptance`，禁止命令、shell或自定义启动参数。`artifact` 和 `acceptance` 都是 `file/sha256`。`kind`仅接受 `native_script|freerouting`；不捆绑也不默认登记任何第三方路由器。
-
-验收JSON必须含：
-
-- `schema_version=1`、`record_type=routing_backend_acceptance`、`decision=accepted`。
-- `backend` 精确匹配登记的 `id/kind/version/artifact`。
-- `checked_on/expires_on` ISO日期、真实 `reviewer/reason`，且未超请求的 `acceptance_max_age_days`（1–365）。
-- `scope=kicad_end_to_end`。只有 `dsn_to_ses` 的记录不能取得KiCad闭环资格。
-- `runtime` 的 `platform/kicad_version/api_version` 各为经实际验收的字符串数组，包含本次精确环境；不允许通配符代替版本验收。
-- `constraints`、`capabilities` 明确枚举经过验收的范围；未知名称或本次所需能力缺失拒绝选择。名称定义见脚本 `CONSTRAINTS/CAPABILITIES`。底面、旋转、pad形状、arc/slot等观察到的几何会增加能力要求。
-- `evidence` 包含六种工件绑定：`native_drc/netlist_parity/save_reload/protected_object_diff/rule_hits/connectivity`，每项为 `kind/file/sha256`。这些应来自实际独立验收，不能填测试夹具或代签记录。
-
-**记录校验仅证明所声明记录与工件字节存在、身份/版本/范围一致且未过期；不认证人员身份，不判断报告内容真伪，不替代实际原生复验。** 伪造 `passed=true` 不增加能力，不授予执行或制造资格。测试中使用的合成记录仅验证软件合同。
-
-满足同一请求全部条件时，`native_script`优先于`freerouting`，同类按ID稳定排序。脚本无验收时不会被选；有验收的其他后端仍必须满足同一硬约束。这里的“脚本优先”不是把临时项目代码自动登记为可信工具。
-
-当前独立 `freerouting_adapter.py` 仅DSN→SES，不等于本节要求的KiCad端到端后端。真实DSN导出、SES回导、规则保真、覆铜、DRC及保护回读的适配验收完成前，不填闭环accepted记录。
-
-## 4. 失败与受控回退
-
-只有真实运行记录的 `NO_ROUTE_WITHIN_BUDGET` 允许工具继续规划另一具备同等能力的已验收后端；预算用尽不证明不存在合法路线。`RULES_MISSING`、不支持必要约束、工程漂移或保护破坏不能通过换后端绕过。
-
-失败记录 `schema_version=1` 必须绑定 `request_sha256`、初始 `board_sha256`、当前首选 `backend_id`，记录 `status=NO_ROUTE_WITHIN_BUDGET`、非空 `remaining_connection_ids` 及真实日志 `evidence`（file/sha256数组）。工具仅校验声明及字节，不运行日志命令，不将日志中“通过”当原生证据。
-
-本工具的回退计划基于**原请求检查点**，仍覆盖原目标集合，不能从失败日志猜测并复用部分新增铜。要保留部分已完成走线，必须先由真实适配器和独立验证器验收该候选，再建立绑定其新板/网表/规则/保护状态的新请求；不用整个设计回退到空板，也不修改原始工程。
-
-## 5. 中间状态与最终状态
-
-`incremental`仅可把本次明确目标外的待布项列入 `remaining_connections_after_target_scope`。后续真实执行检查允许这些逐项声明的待连接状态，禁止按整个告警类别豁免，也不得新增短路、几何违规或破坏既有连接。
-
-`final`要求目标覆盖全部**已声明**待连接项，但仍只产生未执行计划。实际最终验证必须从原生填铜后的全网连接图重新核对全体必要端点，包括GND，不依赖声明清单来证明没有遗漏。
-
-无论使用哪个后端，真实候选都需原生回读、重新覆铜、保存/重载、完整DRC/parity、保护对象差异、规则命中和适用工程专项验证。地网连通不等于高频回流连续，几何线宽/线长达标不等于SI/PI/热性能验证。保留现有G1–G6、AI/工程师确认和 `EXPORTED_NOT_RELEASED` 边界。
+**Fallback:** first use supported/current-version accepted Konnect interactive or dedicated routing operations, with saved-state readback. A bounded A* budget failure may retry on the same approved constraints; an externally generated Freerouting SES is a *candidate* only until independently imported into a protected KiCad candidate and validated. If neither tool can preserve the scoped rules/geometry, stop and ask for a deliberate engineering/manual route, never auto-waive safety constraints.
