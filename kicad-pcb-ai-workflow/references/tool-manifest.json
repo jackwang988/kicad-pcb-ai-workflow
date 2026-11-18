@@ -495,7 +495,7 @@
     },
     {
       "file": "scripts/routing_seven_stage.py",
-      "sha256": "118529791b24a81d117ad7c7f3e0c30a3e10dafcd2f588a861c53b2acb1761bf",
+      "sha256": "a39aed0b9d4ba69d839263d8847664c3e6d6e17363abc0e028712a5b855e81ef",
       "version": "R10-seven-stage-preview-1",
       "command": "python scripts/routing_seven_stage.py --help",
       "input": "Project-local source-hash-bound full routing request + real saved candidate boards + Native KiCad DRC JSON",
@@ -504,7 +504,7 @@
         "0": "Read-only stage plan or limited geometry audit, G4 remains pending",
         "2": "BLOCKED; invalid evidence/geometry/rules"
       },
-      "validation_scope": "Read-only GND first-fill/stitch/refill stage before full native DRC and G4; hash-bound saved board receipts, live native connectivity external."
+      "validation_scope": "KiCad 10 name-only and legacy net compatibility with pad-bound verification, semantic physical geometry/ground plane audits, G4 remains downstream."
     },
     {
       "file": "scripts/schematic_candidate.py",
