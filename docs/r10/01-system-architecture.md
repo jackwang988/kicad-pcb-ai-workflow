@@ -1,6 +1,6 @@
-# R10 · 系统总体架构
+# R10 · 系统总体架构（历史图）
 
-![R10系统总体架构图](figures/01-system-architecture.svg)
+> **最新版以 [R10 当前完整架构和七阶段布线图](06-current-skill-full-flow.md) 为准。** 本页 Mermaid 和 SVG 保留初始 R10 的 Konnect 单写入架构，未表达 Freerouting 2.5.0 作为普通网络离线布线候选及回导验收步骤。\n\n![R10系统总体架构图](figures/01-system-architecture.svg)
 
 [返回R10导航](README.md) · [16节点](02-16-node-workflow.md) · [验收状态](05-release-readiness.md)
 
