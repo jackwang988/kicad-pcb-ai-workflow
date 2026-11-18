@@ -57,7 +57,7 @@ def process(args, timeout):
 def specctra_netclasses(path):
     """Inventory declared classes only; membership still needs independent proof."""
     source = path.read_text(encoding="utf-8", errors="replace")
-    matches = re.findall(r'\\(\\s*class\\s+(?:"([^"]+)"|([^\\s()]+))', source, re.I)
+    matches = re.findall(r'\(\s*class\s+(?:"([^"]+)"|([^\s()]+))', source, re.I)
     return {quoted or bare for quoted, bare in matches}
 
 
