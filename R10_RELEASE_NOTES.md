@@ -32,6 +32,7 @@
 
 ## 安装包、兼容与保留
 
+- [GND 排除失效追踪 Issue #8](https://github.com/jackwang988/kicad-pcb-ai-workflow/issues/8) — **阻断后续稳定版与默认自动布线启用**。
 - [R10.0.0-rc.2 预发布页面](https://github.com/jackwang988/kicad-pcb-ai-workflow/releases/tag/R10.0.0-rc.2) 已有对应发布标签，**现阶段自动布线不能作为生产默认路径**，必须先解决GND保护失效并重跑原生验收。
 - 发布工作流 [publish-r10-rc2.yml](.github/workflows/publish-r10-rc2.yml) 在`main`上执行软件回归，重新从 `kicad-pcb-ai-workflow/` 生成独立ZIP及SHA-256，只有测试通过才尝试创建 **R10.0.0-rc.2 GitHub Pre-release**。绝不把旧RC1 ZIP重命名为新版本。
 - [GitHub Release 页面](https://github.com/jackwang988/kicad-pcb-ai-workflow/releases)可核对新资产是否真正发布。发布成功后应下载 `kicad-pcb-ai-workflow-R10.0.0-rc.2.zip`，按配套 `SHA256SUMS-R10.0.0-rc.2` 验证，而非从旧RC1压缩包安装。
