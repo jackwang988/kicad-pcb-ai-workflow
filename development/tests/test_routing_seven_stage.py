@@ -289,6 +289,131 @@ class RoutingSevenStageAuditTests(unittest.TestCase):
             seven.audit(self.root, self.write_cfg(), 'final')
         self.assertEqual(error.exception.code, 'INVALID_BINDING')
 
+    def test_kicad_10_named_net_only_board_roundtrip_snapshot(self):
+        v10 = '''(kicad_pcb (version 20260206)
+            (footprint "NPI:Fixture" (layer "F.Cu") (uuid "fp-1")
+              (at 10 10)
+              (property "Reference" "U1")
+              (property "Value" "TEST")
+              (pad "1" smd rect (at 0 0) (size 0.6 0.6)
+                (layers "F.Cu") (net "GND") (uuid "p1"))
+              (pad "2" smd rect (at 1 0) (size 0.6 0.6)
+                (layers "F.Cu") (net "+3V3") (uuid "p2")))
+            (segment (start 10 10) (end 11 11) (width 0.2)
+              (layer "F.Cu") (net "+3V3") (uuid "s1"))
+            (via (at 5 15) (size 0.6) (drill 0.3)
+              (layers "F.Cu" "B.Cu") (net "GND") (uuid "v1"))
+            (zone (net "GND") (layer "B.Cu") (uuid "z1")
+              (filled_polygon (layer "B.Cu") (pts (xy 0 0)))))'''
+        path = self.root / 'native-v10.kicad_pcb'
+        path.write_text(v10, encoding='utf-8')
+        snap = seven.board_snapshot(path)
+        self.assertIn('GND', snap['codes'].values())
+        self.assertIn('+3V3', snap['codes'].values())
+        self.assertEqual(snap['segments'][0]['net'], '+3V3')
+        self.assertEqual(snap['vias'][0]['net'], 'GND')
+        self.assertEqual(snap['zones'][0]['net'], 'GND')
+        self.assertEqual(seven.ground_filled_layers(snap, 'GND'), {'B.Cu'})
+
+    def test_name_only_net_cannot_be_invented_by_copper(self):
+        data = '''(kicad_pcb
+           (footprint "NPI:Fixture" (uuid "fp")
+             (pad "1" smd rect (at 0 0) (size 0.6 0.6)
+               (layers "F.Cu") (net "GND") (uuid "pad")))
+           (via (at 2 2) (size 0.6) (drill 0.3)
+             (layers "F.Cu" "B.Cu") (net "UNREVIEWED") (uuid "v1")))'''
+        path = self.root / 'unverified-net.kicad_pcb'
+        path.write_text(data, encoding='utf-8')
+        with self.assertRaises(seven.RoutingBlocked) as err:
+            seven.board_snapshot(path)
+        self.assertEqual(err.exception.code, 'UNVERIFIED_NAMED_NET')
+
+    def test_numeric_only_refs_without_authoritative_names_block(self):
+        data = '''(kicad_pcb
+          (footprint "NPI:Fixture" (uuid "fp")
+            (pad "1" smd rect (at 0 0) (size 0.6 0.6)
+              (layers "F.Cu") (net 2) (uuid "pad")))
+          (via (at 2 2) (size 0.6) (drill 0.3)
+            (layers "F.Cu" "B.Cu") (net 2) (uuid "v1")))'''
+        path = self.root / 'numeric-unverifiable.kicad_pcb'
+        path.write_text(data, encoding='utf-8')
+        with self.assertRaises(seven.RoutingBlocked) as err:
+            seven.board_snapshot(path)
+        self.assertEqual(err.exception.code, 'PAD_NUMERIC_NET_WITHOUT_NAME')
+
+    def test_numeric_named_pad_disagreement_blocks(self):
+        data = '''(kicad_pcb (net 1 "GND")
+          (footprint "NPI:Fixture" (uuid "fp")
+            (pad "1" smd rect (at 0 0) (size 0.6 0.6)
+              (layers "F.Cu") (net 1 "+3V3") (uuid "pad"))))'''
+        path = self.root / 'conflict.kicad_pcb'
+        path.write_text(data, encoding='utf-8')
+        with self.assertRaises(seven.RoutingBlocked) as err:
+            seven.board_snapshot(path)
+        self.assertEqual(err.exception.code, 'PAD_NET_CODE_CONFLICT')
+
+    def test_ground_audit_still_blocks_moved_footprints_after_format_normalization(self):
+        self.ground_fixture(add_stitch=False)
+        original = '(footprint "NPI:Fixture" (uuid "fp1") (layer "F.Cu") ' \
+                   '(at 2 2) (pad "1" smd rect (at 0 0) (size 0.6 0.6) ' \
+                   '(layers "F.Cu") (net 1 "GND") (uuid "pad1")))'
+        moved = original.replace('(at 2 2)', '(at 3 2)')
+        for name in ('post-route.kicad_pcb', 'first-fill.kicad_pcb',
+                     'stitched.kicad_pcb', 'last-fill.kicad_pcb'):
+            path = self.root / name
+            raw = path.read_text()
+            path.write_text(raw[:-1] + ' ' + (moved if name == 'first-fill.kicad_pcb'
+                                               else original) + ')')
+        cfg = json.loads((self.root / 'ground.json').read_text())
+        for attr, filename in (('pre_ground_board', 'post-route.kicad_pcb'),
+                               ('first_filled_board', 'first-fill.kicad_pcb'),
+                               ('stitched_board', 'stitched.kicad_pcb'),
+                               ('final_refilled_board', 'last-fill.kicad_pcb')):
+            cfg[attr] = self.bind(filename)
+        (self.root / 'ground.json').write_text(json.dumps(cfg))
+        with self.assertRaises(seven.RoutingBlocked) as err:
+            seven.ground_audit(self.root, 'ground.json')
+        self.assertEqual(err.exception.code, 'GND_FOOTPRINT_CHANGED')
+
+    def test_ground_audit_does_not_ignore_wrong_net_for_existing_via(self):
+        self.ground_fixture(add_stitch=False)
+        p = self.root / 'first-fill.kicad_pcb'
+        p.write_text(p.read_text()[:-1] + ' '
+                     '(via (at 4 4) (size 0.6) (drill 0.3) '
+                     '(layers "F.Cu" "B.Cu") (net 1) (uuid "rogue")))')
+        cfg = json.loads((self.root / 'ground.json').read_text())
+        cfg['first_filled_board'] = self.bind('first-fill.kicad_pcb')
+        (self.root / 'ground.json').write_text(json.dumps(cfg))
+        with self.assertRaises(seven.RoutingBlocked) as err:
+            seven.ground_audit(self.root, 'ground.json')
+        self.assertEqual(err.exception.code, 'GROUND_FIRST_FILL_CHANGED_VIAS')
+
+    def test_physical_fp_and_copper_stable_across_net_dialect(self):
+        legacy = '''(kicad_pcb (net 0 "") (net 1 "GND")
+          (footprint "NPI:Fixture" (uuid "fp1")
+            (layer "F.Cu") (at 10 10)
+            (property "Reference" "U1") (property "Value" "TEST")
+            (pad "1" smd rect (at 0 0) (size .6 .6)
+              (layers "F.Cu" "F.Paste" "F.Mask") (net 1 "GND") (uuid "pad1")))
+          (via (at 5 15) (size 0.6) (drill 0.3)
+            (layers "F.Cu" "B.Cu") (net 1) (uuid "via1")))'''
+        native = '''(kicad_pcb (version 20260206)
+          (footprint "NPI:Fixture" (uuid "fp1")
+            (layer "F.Cu") (at 10.0 10.000)
+            (property "Reference" "U1") (property "Value" "TEST")
+            (pad "1" smd rect (at 0.0 0.0) (size 0.600 0.6)
+              (layers "F.Cu" "F.Mask" "F.Paste") (net "GND") (uuid "pad1")))
+          (via (at 5 15.0) (size 0.600) (drill 0.300)
+            (layers "F.Cu" "B.Cu") (net "GND") (uuid "via1")))'''
+        oldfile = self.root / 'legacy-semantic.kicad_pcb'
+        newfile = self.root / 'named-semantic.kicad_pcb'
+        oldfile.write_text(legacy, encoding='utf-8')
+        newfile.write_text(native, encoding='utf-8')
+        old, new = seven.board_snapshot(oldfile), seven.board_snapshot(newfile)
+        self.assertEqual(seven._ground_footprints(old), seven._ground_footprints(new))
+        self.assertEqual(seven._ground_traces(old, 'vias'),
+                         seven._ground_traces(new, 'vias'))
+
     def test_final_rejects_stale_ground_gate_board(self):
         self.prepare_final()
         report = json.loads((self.root / 'ground-report.json').read_text())

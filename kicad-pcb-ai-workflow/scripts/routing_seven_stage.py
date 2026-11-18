@@ -146,8 +146,64 @@ def plan(root, config_path):
 def board_snapshot(path):
     tree = parse_sexpr(path.read_text(encoding='utf-8-sig'))
     require(tree and tree[0] == 'kicad_pcb', 'INVALID_BOARD', str(path))
-    codes = {str(n[1]): str(n[2]) for n in children(tree, 'net') if len(n) > 2}
-    require(codes, 'BOARD_NETS_MISSING', str(path))
+    # KiCad 10 native SaveBoard/CLI may emit NAME-ONLY `(net "GND")`
+    # on pads, tracks, vias and zones, with no top-level numeric net table.
+    # Never infer a named net from a zone's decorative net_name label.
+    codes = {}
+    pad_named = set()
+    for n in children(tree, 'net'):
+        require(len(n) == 3 and str(n[1]).isdigit()
+                and isinstance(n[2], str), 'INVALID_BOARD_NET_DECLARATION', str(n))
+        key, name = str(n[1]), str(n[2])
+        require(key not in codes, 'DUPLICATE_BOARD_NET_CODE', key)
+        codes[key] = name
+    for fp in children(tree, 'footprint'):
+        for pad in children(fp, 'pad'):
+            net_field = child(pad, 'net')
+            if not net_field:
+                continue
+            require(len(net_field) in (2, 3), 'INVALID_PAD_NET', str(net_field))
+            if len(net_field) == 3:
+                key, name = str(net_field[1]), str(net_field[2])
+                require(key.isdigit() and (bool(name) or key == '0'),
+                        'INVALID_PAD_NET', str(net_field))
+                if key in codes:
+                    require(codes[key] == name, 'PAD_NET_CODE_CONFLICT', str(net_field))
+                else:
+                    # Net names in pads can ground KiCad's omitted table,
+                    # but only if every later use resolves to that exact net.
+                    codes[key] = name
+            else:
+                name = str(net_field[1])
+                if not name:
+                    continue  # KiCad 10 name-only unconnected pad.
+                require(not name.isdigit(), 'PAD_NUMERIC_NET_WITHOUT_NAME',
+                        str(net_field))
+                pad_named.add(name)
+    for name in pad_named:
+        require(name not in codes or codes[name] == name,
+                'AMBIGUOUS_NAMED_NET', name)
+        codes[name] = name
+    require(any(v for v in codes.values()), 'BOARD_NETS_MISSING', str(path))
+    def resolve_net(node, kind):
+        field = child(node, 'net')
+        require(field is not None and len(field) >= 2,
+                'BOARD_OBJECT_NET_MISSING', f'{kind}: {str(node)[:100]}')
+        key = str(field[1])
+        if len(field) == 3:
+            require(key.isdigit() and isinstance(field[2], str),
+                    'INVALID_BOARD_NET', str(field))
+            stated = str(field[2])
+            require(key in codes and codes[key] == stated,
+                    'NET_NAME_CODE_CONFLICT', str(field))
+            return stated
+        if key in codes:
+            return codes[key]
+        # Name-only KiCad 10 refs MUST be anchored in a real native pad or
+        # an explicitly declared numeric project net (not zone.net_name).
+        require(key in pad_named, 'UNVERIFIED_NAMED_NET',
+                f'{kind}: {key}')
+        return key
     objects = {}
     footprints = {}
     traces = {}
@@ -163,10 +219,11 @@ def board_snapshot(path):
                 objects[uid] = json.dumps(node, sort_keys=True, ensure_ascii=True)
                 if kind == "footprint":
                     footprints[uid] = objects[uid]
-            n = str(value(node, 'net') or '0')
-            name = codes.get(n)
+            name = (resolve_net(node, kind) if kind in
+                    ('segment', 'via', 'arc') or
+                    (kind == 'zone' and child(node, 'net')) else None)
             if kind in {'segment', 'via', 'arc'}:
-                require(name is not None, 'UNKNOWN_TRACK_NET', str(n))
+                require(name is not None, 'UNKNOWN_TRACK_NET', kind)
                 track = {'kind': kind, 'net': name, 'node': node, 'id': uid}
                 traces.setdefault(name, []).append(
                     json.dumps(node, sort_keys=True, ensure_ascii=True))
@@ -243,6 +300,95 @@ def ground_defined_layers(snapshot, net):
     return found
 
 
+def _ground_fields(node, names):
+    """Extract only physical fields; KiCad 10 may change storage dialect."""
+    result = {}
+    for name in names:
+        field = child(node, name)
+        if field is not None:
+            result[name] = [round(float(v), 9) if isinstance(v, str) and
+                            re.fullmatch(r'[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?', v) else v
+                            for v in field[1:]]
+    return result
+
+
+def _ground_net_ref(node, codes):
+    n = child(node, 'net')
+    if not n or len(n) < 2:
+        return ''
+    if len(n) == 3:
+        return str(n[2])
+    return codes.get(str(n[1]), str(n[1]))
+
+
+def _ground_footprints(snapshot):
+    """Physical footprint & pad inventory, independent of KiCad serialization.
+
+    Still catches moved/rotated components, pad dimensions, layer/net changes,
+    drill, UUID, reference/value and package identifiers; cosmetic KiCad 10
+    serialization changes must not masquerade as layout changes.
+    """
+    found = []
+    for uid, raw in snapshot['footprints'].items():
+        node = json.loads(raw)
+        # KiCad 10 adds empty Datasheet/Description properties on save.
+        # Empty optional metadata does not change electrical/physical layout,
+        # but reference/value and all non-empty user fields still must match.
+        props = sorted((str(p[1]), str(p[2]))
+                       for p in children(node, 'property')
+                       if len(p) >= 3 and
+                       (str(p[2]) != '' or str(p[1]) in ('Reference', 'Value')))
+        pads = []
+        for pad in children(node, 'pad'):
+            attrs = {
+                'id': str(pad[1]) if len(pad) > 1 else '',
+                'type': str(pad[2]) if len(pad) > 2 else '',
+                'shape': str(pad[3]) if len(pad) > 3 else '',
+                'uuid': str(value(pad, 'uuid')),
+                'net': _ground_net_ref(pad, snapshot['codes']),
+                'physical': _ground_fields(pad, (
+                    'at', 'size', 'drill', 'layers', 'rect_delta',
+                    'solder_mask_margin', 'solder_paste_margin',
+                    'clearance', 'die_length'
+                )),
+            }
+            # KiCad 10 may reorder F.Mask/F.Paste in pad layer lists.
+            # Pad layer membership, not textual ordering, defines its geometry.
+            if 'layers' in attrs['physical']:
+                attrs['physical']['layers'] = sorted(attrs['physical']['layers'])
+            pads.append(json.dumps(attrs, sort_keys=True, ensure_ascii=True))
+        fp = {
+            'uuid': uid, 'library_footprint': str(node[1]),
+            'layer': str(value(node, 'layer')),
+            'at': _ground_fields(node, ('at',)),
+            'properties': props,
+            'pads': sorted(pads),
+        }
+        found.append(json.dumps(fp, sort_keys=True, ensure_ascii=True))
+    return Counter(found)
+
+
+def _ground_trace_signature(item):
+    """Semantically compare copper while allowing name-only KiCad 10 nets."""
+    kind = item['kind']
+    node = item['node']
+    attrs = {
+        'kind': kind, 'uuid': item['id'], 'net': item['net'],
+        'physical': _ground_fields(node, (
+            'start', 'mid', 'end', 'at', 'width', 'layer',
+            'size', 'drill', 'layers', 'remove_unused_layers'
+        )),
+    }
+    # Via type e.g. micro, blind, through: don't silently change it.
+    if kind == 'via':
+        attrs['type'] = str(node[1]) if len(node) > 1 and isinstance(node[1], str) else ''
+    return json.dumps(attrs, sort_keys=True, ensure_ascii=True)
+
+
+def _ground_traces(snapshot, kind):
+    return Counter(_ground_trace_signature(x) for x in snapshot[kind])
+
+
 def ground_audit(root, config_path):
     """Read-only GND-first-fill / approved-stitch / final-refill gate BEFORE DRC.
 
@@ -258,17 +404,22 @@ def ground_audit(root, config_path):
     require(len(set(paths.values())) >= 3, 'GROUND_CHECKPOINTS_MISSING',
             'Save distinct original, first fill, and final refill checkpoints')
     pre, first, stitched, final = (board_snapshot(paths[k]) for k in keys)
-    require(len({tuple(sorted(s['codes'].values())) for s in (pre, first, stitched, final)}) == 1,
-            'GND_NET_INVENTORY_CHANGED', 'Net inventory must be preserved')
-    require(pre['footprints'] == first['footprints'] == stitched['footprints'] == final['footprints'],
-            'GND_FOOTPRINT_CHANGED', 'Copper operation must not move footprints')
+    inventories = [{v for v in snap['codes'].values() if v}
+                   for snap in (pre, first, stitched, final)]
+    require(all(inv == inventories[0] for inv in inventories[1:]),
+            'GND_NET_INVENTORY_CHANGED',
+            'Native named-net inventory changed during first pour or refill')
+    require(_ground_footprints(pre) == _ground_footprints(first)
+            == _ground_footprints(stitched) == _ground_footprints(final),
+            'GND_FOOTPRINT_CHANGED',
+            'Copper operation may not change component/pad physical geometry')
     for kind in ('segments', 'arcs'):
-        require(_counter(pre[kind]) == _counter(first[kind])
-                == _counter(stitched[kind]) == _counter(final[kind]),
+        require(_ground_traces(pre, kind) == _ground_traces(first, kind)
+                == _ground_traces(stitched, kind) == _ground_traces(final, kind),
                 'GROUND_UNAPPROVED_ROUTING_CHANGE', kind)
-    require(_counter(pre['vias']) == _counter(first['vias']),
+    require(_ground_traces(pre, 'vias') == _ground_traces(first, 'vias'),
             'GROUND_FIRST_FILL_CHANGED_VIAS', 'First fill cannot create/delete vias')
-    require(_counter(stitched['vias']) == _counter(final['vias']),
+    require(_ground_traces(stitched, 'vias') == _ground_traces(final, 'vias'),
             'GROUND_FINAL_REFILL_CHANGED_VIAS', 'Refill cannot change via geometry')
     copper_stack = cfg.get('copper_layer_stack')
     require(isinstance(copper_stack, list) and len(copper_stack) >= 2
@@ -307,10 +458,10 @@ def ground_audit(root, config_path):
     require(len(ids) == len(approved) == len(set(ids)) and all(
                 isinstance(uid, str) and bool(uid) for uid in ids),
             'INVALID_STITCHING_APPROVAL', 'Each via needs unique approved UUID')
-    old = _counter(first['vias'])
+    old = _ground_traces(first, 'vias')
     added = []
     for item in stitched['vias']:
-        sig = json.dumps(item['node'], sort_keys=True, ensure_ascii=True)
+        sig = _ground_trace_signature(item)
         if old[sig]:
             old[sig] -= 1
         else:

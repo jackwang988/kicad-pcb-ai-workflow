@@ -71,5 +71,6 @@ jobs:
           path: |
             /tmp/freerouting-kicad-native-evidence.json
             /tmp/r10-native-ground-fill-evidence.json
+            /tmp/r10-first-filled-diagnostic.kicad_pcb
           if-no-files-found: warn
           retention-days: 30
