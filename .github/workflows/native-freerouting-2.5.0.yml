@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - development/native_freerouting_250_e2e.py
+      - development/native_ground_fill_10_e2e.py
       - kicad-pcb-ai-workflow/scripts/freerouting_adapter.py
       - kicad-pcb-ai-workflow/scripts/workflow.py
       - kicad-pcb-ai-workflow/references/tool-manifest.json
@@ -58,11 +59,17 @@ jobs:
           java -version
       - name: Test actual exported DSN, Freerouting SES, KiCad import + saved copper
         run: /usr/bin/python3 development/native_freerouting_250_e2e.py
+      - name: Test real GND first pour approved stitching second pour and ONLY THEN DRC
+        env:
+          NATIVE_GND_REPORT: /tmp/r10-native-ground-fill-evidence.json
+        run: /usr/bin/python3 development/native_ground_fill_10_e2e.py
       - name: Upload native interoperability evidence even on failure
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: freerouting-2.5.0-kicad10-native-evidence
-          path: /tmp/freerouting-kicad-native-evidence.json
+          path: |
+            /tmp/freerouting-kicad-native-evidence.json
+            /tmp/r10-native-ground-fill-evidence.json
           if-no-files-found: warn
           retention-days: 30
