@@ -88,6 +88,23 @@ def main():
             first_receipt = refill_first_then_drc(
                 cli, first, folder / "first-pour-diagnostic.json")
             evidence["first_native_fill"] = first_receipt
+            # Preserve a debug copy of our PUBLIC synthetic fixture output.
+            # This is evidence, never an edited user PCB. Needed to diagnose
+            # genuine KiCad 10 reserialization of net records after CLI fill.
+            from npi_common import parse_sexpr, children
+            first_tree = parse_sexpr(first.read_text(encoding="utf-8-sig"))
+            top_nets = children(first_tree, "net")
+            pad_nets = [p for fp in children(first_tree, "footprint")
+                        for p in children(fp, "pad")
+                        for n in children(p, "net")]
+            evidence["first_saved_board_net_inventory"] = {
+                "top_level": top_nets,
+                "pad_entries": pad_nets[:20],
+                "top_level_object_tags": [x[0] for x in first_tree[1:]
+                                          if isinstance(x, list) and x][:40],
+                "size": first.stat().st_size,
+            }
+            shutil.copy2(first, "/tmp/r10-first-filled-diagnostic.kicad_pcb")
             first_snapshot = board_snapshot(first)
             require({"F.Cu","B.Cu"} <= ground_defined_layers(first_snapshot, "GND"),
                     "GROUND_FIRST_FILL_ZONES_MISSING")
