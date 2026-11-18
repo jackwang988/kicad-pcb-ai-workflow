@@ -7,6 +7,21 @@ treat expected GND airwires as final route failures. Pre-layout Board Setup
 rule checks, placement/courtyard checks and source audits may still run earlier;
 they are NOT the G4 full-board DRC.
 
+## KiCad 10 原生保存文件兼容性（R10 修复）
+
+KiCad 10 的原生 SaveBoard / `kicad-cli pcb drc --refill-zones --save-board`
+可以使用 `(net "GND")`、`(net "+3V3")` 名称式网络引用，且**没有**
+旧版 `(net 2 "GND")` 的顶层数字网络表。不能仅因缺少该表就断言
+GND 丢失。必须从真实焊盘网络名重建并核对每条铜线、过孔和 Zone
+的实际网络身份；名称不匹配、无法由焊盘确认的网络、重复/冲突编号
+仍然 **BLOCKED**，不能根据 `(net_name "GND")` 等装饰性标签猜测。
+
+KiCad 10 保存还会添加空白属性、将 `.6` 规范化为 `0.6`，
+并重排焊盘的 F.Mask/F.Paste 列表。前后板比较应采用**同一物理/电气语义**
+（UUID、位置、旋转、焊盘尺寸与孔径、实际网络、层集合、已有线/孔几何），
+而不是逐字比较不影响电气的序列化格式。未经批准的真实器件移动、
+新 GND 走线、过孔改径或网络更改依然阻断。
+
 ## Actual execution (separate KiCad/Konnect save/readback snapshots)
 
 1. **After routing** — Finish/verify allowed P0–P3 non-GND traces. Preserve the
