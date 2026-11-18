@@ -169,14 +169,18 @@ class RoutingSevenStageAuditTests(unittest.TestCase):
 
     def ground_fixture(self, add_stitch=True, initial_fill=True, final_fill=True):
         signal = seg('p3', 0, 0, 1, 1)
-        initial = board(gpio=signal, zone=initial_fill)
+        def add_front_zone(raw, filled):
+            return (raw[:-1] + ' (zone (net 1) (net_name "GND") (layer "F.Cu") '
+                    + ('(filled_polygon (layer "F.Cu") (pts (xy 0 0)))' if filled else '')
+                    + '))') if filled else raw
+        initial = add_front_zone(board(gpio=signal, zone=initial_fill), initial_fill)
         # Via is GND, and only appears after initial fill.
         via = '(via (at 2 3) (size 0.6) (drill 0.3) ' \
               '(layers "F.Cu" "B.Cu") (net 1) (uuid "gnd-stitch-1"))'
-        stitched = board(gpio=signal, zone=initial_fill,
-                         gnd=via if add_stitch else '')
-        refilled = board(gpio=signal, zone=final_fill,
-                         gnd=via if add_stitch else '')
+        stitched = add_front_zone(board(gpio=signal, zone=initial_fill,
+                                       gnd=via if add_stitch else ''), initial_fill)
+        refilled = add_front_zone(board(gpio=signal, zone=final_fill,
+                                       gnd=via if add_stitch else ''), final_fill)
         # Distinguish the second native fill receipt in fixture.
         if add_stitch and final_fill:
             refilled = refilled.replace('(pts (xy 0 0))',
@@ -195,7 +199,7 @@ class RoutingSevenStageAuditTests(unittest.TestCase):
             'first_filled_board': self.bind('first-fill.kicad_pcb'),
             'stitched_board': self.bind('stitched.kicad_pcb'),
             'final_refilled_board': self.bind('last-fill.kicad_pcb'),
-            'gnd_zone_layers': {'GND': ['B.Cu']},
+            'gnd_zone_layers': {'GND': ['F.Cu', 'B.Cu']},
             'approved_stitching_vias': [{
                 'uuid': 'gnd-stitch-1', 'net': 'GND', 'at_mm': [2, 3],
                 'layers': ['F.Cu', 'B.Cu'],
