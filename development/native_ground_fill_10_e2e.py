@@ -117,7 +117,7 @@ def main():
             shutil.copy2(first, stitched)
             add_items(stitched, [
                 '(via (at 5 15) (size 0.6) (drill 0.3) '
-                '(layers "F.Cu" "B.Cu") (net 2) '
+                '(layers "F.Cu" "B.Cu") (net "GND") '
                 f'(uuid "{UUID}"))'
             ])
             st = board_snapshot(stitched)
