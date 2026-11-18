@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "package_kind": "universal_runtime",
-  "revision": "2026.11.18-R10-G3-layout-only-G4-post-route-DRC",
+  "revision": "2026.11.18-R10-full-net-power-table-angle-and-neckdown-prep",
   "active": [
     {
       "file": "scripts/assembly_guard.py",
@@ -450,7 +450,7 @@
         "1": "Search/comparison incomplete where documented",
         "2": "BLOCKED or invalid input"
       },
-      "sha256": "761afeab46c13777b6056efa87496778075da828bf1cb315f9e49d5106445a14",
+      "sha256": "91c3f414fa89194c9cec36af6e1b236272fd146b3341dda7bbff7667093be7a9",
       "version": "R10.0-alpha.3",
       "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
     },
@@ -581,7 +581,7 @@
         "1": "Search/comparison incomplete where documented",
         "2": "BLOCKED or invalid input"
       },
-      "sha256": "501850eb5b9a6f341eae60069d3997707b9de9e54e80bc2975dd6aa63e2ebcf6",
+      "sha256": "5702fe1ed4348fa76989e92b940a2dece9fd2880428997345f6b3a7067e4aa05",
       "version": "R10.0-alpha.3",
       "validation_scope": "Software contracts; live GUI, faults and hardware are separately recorded in this release evidence."
     },
