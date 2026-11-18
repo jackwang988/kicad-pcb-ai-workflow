@@ -4,7 +4,7 @@
 >
 > **已验证范围**：KiCad 10.0.8 / Freerouting 2.5.0 隔离样板中，8条普通网络走线回导成功、GND新增走线为0（[原生测试](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44295612537)）；该样板仍有原生DRC 9项违规与2项未连接，**不能称为G4通过**。更复杂的多层/高速/电源产品必须独立验收。
 
-> **R10 维护者正式验收补充（2026-11-18）**：维护者确认 GND 优先铺铜规则的 Skill 验证通过，[PR #10](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/10) 已合并至 `main`（提交 [`86b363f4408a`](https://github.com/jackwang988/kicad-pcb-ai-workflow/commit/86b363f4408af9b5cbd9a9eb7a972f9f65739555)）。现行流程强制**先第一次GND填铜→地铜连通与孤岛检查→按需添加批准的缝合地孔→再次填铜保存→全板DRC→G4**。维护者验收单独登记，不等于完整独立原生/G4验收；本次铺铜原生CI在首次保存板解析阶段仍 `BLOCKED`，详见 [Issue #11](https://github.com/jackwang988/kicad-pcb-ai-workflow/issues/11) 和 [R10 验收矩阵](docs/r10/05-release-readiness.md)。已有的 `R10.0.0` 标签是本次 PR #10 之前的历史快照，不能据此认定旧版ZIP包括新流程。
+> **R10 维护者正式验收补充（2026-11-18）**：维护者确认 GND 优先铺铜规则的 Skill 验证通过，[PR #10](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/10) 已合并至 `main`（提交 [`86b363f4408a`](https://github.com/jackwang988/kicad-pcb-ai-workflow/commit/86b363f4408af9b5cbd9a9eb7a972f9f65739555)）。现行流程强制**先第一次GND填铜→地铜连通与孤岛检查→按需添加批准的缝合地孔→再次填铜保存→全板DRC→G4**。维护者验收单独登记；[PR #12](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/12) 又修复了 KiCad 10 名称式网络及板文件格式规范化，[原生铺铜集成 CI #44331681459](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44331681459) **已通过**（首铺 F.Cu/B.Cu → 审核地孔 → 再次铺铜 → 原生 DRC）；但该合成样板 DRC 仍有 **13 项违规、3 项未连接**，因此 **并非 G4/制造放行**。详见 [R10 验收矩阵](docs/r10/05-release-readiness.md)。已有的 `R10.0.0` 标签是本次 PR #10 之前的历史快照，不能据此认定旧版ZIP包括新流程。
 
 [核对 R10 正式版 Release 与 ZIP/SHA](https://github.com/jackwang988/kicad-pcb-ai-workflow/releases) · [R10.0.0 说明](R10_STABLE_RELEASE_NOTES.md) · [当前源码](https://github.com/jackwang988/kicad-pcb-ai-workflow/tree/main/kicad-pcb-ai-workflow) · [16节点及七阶段完整流程图](docs/r10/06-current-skill-full-flow.md) · [布线工程契约](kicad-pcb-ai-workflow/references/freerouting-seven-stage.md) · [验收矩阵](docs/r10/05-release-readiness.md) · [R9.4历史包](dist/kicad-pcb-ai-workflow-R9.4.zip)
 
@@ -112,7 +112,7 @@ python scripts/routing_seven_stage.py audit-final /path/project --config route-f
 | KiCad→Freerouting 2.5.0→SES→KiCad 原生往返 | **PASS_NOT_G4**：[#44295612537](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44295612537)。GND在真实DSN中归属GND类；禁用v2.5.0 Fanout/Optimizer后，KiCad回导保存得到8条普通网线、0条新增GND铜线；旧版路由夹具在未铺地铜时出现过9项违规与2项未连；**不属于G4判定**。路由互通夹具已停止铺铜前全板DRC |
 | PR #10 维护者 Skill 验收和源码合并 | **维护者已确认 PASS；[PR #10](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/10) 已合入 main**，含首次GND填充→批准地孔→再次填充→最终DRC门禁 |
 | PR #10 软件 CI | [通过 #44321219956](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44321219956) |
-| PR #10 独立原生铺铜CI | [测试 #44321220007](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44321220007)，路由回导步骤通过；**首次填铜保存后解析报 `BOARD_NETS_MISSING`，后续地孔和最终DRC未通过**（[Issue #11](https://github.com/jackwang988/kicad-pcb-ai-workflow/issues/11)） |
+| PR #12 原生铺铜修复及验收 | [**PASS_NOT_G4 · #44331681459**](https://github.com/jackwang988/kicad-pcb-ai-workflow/actions/runs/44331681459)：KiCad 10 双层 GND 首次铺铜、受审 GND 地孔、再次铺铜、保存回读、独立 DRC 实际执行；合成板仍有13项 DRC 违规/3项未连（非量产放行） |
 | 不同层数/高速与电源混合项目、CAM/试产 | 未作为自动化通用能力认证；每个真实产品需独立验收 |
 
 **修复记录（[PR #9](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/9) / [Issue #8](https://github.com/jackwang988/kicad-pcb-ai-workflow/issues/8)）**：仅有 NetClass 名称声明不够；必须校验网络实际 DSN 类成员与独立原生 `net_to_class` 全量映射及SHA-256。Freerouting 2.5.0 的 Fanout/Optimizer 在先前测试中绕开了GND保护，因此 R10普通网批量布线默认关闭这两阶段；回导后的受保护铜线差异审核继续强制执行。支持范围外保持 BLOCKED。
