@@ -113,7 +113,7 @@
     },
     {
       "file": "scripts/freerouting_adapter.py",
-      "sha256": "4decd70660dec7985b534fa925b542c094320621c31ad9f42255d0a7d120f69c",
+      "sha256": "2c6c9d2c4b3f9729fd8b50f38daf1693d97cc4ef73367dee5cfc2a83b87e3ebd",
       "version": "R10.0-alpha.3",
       "command": "python3 scripts/freerouting_adapter.py --help",
       "input": "Reviewed DSN SHA; explicit protected NetClass exclusions; optional approved .rules + SHA; verified Freerouting 2.5.0 JAR",
