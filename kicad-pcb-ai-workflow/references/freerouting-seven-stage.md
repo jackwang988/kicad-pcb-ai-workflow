@@ -102,6 +102,22 @@ If the approved Freerouting `.rules` is present, pass `--rules-file FILE --expec
 
 The same plan/audit interfaces are registered as `workflow.py --task pcb.routing_seven_plan`, `pcb.routing_import_audit`, and `pcb.routing_final_audit` with `--routing-stage-config`. The `pcb.freerouting_candidate` task calls only the offline Freerouting adapter; the accepted Konnect native import remains a separately discovered and authorized operation.
 
+## Freerouting 2.5.0 fanout and optimization safety
+
+Native KiCad 10.0.8 + Freerouting 2.5.0 regression showed that even
+with GND correctly assigned to the effective GND NetClass and -inc GND
+specified, the router's initial SMD fanout stage could still add GND
+copper. The approved R10 ordinary-net CLI adapter therefore explicitly
+sets --router.fanout.enabled=false and --router.optimizer.enabled=false.
+Only the constrained ordinary autorouter pass remains active. This
+may reduce routing completion on very dense boards; never re-enable
+fanout or optimizer without a separate version-pinned native protected-
+object test. If a design cannot finish with these protections, return
+BLOCKED/engineer handoff instead of silently routing GND.
+
+The real KiCad SES import must still prove no newly added/removed GND
+tracks/vias or protected copper in the saved and reloaded board.
+
 ## Mandatory native NetClass membership proof (R10 protected-GND fix)
 
 A DSN file can declare a class called GND without placing the actual GND net
