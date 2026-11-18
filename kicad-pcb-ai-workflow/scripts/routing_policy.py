@@ -64,7 +64,7 @@ POWER_CHART_CURRENT_A = {
 }
 POWER_WIDTH_EXTRA_MM = 0.254
 POWER_CLASSES = {'POWER_DISTRIBUTION', 'POWER_HIGH_CURRENT', 'SWITCHING_HOT_LOOP'}
-SHA = re.compile(r'^[0-9a-f]{64}
+SHA = re.compile(r'^[0-9a-f]{64}$')
 COPPER = re.compile(r'^(F|B|In[1-9][0-9]*)\.Cu$')
 
 
