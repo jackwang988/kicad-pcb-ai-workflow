@@ -173,6 +173,15 @@ class EntryTests(unittest.TestCase):
         opts['apply'] = True
         self.assertIn('--apply', entry.command(self.root, 'workflow.json', 'control-r1', 'manufacturing.export', opts)[1])
 
+    def test_g3_placement_gate_is_not_g4_full_board_drc(self):
+        self.assertEqual(entry.TASKS['pcb.placement_pre'],'placement_review')
+        self.assertEqual(entry.TASKS['pcb.placement_final'],'placement_review')
+        self.assertEqual(entry.TASKS['pcb.prepare'],'static_review')
+        self.assertEqual(entry.TASKS['pcb.gate'],'static_review_gate')
+        self.assertIn('NO full-board DRC',entry.METHODS['placement'])
+        self.assertIn('full native DRC',entry.METHODS['pcb_review'])
+        source=(ROOT/'scripts/workflow.py').read_text()
+        self.assertIn("'--phase', 'pre_route' if task.endswith('_pre') else 'final'",source)
     def test_readonly_gate_does_not_accept_apply(self):
         self.build()
         with self.assertRaisesRegex(ValueError, 'only valid'):
