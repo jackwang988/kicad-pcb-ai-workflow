@@ -1,0 +1,56 @@
+name: Native KiCad 10 + Freerouting 2.5.0 isolated DSN/SES roundtrip
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/r10-freerouting-primary-gated-20261118
+    paths:
+      - development/native_freerouting_250_e2e.py
+      - development/fixtures/npi-demo/**
+      - .github/workflows/native-freerouting-2.5.0.yml
+
+permissions:
+  contents: read
+
+jobs:
+  native-interop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      QT_QPA_PLATFORM: offscreen
+      FREEROUTING_JAR: /tmp/freerouting-2.5.0.jar
+      FREEROUTING_NATIVE_REPORT: /tmp/freerouting-kicad-native-evidence.json
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install native KiCad 10 from stable PPA
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository -y ppa:kicad/kicad-10.0-releases
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends kicad
+          kicad-cli version
+          /usr/bin/python3 -c 'import pcbnew; print("pcbnew", pcbnew.GetBuildVersion())'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Download official Freerouting 2.5.0 JAR and pin checksum
+        run: |
+          curl -fLsS --retry 3 --retry-delay 5 \
+            https://github.com/freerouting/freerouting/releases/download/v2.5.0/freerouting-2.5.0.jar \
+            -o /tmp/freerouting-2.5.0.jar
+          echo 'f6f51bb02245e8e717f9359bd260cc9c5c0b1bc0acc8b7cb2cd5b8ffeb5de3c7  /tmp/freerouting-2.5.0.jar' | sha256sum --check
+          java -version
+      - name: Test actual exported DSN, Freerouting SES, KiCad import + saved copper
+        run: /usr/bin/python3 development/native_freerouting_250_e2e.py
+      - name: Upload native interoperability evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: freerouting-2.5.0-kicad10-native-evidence
+          path: /tmp/freerouting-kicad-native-evidence.json
+          if-no-files-found: warn
+          retention-days: 30
