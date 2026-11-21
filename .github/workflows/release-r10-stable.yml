@@ -1,9 +1,10 @@
-name: Release R10.0.0 stable Skill after software and native integration
+name: Release R10.0.1 stable Skill after software and native integration
 on:
   push:
     branches: [main]
     paths:
-      - R10_STABLE_RELEASE_NOTES.md
+      - R10_0_1_RELEASE_NOTES.md
+      - .github/workflows/release-r10-stable.yml
   workflow_dispatch:
 
 permissions:
@@ -43,8 +44,8 @@ jobs:
           sudo add-apt-repository -y ppa:kicad/kicad-10.0-releases
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends kicad
-          kicad-cli version
-          /usr/bin/python3 -c 'import pcbnew; print(pcbnew.GetBuildVersion())'
+          test "$(kicad-cli version)" = "10.0.8"
+          /usr/bin/python3 -c 'import pcbnew; assert "10.0.8" in pcbnew.GetBuildVersion()'
       - name: Java 25 for pinned Freerouting 2.5.0
         uses: actions/setup-java@v4
         with:
@@ -72,12 +73,14 @@ jobs:
             /tmp/r10-native-ground-fill-evidence.json
           retention-days: 90
           if-no-files-found: warn
-      - name: Build independent R10.0.0 distribution and checksums
+      - name: Build independent R10.0.1 distribution and checksums
         run: |
           python - <<'PY'
           from pathlib import Path
           from zipfile import ZipFile, ZIP_DEFLATED
-          import hashlib
+          import hashlib, json, os
+          from development.build_release import validate
+          integrity = validate(Path("kicad-pcb-ai-workflow"))
           root = Path("kicad-pcb-ai-workflow")
           out = Path("release-artifacts")
           out.mkdir(exist_ok=True)
@@ -87,7 +90,7 @@ jobs:
                       "references/tool-manifest.json"]
           for name in required:
               assert (root / name).is_file(), name
-          archive = out / "kicad-pcb-ai-workflow-R10.0.0.zip"
+          archive = out / "kicad-pcb-ai-workflow-R10.0.1.zip"
           count = 0
           with ZipFile(archive, "w", ZIP_DEFLATED, compresslevel=9) as z:
               for file in sorted(root.rglob("*")):
@@ -96,25 +99,50 @@ jobs:
                       z.write(file, file.as_posix())
                       count += 1
           assert count >= 30, count
+          with ZipFile(archive) as z:
+              assert z.testzip() is None
+              for name in z.namelist():
+                  assert z.read(name) == Path(name).read_bytes(), name
           digest = hashlib.sha256(archive.read_bytes()).hexdigest()
-          (out / "SHA256SUMS-R10.0.0").write_text(
+          (out / "SHA256SUMS-R10.0.1").write_text(
               f"{digest}  {archive.name}\n", encoding="utf-8")
+          (out / "release-provenance-R10.0.1.json").write_text(json.dumps({
+              "version": "R10.0.1", "source_commit": os.environ["GITHUB_SHA"],
+              "workflow_run": os.environ["GITHUB_RUN_ID"], "archive": archive.name,
+              "sha256": digest, "members": count, "package_integrity": integrity,
+              "native_result_scope": "interop_PASS_NOT_G4",
+              "production_authorized": False}, indent=2) + "\n", encoding="utf-8")
           print("Archive members:", count, "SHA-256:", digest)
           PY
+      - name: Retain independently verified patch package
+        uses: actions/upload-artifact@v4
+        with:
+          name: R10.0.1-verified-package
+          path: release-artifacts/
+          retention-days: 90
+          if-no-files-found: error
       - name: Publish stable GitHub Release only if all checks pass
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          TAG=R10.0.0
+          TAG=R10.0.1
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Refusing to overwrite an existing stable release"
             exit 1
           fi
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" >/dev/null 2>&1; then
+            echo "Refusing to reuse an existing tag"
+            exit 1
+          fi
+          cd release-artifacts
+          sha256sum --check SHA256SUMS-R10.0.1
+          cd ..
           gh release create "$TAG" \
-            release-artifacts/kicad-pcb-ai-workflow-R10.0.0.zip \
-            release-artifacts/SHA256SUMS-R10.0.0 \
+            release-artifacts/kicad-pcb-ai-workflow-R10.0.1.zip \
+            release-artifacts/SHA256SUMS-R10.0.1 \
+            release-artifacts/release-provenance-R10.0.1.json \
             --target "$GITHUB_SHA" \
             --repo "$GITHUB_REPOSITORY" \
-            --title "KiCad PCB AI Skill R10.0.0 — seven-stage controlled routing" \
-            --notes-file R10_STABLE_RELEASE_NOTES.md
+            --title "KiCad PCB AI Skill R10.0.1 — seven-stage controlled routing" \
+            --notes-file R10_0_1_RELEASE_NOTES.md
