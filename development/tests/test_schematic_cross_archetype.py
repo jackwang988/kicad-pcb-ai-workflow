@@ -19,15 +19,15 @@ class CrossArchetypeTests(unittest.TestCase):
         self.root = pathlib.Path(self.tmp.name)
         self.trees = {}
         for name in ("power.kicad_sch", "mcu.kicad_sch", "audio.kicad_sch"):
-            (self.root / name).write_text("(kicad_sch)")
+            (self.root / name).write_text("(kicad_sch)", encoding="utf-8")
             self.trees[name] = ["kicad_sch", ["paper", "A4"]]
         for name in ("power", "mcu", "audio"):
-            (self.root / (name + "-review.txt")).write_text("human-reviewed evidence for " + name)
+            (self.root / (name + "-review.txt")).write_text("human-reviewed evidence for " + name, encoding="utf-8")
 
     def run_audit(self, cases):
         policy = {"schema_version": 1, "pages": {}, "require_sheet_pin_wire": False,
                   "prototype_validation": {"required": True, "cases": cases}}
-        (self.root / "style.json").write_text(json.dumps(policy))
+        (self.root / "style.json").write_text(json.dumps(policy), encoding="utf-8")
         with patch.object(style, "sheets", return_value=self.trees):
             return style.audit(self.root, "power.kicad_sch", "style.json")
 

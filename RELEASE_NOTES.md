@@ -1,3 +1,7 @@
+# R10.0.2 维护更新
+
+[发布说明](R10_0_2_RELEASE_NOTES.md)：单板原生零警告案例、实例丝印/全字段修复经验、显式单面导出核验与独立 AGPL companion。正式发布以 CI 产物为准，未验证能力继续披露。
+
 # R10.0.0 stable Skill software — 2026-11-18 — real protected Freerouting native roundtrip
 
 - [R10.0.0 正式软件版说明](R10_STABLE_RELEASE_NOTES.md) · [正式 Release 和 SHA-256 核对](https://github.com/jackwang988/kicad-pcb-ai-workflow/releases) · [完整架构](docs/r10/06-current-skill-full-flow.md)。

@@ -1,0 +1,11 @@
+{
+  "coordinates": {
+    "kicad_version": "10.0.8",
+    "reason": "KiCad 10.0.8 carries the fix for the ERC JSON coordinate scaling defect (kicad#25582, fixed in 10.0.7), so its coordinates are passed through unchanged.",
+    "status": "verbatim"
+  },
+  "errors": 0,
+  "total": 0,
+  "violations": [],
+  "warnings": 0
+}

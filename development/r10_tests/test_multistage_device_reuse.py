@@ -32,7 +32,7 @@ class StageReuseTests(unittest.TestCase):
         path=self.root/sub/'device-bundle.json'
         return {'manifest':sub+'/device-bundle.json','sha256':h(path),'required_refs':['U1']}
     def _config(self,binding,docs=True):
-        record=json.loads(next((self.root/'frozen'/'records').glob('*.json')).read_text())
+        record=json.loads(next((self.root/'frozen'/'records').glob('*.json')).read_text(encoding="utf-8"))
         source=next((self.root/'frozen'/'objects').iterdir())
         doc={'id':record['document_id'],'file':source.relative_to(self.root).as_posix(),
              'sha256':h(source),'title':'synthetic','revision':'A','issuer':'DemoSemi',
@@ -61,7 +61,7 @@ class StageReuseTests(unittest.TestCase):
     def test_stage_detects_after_bundle_change(self):
         self._recategorize(['land_pattern'])
         binding=self._bundle()
-        card=self.root/'frozen'/'cards'/'demo.json';j=json.loads(card.read_text());j['items'][0]['quote']='invalid override';write(card,j)
+        card=self.root/'frozen'/'cards'/'demo.json';j=json.loads(card.read_text(encoding="utf-8"));j['items'][0]['quote']='invalid override';write(card,j)
         with self.assertRaises(ValueError):dk.project_stage_brief(self.root,binding,'g2')
     def test_g2_resource_check_integrates_exact_identity_and_card(self):
         self._recategorize(['land_pattern']);binding=self._bundle()
@@ -132,9 +132,9 @@ class StageReuseTests(unittest.TestCase):
         with patch.object(sr,'primitives',return_value=(fake_board,[])):
             outcome=sr.prepare(self.root,self.root/'pcb-config.json','pcb',self.root/'g4-packet')
         self.assertEqual(outcome['status'],'PACKET_READY_FOR_AI')
-        brief=json.loads((self.root/'g4-packet'/'device-knowledge-brief.json').read_text())
+        brief=json.loads((self.root/'g4-packet'/'device-knowledge-brief.json').read_text(encoding="utf-8"))
         self.assertEqual(brief['stage'],'g4')
-        packet=json.loads((self.root/'g4-packet'/'packet.json').read_text())
+        packet=json.loads((self.root/'g4-packet'/'packet.json').read_text(encoding="utf-8"))
         self.assertEqual(packet['documents'][0]['text_origin'],'verified_project_device_cache')
         self.assertFalse(packet['native_ready'])
 

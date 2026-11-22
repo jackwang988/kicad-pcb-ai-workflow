@@ -14,7 +14,7 @@ class WorkspaceTokenTest(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root=Path(self.temp.name)
         (self.root/'01_WORKING').mkdir()
-        (self.root/'01_WORKING/demo.kicad_pro').write_text('{}')
+        (self.root/'01_WORKING/demo.kicad_pro').write_text('{}', encoding="utf-8")
 
     def args(self,action,**kw):
         defaults=dict(project=str(self.root),action=action,apply=False,
@@ -50,7 +50,7 @@ class WorkspaceTokenTest(unittest.TestCase):
         self.prepare()
         (self.root/'candidate-r1').mkdir()
         (self.root/'control-r1').mkdir()
-        old=self.root/'old.kicad_pro';old.write_text('old')
+        old=self.root/'old.kicad_pro';old.write_text('old', encoding="utf-8")
         result=workflow.workspace_action(self.args('inventory'))
         self.assertEqual(result['total'],3)
         self.assertTrue(old.exists())
@@ -62,14 +62,17 @@ class WorkspaceTokenTest(unittest.TestCase):
         external.mkdir()
         target=self.root/'02_CHECKPOINTS'
         target.rmdir()
-        target.symlink_to(external,target_is_directory=True)
+        try:target.symlink_to(external,target_is_directory=True)
+        except OSError as exc:
+            if getattr(exc,'winerror',None)==1314:self.skipTest('Host lacks Windows symlink privilege; capable CI must exercise this case')
+            raise
         with self.assertRaisesRegex(ValueError,'Symlinked'):
             workflow.workspace_action(self.args('checkpoint',label='X',apply=True))
         target.unlink()
         target.mkdir()
         (self.root/'03_REPORTS'/'index').symlink_to(external,target_is_directory=True)
         report=self.root/'03_REPORTS'/'g1.json'
-        report.write_text('{}')
+        report.write_text('{}', encoding="utf-8")
         with self.assertRaisesRegex(ValueError,'Symlinked'):
             workflow.workspace_action(self.args('register',stage='G1',artifact='03_REPORTS/g1.json',apply=True))
 
@@ -77,7 +80,7 @@ class WorkspaceTokenTest(unittest.TestCase):
         source=self.root/'report.json'
         source.write_text(json.dumps({'status':'NEEDS_EVIDENCE','checks':
             [{'status':'PASS','task_id':str(i)} for i in range(50)]+
-            [{'status':'BLOCKED','detail':'Missing reference'}]}))
+            [{'status':'BLOCKED','detail':'Missing reference'}]}), encoding="utf-8")
         digest=workflow.report_brief(source,limit=2)
         self.assertEqual(digest['issue_count'],51)
         self.assertEqual(digest['by_status']['BLOCKED'],1)

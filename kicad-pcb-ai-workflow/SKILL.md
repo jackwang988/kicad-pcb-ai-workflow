@@ -1,6 +1,6 @@
 ---
 name: kicad-pcb-ai-workflow
-description: KiCad PCB/schematic Skill: G1–G4 knowledge reuse, Konnect single writer, KiCad CLI verification, one working project, compact context.
+description: "KiCad PCB/schematic Skill: G1–G4 knowledge reuse, Konnect single writer, KiCad CLI verification, one working project, compact context."
 ---
 
 # KiCad PCB AI Skill R10 — Single Workspace, Minimal Context
@@ -34,6 +34,8 @@ After G3 placement-only review (never run full DRC at G3), read [the seven-stage
 `routing_seven_stage.py` is a **read-only stage planner and after-import board auditor**, not a Freerouting invocation engine, KiCad writer, native DRC runner or G4 approval. Its success cannot replace live Konnect/KiCad end-to-end evidence. Run via `workflow.py run PROJECT --bundle BUNDLE --task pcb.routing_seven_plan --routing-stage-config CONFIG` (also `pcb.routing_import_audit`, `pcb.routing_final_audit`).
 
 ## Task-based reference routing
+
+**Native case coverage (2026-11-21):** The repository's single-copper 8×8 LED example completed Windows/KiCad 10.0.8 schematic/PCB work, zero-warning native ERC/DRC and checked Gerber/BOM engineering exports. Placed-field repair required a separately built open Konnect extension; stock 0.13.0/0.14.1 lacks that interface. This is one case, not an all-board/all-platform or full 16-node certification. Read [silkscreen/field repair](references/pcb-silkscreen-fields.md) for those warnings and [engineering export checks](references/engineering-export-lessons.md) for single-copper/job/BOM pitfalls. Factory CAM and hardware tests remain external.
 
 | Requested task | Read first |
 |---|---|

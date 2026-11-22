@@ -1,0 +1,57 @@
+{
+  "status": "PASS",
+  "scope": "native CLI revalidation/export of published saved case; not live MCP design replay",
+  "kicad": "10.0.8",
+  "native_ERC": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "native_DRC": {
+    "errors": 0,
+    "warnings": 0,
+    "unconnected": 0
+  },
+  "source_unchanged": true,
+  "board_sha256": "ff3a1ec530da8b8f27dfba17465142b448248b9a575763b118718e2d97a0c7ea",
+  "exact_net_partitions": 66,
+  "gerber": {
+    "pads": 168,
+    "tracks": 205,
+    "GND_regions": 1,
+    "GND_contour_vertices": 6635,
+    "mask": 168,
+    "paste": 160,
+    "pad_mask_paste_bounds_verified": true,
+    "file_functions_verified": true,
+    "centerline_mm": [
+      60,
+      60
+    ],
+    "silkscreen_render_generated": true,
+    "automated_visual_acceptance": false,
+    "parser_warnings": [
+      "Aperture definition using macro RoundRect has more parameters than the macro uses.",
+      "Aperture definition using macro RoundRect has more parameters than the macro uses.",
+      "Aperture definition using macro RoundRect has more parameters than the macro uses.",
+      "Aperture definition using macro RoundRect has more parameters than the macro uses.",
+      "Aperture definition using macro RoundRect has more parameters than the macro uses.",
+      "Aperture definition using macro RoundRect has more parameters than the macro uses.",
+      "Aperture definition using macro RoundRect has more parameters than the macro uses."
+    ],
+    "parser_warning_disposition": "Known unused RoundRect arguments; actual pad/mask/paste bounds compared independently. Factory CAM approval not inferred."
+  },
+  "BOM": {
+    "references": 84,
+    "purchasable_components": 80,
+    "PCB_pad_pairs": 4,
+    "resistor_MPN": "not_selected_specification_only"
+  },
+  "formal_freeze_gate_exercised": false,
+  "live_MCP_replay_exercised": false,
+  "production_authorized": false,
+  "environment": "maintainer Windows; new source copy; not a second workstation",
+  "visual_review": {
+    "status": "PASS",
+    "scope": "Parsed actual Gerber PNG reviewed after local run; not factory CAM"
+  }
+}

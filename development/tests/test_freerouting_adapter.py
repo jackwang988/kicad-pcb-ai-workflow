@@ -33,7 +33,7 @@ class FreeroutingAdapterTests(unittest.TestCase):
             dsn.write_text("(pcb test)", encoding="utf-8")
             output = base / "out"
             run = subprocess.run([sys.executable, str(SCRIPT), "--dsn", str(dsn),
-                                  "--output-dir", str(output)], capture_output=True, text=True)
+                                  "--output-dir", str(output)], capture_output=True, text=True, encoding="utf-8")
             self.assertEqual(run.returncode, 0, run.stderr)
             self.assertEqual(json.loads(run.stdout)["status"], "MANUAL_ROUTING_FALLBACK")
             self.assertFalse(output.exists())
@@ -46,7 +46,7 @@ class FreeroutingAdapterTests(unittest.TestCase):
             output = base / "out"
             output.mkdir()
             run = subprocess.run([sys.executable, str(SCRIPT), "--dsn", str(dsn),
-                                  "--output-dir", str(output), "--apply"], capture_output=True, text=True)
+                                  "--output-dir", str(output), "--apply"], capture_output=True, text=True, encoding="utf-8")
             self.assertNotEqual(run.returncode, 0)
             self.assertTrue(output.is_dir())
 

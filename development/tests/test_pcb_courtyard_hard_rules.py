@@ -59,8 +59,8 @@ class PlacementHardRuleIntegration(unittest.TestCase):
         self.root=self.base.root
     def tearDown(self):self.base.tearDown()
     def _ready(self):return self.base.ready()
-    def _save_policy(self): (self.root/'placement.json').write_text(json.dumps(self.base.policy))
-    def _save_request(self):(self.root/'request.json').write_text(json.dumps(self.base.request))
+    def _save_policy(self): (self.root/'placement.json').write_text(json.dumps(self.base.policy), encoding="utf-8")
+    def _save_request(self):(self.root/'request.json').write_text(json.dumps(self.base.request), encoding="utf-8")
     def test_connector_role_alone_is_automatically_fixed(self):
         self.base.request['fixed_refs']=[];self._save_request()
         r=pl.plan(self.root,'request.json',self._ready())
@@ -71,15 +71,15 @@ class PlacementHardRuleIntegration(unittest.TestCase):
         self.base.board=self.base.board[:-1]+''' (zone (net 0) (layer "F.Cu")
           (keepout (footprints not_allowed))
           (polygon (pts (xy 3 3) (xy 45 3) (xy 45 36) (xy 3 36)))) )'''
-        (self.root/'demo.kicad_pcb').write_text(self.base.board)
+        (self.root/'demo.kicad_pcb').write_text(self.base.board, encoding="utf-8")
         r=pl.plan(self.root,'request.json',self._ready())
         self.assertEqual(r['status'],'REPLAN_REQUIRED')
     def test_keepout_changed_after_rule_check_invalidates_fingerprint(self):
         receipt=self._ready()
-        txt=(self.root/'demo.kicad_pcb').read_text()
+        txt=(self.root/'demo.kicad_pcb').read_text(encoding="utf-8")
         txt=txt[:-1]+''' (zone (net 0) (layer "F.Cu") (keepout (footprints not_allowed))
               (polygon (pts (xy 5 5) (xy 6 5) (xy 6 6) (xy 5 6)))) )'''
-        (self.root/'demo.kicad_pcb').write_text(txt)
+        (self.root/'demo.kicad_pcb').write_text(txt, encoding="utf-8")
         with self.assertRaisesRegex(ValueError,'electrical/stackup/pad'):
             pl.plan(self.root,'request.json',receipt)
     def test_hard_pin_proximity_prevents_false_success(self):
@@ -123,29 +123,29 @@ class PlacementHardRuleIntegration(unittest.TestCase):
         self.assertEqual(r['placements']['U1']['position_mm'],[10,10])
         self.assertTrue(r['placements']['U1']['fixed'])
     def test_custom_kicad_courtyard_clearance_is_honored(self):
-        (self.root/'demo.kicad_dru').write_text('(version 1) (rule "courtyard" (constraint courtyard_clearance (min 1.1mm)))')
+        (self.root/'demo.kicad_dru').write_text('(version 1) (rule "courtyard" (constraint courtyard_clearance (min 1.1mm)))', encoding="utf-8")
         ready=self._ready()
         import json as _json
-        self.assertAlmostEqual(_json.loads(ready.read_text())['courtyard_clearance_mm'],1.1)
+        self.assertAlmostEqual(_json.loads(ready.read_text(encoding="utf-8"))['courtyard_clearance_mm'],1.1)
         r=pl.plan(self.root,'request.json',ready)
         self.assertEqual(r['status'],'BOUNDED_MODULAR_PLACEMENT_PROPOSAL')
     def test_unknown_courtyard_rule_expression_blocks(self):
-        (self.root/'demo.kicad_dru').write_text('(version 1) (rule "unknown" (constraint courtyard_clearance (min ${param})))')
+        (self.root/'demo.kicad_dru').write_text('(version 1) (rule "unknown" (constraint courtyard_clearance (min ${param})))', encoding="utf-8")
         with self.assertRaisesRegex(ValueError,'Unknown custom courtyard_clearance'):
             self._ready()
     def test_disabled_courtyard_drc_is_refused(self):
         self.base.pro['board']['design_settings']['rule_severities']={'courtyards_overlap':'ignore'}
-        (self.root/'demo.kicad_pro').write_text(json.dumps(self.base.pro))
+        (self.root/'demo.kicad_pro').write_text(json.dumps(self.base.pro), encoding="utf-8")
         with self.assertRaisesRegex(ValueError,'severity'):
             self._ready()
     def test_no_geometry_guess_for_rotated_footprint_without_native(self):
         self.base.board=self.base.board.replace('(at 13 10)','(at 13 10 45)')
-        (self.root/'demo.kicad_pcb').write_text(self.base.board)
+        (self.root/'demo.kicad_pcb').write_text(self.base.board, encoding="utf-8")
         with self.assertRaisesRegex(ValueError,'Courtyard'):
             pl.plan(self.root,'request.json',self._ready())
     def test_decoupling_pin_and_real_return_via_rule(self):
         self.base.board=self.base.board[:-1]+ ' (via (at 13 12) (size 0.6) (drill 0.3) (layers "F.Cu" "B.Cu") (net 2) (uuid "RETURN_GND")))'
-        (self.root/'demo.kicad_pcb').write_text(self.base.board)
+        (self.root/'demo.kicad_pcb').write_text(self.base.board, encoding="utf-8")
         self.base.policy['constraints']=[{
             'id':'decouple','kind':'decoupling','level':'阻断级','same_side':True,
             'ic_power':{'ref':'U1','pad':'1','net':'PWR'},
@@ -164,7 +164,7 @@ class PlacementHardRuleIntegration(unittest.TestCase):
     def test_netlist_extra_live_net_cannot_be_ignored(self):
         self.base.board=self.base.board.replace('(net 3 "CTRL")','(net 3 "CTRL") (net 5 "EXTRA")')
         self.base.board=self.base.board.replace('(net 4 "IO"))','(net 5 "EXTRA"))',1)
-        (self.root/'demo.kicad_pcb').write_text(self.base.board)
+        (self.root/'demo.kicad_pcb').write_text(self.base.board, encoding="utf-8")
         with self.assertRaisesRegex(ValueError,'pad/net mismatch|electrical pad'):
             pl.preflight(self.root,'request.json',native_audit=lambda *a,**k:{'status':'PASS','native_requested':True})
 

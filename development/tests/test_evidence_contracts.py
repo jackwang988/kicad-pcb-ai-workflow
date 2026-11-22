@@ -34,7 +34,7 @@ class EvidenceTests(unittest.TestCase):
         data=self.native('drc');data['ignored_checks']=['clearance']
         with self.assertRaises(ValueError):extract('drc',data,'board.kicad_pcb')
     def test_empty_bom_is_blocking(self):
-        f=self.p/'bom.csv';f.write_text('Reference,MPN,Manufacturer,Footprint,Value\n')
+        f=self.p/'bom.csv';f.write_text('Reference,MPN,Manufacturer,Footprint,Value\n', encoding="utf-8")
         r=Review({},'mass_production','pre_export');bom_checks(r,f)
         self.assertTrue(any(x['rule']=='BOM.EMPTY' and x['level']=='阻断级' for x in r.findings))
     def test_prose_signoffs_and_invalid_dates_are_not_evidence(self):
@@ -43,11 +43,11 @@ class EvidenceTests(unittest.TestCase):
         r=Review({'manual_reviews':signs},'mass_production','release');r.project=self.p;r.signoffs()
         self.assertEqual(len(r.findings),len(MANUAL))
     def test_real_hashed_manual_evidence_is_accepted_for_its_item(self):
-        f=self.p/'review.txt';f.write_text('TEST FIXTURE ONLY')
+        f=self.p/'review.txt';f.write_text('TEST FIXTURE ONLY', encoding="utf-8")
         record={'status':'approved','reviewer':'fixture','date':'2026-10-17','reason':'test','evidence':[{'file':'review.txt','sha256':sha256(f)}]}
         r=Review({'manual_reviews':{'SCH.PROTECTION':record}},'mass_production','release');r.project=self.p;r.signoffs()
         self.assertFalse(any(x['rule']=='SCH.PROTECTION' for x in r.findings))
-        f.write_text('CHANGED');r=Review({'manual_reviews':{'SCH.PROTECTION':record}},'mass_production','release');r.project=self.p;r.signoffs()
+        f.write_text('CHANGED', encoding="utf-8");r=Review({'manual_reviews':{'SCH.PROTECTION':record}},'mass_production','release');r.project=self.p;r.signoffs()
         self.assertTrue(any(x['rule']=='SCH.PROTECTION' for x in r.findings))
     def contract(self):
         source={'board.kicad_pcb':'a'*64};output={'a.gbr':'b'*64}
@@ -83,12 +83,12 @@ class EvidenceTests(unittest.TestCase):
         good['checks']['all_copper_layers']=False
         with self.assertRaises(ValueError):cam_checks(good)
     def test_publication_preserves_validated_evidence_dependencies(self):
-        candidate=self.p/'candidate';candidate.mkdir();(candidate/'a.gbr').write_text('fixture')
-        (candidate/'build-manifest.json').write_text('{}');proof=candidate/'evidence/review.json';proof.parent.mkdir();proof.write_text('fixture proof')
-        cfg=self.p/'config.json';cfg.write_text(json.dumps({'delivery_manifest':{'gerber':['a.gbr']}}))
+        candidate=self.p/'candidate';candidate.mkdir();(candidate/'a.gbr').write_text('fixture', encoding="utf-8")
+        (candidate/'build-manifest.json').write_text('{}', encoding="utf-8");proof=candidate/'evidence/review.json';proof.parent.mkdir();proof.write_text('fixture proof', encoding="utf-8")
+        cfg=self.p/'config.json';cfg.write_text(json.dumps({'delivery_manifest':{'gerber':['a.gbr']}}), encoding="utf-8")
         verdict={'release_allowed':True,'counts':{},'inputs_sha256':{str(f):sha256(f) for f in (candidate/'a.gbr',candidate/'build-manifest.json',proof)}}
         with patch.object(npi_release,'evaluate',return_value=verdict):
             result=npi_release.release(self.p/'source',cfg,candidate,self.p/'release',True)
-        self.assertTrue(result['released']);self.assertEqual((self.p/'release/evidence/review.json').read_text(),'fixture proof')
+        self.assertTrue(result['released']);self.assertEqual((self.p/'release/evidence/review.json').read_text(encoding="utf-8"),'fixture proof')
 
 if __name__=='__main__':unittest.main()

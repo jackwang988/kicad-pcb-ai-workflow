@@ -44,6 +44,9 @@ def sha(path):
 
 
 def local(root, rel):
+    # Windows may supply an 8.3 TEMP spelling while resolve() returns its long
+    # spelling. Compare canonical paths on both sides of the containment gate.
+    root = Path(root).resolve()
     require(isinstance(rel, str) and rel and not re.match(r'^[A-Za-z]:', rel)
             and not rel.startswith(('/', '\\')), 'UNSAFE_PATH', str(rel))
     parts = re.split(r'[/\\]', rel)
@@ -77,6 +80,7 @@ def load(path):
 
 
 def plan(root, config_path):
+    root = Path(root).resolve()
     config = load(local(root, config_path))
     require(config.get('schema_version') == 1 and config.get('stage') == 'plan',
             'INVALID_STAGE', 'plan requires schema_version=1, stage=plan')
@@ -390,6 +394,7 @@ def _ground_traces(snapshot, kind):
 
 
 def ground_audit(root, config_path):
+    root = Path(root).resolve()
     """Read-only GND-first-fill / approved-stitch / final-refill gate BEFORE DRC.
 
     This gate cannot prove copper/pad electrical continuity on its own.
@@ -535,6 +540,7 @@ def ground_audit(root, config_path):
 
 
 def audit(root, config_path, phase):
+    root = Path(root).resolve()
     config = load(local(root, config_path))
     require(config.get('schema_version') == 1 and config.get('stage') == phase,
             'INVALID_STAGE', 'Expected stage=' + phase)

@@ -20,10 +20,10 @@ class StageApprovalTests(unittest.TestCase):
         self.bundle = "control-r1"
         (self.root / self.bundle).mkdir()
         self.master = self.root / "workflow.json"
-        self.master.write_text('{"test": true}')
-        (self.root / self.bundle / "flow.json").write_text("{}")
+        self.master.write_text('{"test": true}', encoding="utf-8")
+        (self.root / self.bundle / "flow.json").write_text("{}", encoding="utf-8")
         self.evidence = self.root / "env.txt"
-        self.evidence.write_text("environment checked")
+        self.evidence.write_text("environment checked", encoding="utf-8")
         self.configs = {'flow': {'confirmation_mode': 'formal_engineering', 'inputs': {}}}
         self.patch_load = patch.object(workflow, 'load_bundle', return_value=self.configs)
         self.patch_master = patch.object(workflow, 'master_path', return_value=self.master)
@@ -41,7 +41,7 @@ class StageApprovalTests(unittest.TestCase):
             "decision": "approve", "reason": "Checked actual environment evidence",
             "packet_sha256": result["packet_sha256"]
         }
-        (self.root / "review.json").write_text(json.dumps(review))
+        (self.root / "review.json").write_text(json.dumps(review), encoding="utf-8")
         return workflow.stage_confirm(self.root, "workflow.json", self.bundle, "environment", "review.json")
 
     def test_human_record_is_required(self):
@@ -52,7 +52,7 @@ class StageApprovalTests(unittest.TestCase):
 
     def test_confirm_and_invalidate_evidence(self):
         self.assertEqual(self.approve()["status"], "ENGINEER_APPROVED_CURRENT")
-        self.evidence.write_text("changed")
+        self.evidence.write_text("changed", encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "changed"):
             workflow.validate_stage(self.root, "workflow.json", self.bundle, "environment")
 
@@ -65,13 +65,13 @@ class StageApprovalTests(unittest.TestCase):
         result = workflow.stage_prepare(self.root, "workflow.json", self.bundle, "environment", ["env.txt"])
         bad = {"role": "ai", "name": "bot", "date": "2026-10-23", "group": "environment",
                "decision": "approve", "reason": "automatic", "packet_sha256": result["packet_sha256"]}
-        (self.root / "review.json").write_text(json.dumps(bad))
+        (self.root / "review.json").write_text(json.dumps(bad), encoding="utf-8")
         with self.assertRaises(ValueError):
             workflow.stage_confirm(self.root, "workflow.json", self.bundle, "environment", "review.json")
 
     def test_prevent_approval_self_evidence(self):
         (self.root / self.bundle / "stage-approvals").mkdir()
-        (self.root / self.bundle / "stage-approvals" / "self.txt").write_text("self")
+        (self.root / self.bundle / "stage-approvals" / "self.txt").write_text("self", encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "approval"):
             workflow.stage_prepare(self.root, "workflow.json", self.bundle, "environment",
                                    [self.bundle + "/stage-approvals/self.txt"])

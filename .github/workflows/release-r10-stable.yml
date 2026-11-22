@@ -1,9 +1,9 @@
-name: Release R10.0.1 stable Skill after software and native integration
+name: Release R10.0.2 stable Skill after software and native integration
 on:
   push:
     branches: [main]
     paths:
-      - R10_0_1_RELEASE_NOTES.md
+      - R10_0_2_RELEASE_NOTES.md
       - .github/workflows/release-r10-stable.yml
   workflow_dispatch:
 
@@ -15,7 +15,20 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  windows-software:
+    if: github.repository == 'jackwang988/kicad-pcb-ai-workflow' && github.ref == 'refs/heads/main'
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements.txt
+      - run: python -B -m unittest discover -s development/tests -q
+      - run: python -B -m unittest discover -s development/r10_tests -q
   verify-package-release:
+    needs: windows-software
     if: github.repository == 'jackwang988/kicad-pcb-ai-workflow' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -24,6 +37,8 @@ jobs:
       DEBIAN_FRONTEND: noninteractive
       FREEROUTING_JAR: /tmp/freerouting-2.5.0.jar
       FREEROUTING_NATIVE_REPORT: /tmp/r10-stable-native-evidence.json
+      KICAD10_FOOTPRINT_DIR: /usr/share/kicad/footprints
+      KICAD10_SYMBOL_DIR: /usr/share/kicad/symbols
     steps:
       - name: Checkout exact main commit
         uses: actions/checkout@v4
@@ -32,7 +47,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install Python dependencies
-        run: python -m pip install -r requirements.txt
+        run: python -m pip install -r requirements.txt -r development/requirements-led-validation.txt
       - name: Full software regression and tool digest checks
         run: |
           python -B -m unittest discover -s development/tests -q
@@ -43,9 +58,16 @@ jobs:
           sudo apt-get install -y software-properties-common
           sudo add-apt-repository -y ppa:kicad/kicad-10.0-releases
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends kicad
+          sudo apt-get install -y --no-install-recommends kicad kicad-footprints kicad-symbols
           test "$(kicad-cli version)" = "10.0.8"
           /usr/bin/python3 -c 'import pcbnew; assert "10.0.8" in pcbnew.GetBuildVersion()'
+          mkdir -p "$HOME/.config/kicad/10.0"
+          cp /usr/share/kicad/template/fp-lib-table "$HOME/.config/kicad/10.0/fp-lib-table"
+          cp /usr/share/kicad/template/sym-lib-table "$HOME/.config/kicad/10.0/sym-lib-table"
+      - name: Mandatory zero-warning saved LED case and actual Gerber BOM exports
+        run: python -B development/native_led_8x8_e2e.py --output /tmp/r10-led-native
+      - name: Verify reproducible source-only MCP companion
+        run: python -B development/konnect-field-extension/prepare.py --destination /tmp/r10-konnect-fields-source
       - name: Java 25 for pinned Freerouting 2.5.0
         uses: actions/setup-java@v4
         with:
@@ -71,9 +93,10 @@ jobs:
           path: |
             /tmp/r10-stable-native-evidence.json
             /tmp/r10-native-ground-fill-evidence.json
+            /tmp/r10-led-native/
           retention-days: 90
           if-no-files-found: warn
-      - name: Build independent R10.0.1 distribution and checksums
+      - name: Build independent R10.0.2 distribution and checksums
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -90,7 +113,7 @@ jobs:
                       "references/tool-manifest.json"]
           for name in required:
               assert (root / name).is_file(), name
-          archive = out / "kicad-pcb-ai-workflow-R10.0.1.zip"
+          archive = out / "kicad-pcb-ai-workflow-R10.0.2.zip"
           count = 0
           with ZipFile(archive, "w", ZIP_DEFLATED, compresslevel=9) as z:
               for file in sorted(root.rglob("*")):
@@ -103,21 +126,36 @@ jobs:
               assert z.testzip() is None
               for name in z.namelist():
                   assert z.read(name) == Path(name).read_bytes(), name
+          validation = out / "kicad-pcb-ai-workflow-validation-R10.0.2.zip"
+          with ZipFile(validation, "w", ZIP_DEFLATED, compresslevel=9) as z:
+              for folder in [Path("development/fixtures/led-8x8-12v"), Path("development/konnect-field-extension")]:
+                  for file in sorted(folder.rglob("*")):
+                      if file.is_file() and not file.is_symlink() and "__pycache__" not in file.parts and file.suffix != ".pyc":
+                          z.write(file, file.as_posix())
+              for name in ["development/native_led_8x8_e2e.py", "development/requirements-led-validation.txt", "THIRD_PARTY_NOTICES.md", "R10_0_2_RELEASE_NOTES.md"]:
+                  z.write(name, name)
+          with ZipFile(validation) as z:
+              assert z.testzip() is None
+              for name in z.namelist():
+                  assert z.read(name) == Path(name).read_bytes(), name
+          validation_digest = hashlib.sha256(validation.read_bytes()).hexdigest()
           digest = hashlib.sha256(archive.read_bytes()).hexdigest()
-          (out / "SHA256SUMS-R10.0.1").write_text(
-              f"{digest}  {archive.name}\n", encoding="utf-8")
-          (out / "release-provenance-R10.0.1.json").write_text(json.dumps({
-              "version": "R10.0.1", "source_commit": os.environ["GITHUB_SHA"],
+          (out / "SHA256SUMS-R10.0.2").write_text(
+              f"{digest}  {archive.name}\n{validation_digest}  {validation.name}\n", encoding="utf-8")
+          (out / "release-provenance-R10.0.2.json").write_text(json.dumps({
+              "version": "R10.0.2", "source_commit": os.environ["GITHUB_SHA"],
               "workflow_run": os.environ["GITHUB_RUN_ID"], "archive": archive.name,
-              "sha256": digest, "members": count, "package_integrity": integrity,
-              "native_result_scope": "interop_PASS_NOT_G4",
+              "sha256": digest, "validation_archive": validation.name,
+              "validation_sha256": validation_digest, "members": count, "package_integrity": integrity,
+              "native_result_scope": "interop_PASS_NOT_G4_and_saved_LED_export_validation_not_live_replay",
+              "led_native_report_sha256": hashlib.sha256(Path("/tmp/r10-led-native/native-led-report.json").read_bytes()).hexdigest(),
               "production_authorized": False}, indent=2) + "\n", encoding="utf-8")
           print("Archive members:", count, "SHA-256:", digest)
           PY
       - name: Retain independently verified patch package
         uses: actions/upload-artifact@v4
         with:
-          name: R10.0.1-verified-package
+          name: R10.0.2-verified-package
           path: release-artifacts/
           retention-days: 90
           if-no-files-found: error
@@ -126,7 +164,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          TAG=R10.0.1
+          TAG=R10.0.2
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Refusing to overwrite an existing stable release"
             exit 1
@@ -136,13 +174,14 @@ jobs:
             exit 1
           fi
           cd release-artifacts
-          sha256sum --check SHA256SUMS-R10.0.1
+          sha256sum --check SHA256SUMS-R10.0.2
           cd ..
           gh release create "$TAG" \
-            release-artifacts/kicad-pcb-ai-workflow-R10.0.1.zip \
-            release-artifacts/SHA256SUMS-R10.0.1 \
-            release-artifacts/release-provenance-R10.0.1.json \
+            release-artifacts/kicad-pcb-ai-workflow-R10.0.2.zip \
+            release-artifacts/kicad-pcb-ai-workflow-validation-R10.0.2.zip \
+            release-artifacts/SHA256SUMS-R10.0.2 \
+            release-artifacts/release-provenance-R10.0.2.json \
             --target "$GITHUB_SHA" \
             --repo "$GITHUB_REPOSITORY" \
-            --title "KiCad PCB AI Skill R10.0.1 — seven-stage controlled routing" \
-            --notes-file R10_0_1_RELEASE_NOTES.md
+            --title "KiCad PCB AI Skill R10.0.2 — native LED case and field-repair lessons" \
+            --notes-file R10_0_2_RELEASE_NOTES.md

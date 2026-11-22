@@ -1,4 +1,14 @@
-# KiCad PCB AI 工作流 · R10.0.0 七阶段受控布线
+# KiCad PCB AI 工作流 · R10.0.2 稳定维护版
+
+> **2026-11-21**：Windows / KiCad 10.0.8 的 60 mm 单面 8×8 LED 案例已完成原理图、PCB、原生 ERC/DRC 与 Gerber/BOM 工程导出，最终 **0 错误、0 警告、0 未连接**。135 条丝印压焊盘、64 条重叠、80 条字段差异的修复已沉淀为可复用指南。
+>
+> **稳定范围**：软件回归与公开单板 native 验证，不是全部 16 节点/板型/平台或硬件性能认证。实例字段编辑依赖单独构建、登记和验证的开源 MCP companion；**官方 Konnect 0.14.1 不能直接执行该编辑**。正式 freeze/工程签字、板厂 CAM/EQ、CPL、实物通电/热测试仍独立或未覆盖。
+
+[最新 Release/校验和](https://github.com/jackwang988/kicad-pcb-ai-workflow/releases/latest) · [R10.0.2 说明](R10_0_2_RELEASE_NOTES.md) · [完整实测经验](docs/r10/07-led-e2e-and-silkscreen.md) · [源板与证据](development/fixtures/led-8x8-12v) · [开源 MCP companion](development/konnect-field-extension)
+
+最小 Skill ZIP 只含通用技能；样板、测试与 AGPL 补丁源码在独立 validation ZIP/仓库中。不携带编译器、商业后端或个人配置。正式产物以通过 CI 后生成的 ZIP/SHA/提交 provenance 为准。
+
+## 早期 R10 验收记录（保留历史）
 
 > **R10.0.0 软件稳定版发布目标（2026-11-18）**：基于已合并的 [PR #6](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/6)、[PR #7](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/7) 及 [GND 保护修复 PR #9](https://github.com/jackwang988/kicad-pcb-ai-workflow/pull/9)。原生 KiCad→Freerouting→SES→KiCad 保护测试已通过；正式 ZIP/标签须由 [稳定版 CI](.github/workflows/release-r10-stable.yml) 在 main 重新通过软件与原生测试后创建。**软件稳定≠任意PCB自动通过 G4 或授权投产。**
 >

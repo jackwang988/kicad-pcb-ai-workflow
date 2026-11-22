@@ -12,7 +12,7 @@ from npi_common import parse_sexpr,sha256
 
 def fixture(root):
     root.mkdir(exist_ok=True)
-    (root/'review.txt').write_text('TEST FIXTURE ONLY — not engineering approval or manufacturing data')
+    (root/'review.txt').write_text('TEST FIXTURE ONLY — not engineering approval or manufacturing data', encoding="utf-8")
     approve={'reviewer':'TEST','date':'2026-10-17','reason':'UNIT TEST ONLY',
              'source':{'document':'TEST','revision':'0','section':'fixture'},
              'evidence':[{'file':'review.txt','sha256':sha256(root/'review.txt')}]}
@@ -23,14 +23,14 @@ def fixture(root):
         kind='differential' if i<4 else 'power' if i==4 else 'rf'
         labels.append(f'(label "{name}" (at {10+i*5} 20 0) (effects (font (size 1.27 1.27))) (uuid "{uid}"))')
         nets.append({'name':name,'netclass':cls,'kind':kind,'anchors':[{'file':'test.kicad_sch','label_uuid':uid}]})
-    (root/'test.kicad_sch').write_text('(kicad_sch (version 20260101) (generator "eeschema") (uuid "'+str(uuid.uuid4())+'") (paper "A4") (lib_symbols) '+'\n'.join(labels)+')')
-    (root/'test.kicad_pro').write_text(json.dumps({'meta':{'version':3},'net_settings':{'meta':{'version':5},'classes':[{'name':'Default','priority':2147483647}],'netclass_patterns':[]}}))
+    (root/'test.kicad_sch').write_text('(kicad_sch (version 20260101) (generator "eeschema") (uuid "'+str(uuid.uuid4())+'") (paper "A4") (lib_symbols) '+'\n'.join(labels)+')', encoding="utf-8")
+    (root/'test.kicad_pro').write_text(json.dumps({'meta':{'version':3},'net_settings':{'meta':{'version':5},'classes':[{'name':'Default','priority':2147483647}],'netclass_patterns':[]}}), encoding="utf-8")
     tracks=[];ns=[]
     for i,name in enumerate(names,1):
         ns.append(f'(net {i} "{name}")');w=.6 if name=='VDD_TEST' else .25
         tracks.append(f'(segment (start 10 {i*3}) (end 20 {i*3}) (width {w}) (layer "F.Cu") (net {i}) (uuid "{uuid.uuid4()}"))')
     board='(kicad_pcb (version 20260101) (generator "pcbnew") (general (thickness 1.6)) (layers (0 "F.Cu" signal) (2 "B.Cu" signal)) (setup (stackup (layer "F.Cu" (type "copper") (thickness 0.035)) (layer "dielectric 1" (type "core") (thickness 1.53) (epsilon_r 4.2)) (layer "B.Cu" (type "copper") (thickness 0.035)))) (net 0 "") (net 99 "GND") '+' '.join(ns+tracks)+' (footprint "TEST" (layer "F.Cu") (at 10 10) (property "Reference" "ANT1")) )'
-    (root/'test.kicad_pcb').write_text(board);tree=parse_sexpr(board);stack=stackup_digest(tree);layout=layout_digest(tree)
+    (root/'test.kicad_pcb').write_text(board, encoding="utf-8");tree=parse_sexpr(board);stack=stackup_digest(tree);layout=layout_digest(tree)
     classes=[]
     for name,kind in [('USB','differential'),('MIPI','differential'),('POWER','power'),('RF','rf')]:
         g={'layer':'F.Cu','width_mm':.6 if kind=='power' else .25,'min_width_mm':.5 if kind=='power' else .24,'max_width_mm':2 if kind=='power' else .26}
@@ -52,7 +52,7 @@ def fixture(root):
           'regions':[{'id':'ANT_TEST','kind':'antenna_keepout','rf_net':'RF_FEED','layers':['F.Cu','B.Cu'],'polygon_mm':[[30,30],[35,30],[35,35],[30,35]],
                       'anchor':{'ref':'ANT1','position_mm':[10.,10.],'rotation_deg':0},'approval':copy.deepcopy(approve)}],
           'loops':[{'id':'TEST_LOOP','nets':['VDD_TEST'],'max_area_mm2':20,'review':{**copy.deepcopy(approve),'layout_sha256':layout,'method':'TEST measurement','measured_area_mm2':10}}]}
-    (root/'intent.json').write_text(json.dumps(data));return data
+    (root/'intent.json').write_text(json.dumps(data), encoding="utf-8");return data
 
 def effective(root,d):
     classes={c['name']:c for c in d['classes']};out={}
@@ -66,7 +66,7 @@ class IntentTests(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.base=Path(self.tmp.name);self.root=self.base/'source';self.d=fixture(self.root);self.dest=self.base/'candidate'
     def tearDown(self):self.tmp.cleanup()
-    def save(self): (self.root/'intent.json').write_text(json.dumps(self.d))
+    def save(self): (self.root/'intent.json').write_text(json.dumps(self.d), encoding="utf-8")
     def prepared(self):self.save();prepare(self.root,self.root/'intent.json',self.dest,True)
     def test_preview_has_no_file_changes(self):
         before={p.name:sha256(p) for p in self.root.iterdir()};r=prepare(self.root,self.root/'intent.json',self.dest)
@@ -74,12 +74,12 @@ class IntentTests(unittest.TestCase):
     def test_apply_generates_labels_native_classes_profiles_rules_and_keepout(self):
         before={p.name:sha256(p) for p in self.root.iterdir()};self.prepared()
         self.assertEqual(before,{p.name:sha256(p) for p in self.root.iterdir()})
-        pro=json.loads((self.dest/'test.kicad_pro').read_text());self.assertEqual(len(pro['net_settings']['netclass_patterns']),6)
+        pro=json.loads((self.dest/'test.kicad_pro').read_text(encoding="utf-8"));self.assertEqual(len(pro['net_settings']['netclass_patterns']),6)
         profile=pro['tuning_profiles']['tuning_profiles_impedance_geometric'][0]
         self.assertEqual(profile['layer_entries'][0]['width'],250000);self.assertFalse(profile['enable_time_domain_tuning'])
-        self.assertIn('(property "Net Class" "USB"',(self.dest/'test.kicad_sch').read_text())
-        self.assertIn('(constraint track_width (min 0.5mm)',(self.dest/'test.kicad_dru').read_text())
-        self.assertIn('(copperpour not_allowed)',(self.dest/'test.kicad_pcb').read_text())
+        self.assertIn('(property "Net Class" "USB"',(self.dest/'test.kicad_sch').read_text(encoding="utf-8"))
+        self.assertIn('(constraint track_width (min 0.5mm)',(self.dest/'test.kicad_dru').read_text(encoding="utf-8"))
+        self.assertIn('(copperpour not_allowed)',(self.dest/'test.kicad_pcb').read_text(encoding="utf-8"))
     def test_complete_contract_with_test_native_provider(self):
         self.prepared();r=audit(self.dest,self.dest/'intent.json',True,effective)
         self.assertEqual(r['findings'],[]);self.assertEqual(r['status'],'PASS');self.assertFalse(r['production_authorized'])
@@ -113,10 +113,10 @@ class IntentTests(unittest.TestCase):
     def test_pre_route_defers_routed_completeness_without_granting_release(self):
         self.prepared();p=self.dest/'test.kicad_pcb'
         from design_intent import spans
-        raw=p.read_text()
+        raw=p.read_text(encoding="utf-8")
         for a,b in reversed(spans(raw)):
             if parse_sexpr(raw[a:b])[0]=='segment':raw=raw[:a]+raw[b:]
-        p.write_text(raw)
+        p.write_text(raw, encoding="utf-8")
         r=audit(self.dest,self.dest/'intent.json',True,effective,phase='pre_route')
         self.assertEqual(r['status'],'PASS');self.assertTrue(r['deferred']);self.assertFalse(r['production_authorized'])
         r=audit(self.dest,self.dest/'intent.json',True,effective)
@@ -136,20 +136,20 @@ class IntentTests(unittest.TestCase):
             out=effective(root,d);out['USB0_P']['diff_gap_mm']=.9;return out
         r=audit(self.dest,self.dest/'intent.json',True,bad);self.assertIn('INTENT.EFFECTIVE',{i['rule'] for i in r['findings']})
     def test_generated_rule_tamper_is_detected(self):
-        self.prepared();p=self.dest/'test.kicad_dru';p.write_text(p.read_text().replace('(min 0.5mm)','(min 0.05mm)'))
+        self.prepared();p=self.dest/'test.kicad_dru';p.write_text(p.read_text(encoding="utf-8").replace('(min 0.5mm)','(min 0.05mm)'), encoding="utf-8")
         r=audit(self.dest,self.dest/'intent.json',True,effective);self.assertEqual(r['status'],'BLOCKED')
     def test_disabled_tuning_geometry_check_is_detected(self):
-        self.prepared();p=self.dest/'test.kicad_pro';d=json.loads(p.read_text());d['board']['design_settings']['rule_severities']['tuning_profile_track_geometries']='ignore';p.write_text(json.dumps(d))
+        self.prepared();p=self.dest/'test.kicad_pro';d=json.loads(p.read_text(encoding="utf-8"));d['board']['design_settings']['rule_severities']['tuning_profile_track_geometries']='ignore';p.write_text(json.dumps(d), encoding="utf-8")
         r=audit(self.dest,self.dest/'intent.json',True,effective);self.assertIn('INTENT.NOT_APPLIED',{i['rule'] for i in r['findings']})
     def test_antenna_movement_invalidates_keepout_and_layout_evidence(self):
-        self.prepared();p=self.dest/'test.kicad_pcb';p.write_text(p.read_text().replace('(at 10 10)','(at 11 10)'))
+        self.prepared();p=self.dest/'test.kicad_pcb';p.write_text(p.read_text(encoding="utf-8").replace('(at 10 10)','(at 11 10)'), encoding="utf-8")
         r=audit(self.dest,self.dest/'intent.json',True,effective);codes={i['rule'] for i in r['findings']}
         self.assertIn('RF.ANCHOR',codes);self.assertIn('POWER.LAYOUT',codes);self.assertIn('RF.REVIEW',codes)
     def test_wrong_keepout_layer_or_allowed_copper_blocks(self):
-        self.prepared();p=self.dest/'test.kicad_pcb';p.write_text(p.read_text().replace('(copperpour not_allowed)','(copperpour allowed)'))
+        self.prepared();p=self.dest/'test.kicad_pcb';p.write_text(p.read_text(encoding="utf-8").replace('(copperpour not_allowed)','(copperpour allowed)'), encoding="utf-8")
         r=audit(self.dest,self.dest/'intent.json',True,effective);self.assertIn('RF.KEEPOUT',{i['rule'] for i in r['findings']})
     def test_thin_actual_power_segment_blocks(self):
-        self.prepared();p=self.dest/'test.kicad_pcb';p.write_text(p.read_text().replace('(width 0.6)','(width 0.1)'))
+        self.prepared();p=self.dest/'test.kicad_pcb';p.write_text(p.read_text(encoding="utf-8").replace('(width 0.6)','(width 0.1)'), encoding="utf-8")
         r=audit(self.dest,self.dest/'intent.json',True,effective);self.assertIn('INTENT.WIDTH',{i['rule'] for i in r['findings']})
     def test_missing_declared_critical_network_blocks(self):
         self.d['coverage']['critical_nets'].append('MISSING')
@@ -159,8 +159,8 @@ class IntentTests(unittest.TestCase):
         with self.assertRaises(ValueError):compile_intent(self.root,self.d)
         self.d=fixture(self.root);self.d['project_file']='../outside.kicad_pro'
         with self.assertRaises(ValueError):compile_intent(self.root,self.d)
-        self.d=fixture(self.root);(self.root/'test.kicad_dru').write_text('(version 1)\n# ORIGINAL RULES\n')
-        self.prepared();self.assertIn('# ORIGINAL RULES',(self.dest/'test.kicad_dru').read_text())
+        self.d=fixture(self.root);(self.root/'test.kicad_dru').write_text('(version 1)\n# ORIGINAL RULES\n', encoding="utf-8")
+        self.prepared();self.assertIn('# ORIGINAL RULES',(self.dest/'test.kicad_dru').read_text(encoding="utf-8"))
         with self.assertRaises(ValueError):prepare(self.root,self.root/'intent.json',self.dest,True)
 
 if __name__=='__main__':unittest.main()

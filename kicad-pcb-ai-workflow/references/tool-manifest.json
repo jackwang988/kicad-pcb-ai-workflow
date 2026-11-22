@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "package_kind": "universal_runtime",
-  "revision": "2026-11-18-R10-ground-fill-stitch-pre-DRC-gate",
+  "revision": "2026-11-21-R10.0.2-led-native-and-windows-portability",
   "active": [
     {
       "file": "scripts/assembly_guard.py",
@@ -375,8 +375,8 @@
     },
     {
       "file": "scripts/pcb_fab_approval.py",
-      "sha256": "3b516bf4fd6152165d8d4d6a0043f2b7772bdb5f3025a3f2eb635fb3c5af1d4c",
-      "version": "R10-JLCPCB-consent-v1-preview",
+      "sha256": "bee8ff1790ce5eaf7a268e16057e59f704ed5ebca42e4f0713698fdd41ac8bad",
+      "version": "R10.0.2",
       "command": "python scripts/pcb_fab_approval.py preview|confirm PROJECT ...",
       "input": "Current KiCad 2/4/6/8-layer FR4 board, dated factory catalog and explicit human user decision",
       "output": "Conservative read-only factory proposal or immutable human approval plus fab rules; no EDA edit",
@@ -495,8 +495,8 @@
     },
     {
       "file": "scripts/routing_seven_stage.py",
-      "sha256": "e6f2140fdf9618f872349ff2c7ea0e7bd6f87bc747d89b3ba70cf85772b0fca5",
-      "version": "R10-seven-stage-preview-1",
+      "sha256": "c30b78c0d280acd8c08c1f56374ce9b179e075213e14db2ea6b8d4e33f011c98",
+      "version": "R10.0.2",
       "command": "python scripts/routing_seven_stage.py --help",
       "input": "Project-local source-hash-bound full routing request + real saved candidate boards + Native KiCad DRC JSON",
       "output": "Read-only seven-stage plan or saved-board import/final geometry audit; never actual SES import or manufacturing authorization",

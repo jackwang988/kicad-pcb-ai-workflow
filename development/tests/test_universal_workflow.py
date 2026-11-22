@@ -14,16 +14,16 @@ import manufacturing_export as export
 import system_integration as system
 from npi_common import sha256
 
-def dump(path,obj):path.write_text(json.dumps(obj,ensure_ascii=False))
+def dump(path,obj):path.write_text(json.dumps(obj,ensure_ascii=False), encoding="utf-8")
 
 class UniversalTests(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.base=pathlib.Path(self.tmp.name);self.root=self.base/'source';self.root.mkdir()
-        (self.root/'spec.md').write_text('TEST ONLY independent expected circuit and explicit page preference.')
+        (self.root/'spec.md').write_text('TEST ONLY independent expected circuit and explicit page preference.', encoding="utf-8")
         self.src={'file':'spec.md','sha256':sha256(self.root/'spec.md'),'locator':'TEST section'}
         self.sch='(kicad_sch (version 20260101) (paper "A4") (lib_symbols) (symbol (lib_id "TEST:R") (at 10 10 0) (property "Reference" "R1")))'
-        (self.root/'main.kicad_sch').write_text(self.sch);(self.root/'main.kicad_pro').write_text('{}')
-        (self.root/'main.kicad_pcb').write_text('(kicad_pcb (version 20260101) (layers (0 "F.Cu" signal) (2 "B.Cu" signal)) (general (thickness 1.6)))')
+        (self.root/'main.kicad_sch').write_text(self.sch, encoding="utf-8");(self.root/'main.kicad_pro').write_text('{}', encoding="utf-8")
+        (self.root/'main.kicad_pcb').write_text('(kicad_pcb (version 20260101) (layers (0 "F.Cu" signal) (2 "B.Cu" signal)) (general (thickness 1.6)))', encoding="utf-8")
         self.policy={'schema_version':1,'pages':{},'require_sheet_pin_wire':False,'source':self.src};dump(self.root/'style.json',self.policy)
     def tearDown(self):self.tmp.cleanup()
     def audit(self):dump(self.root/'style.json',self.policy);return style.audit(self.root,'main.kicad_sch','style.json')
@@ -34,27 +34,27 @@ class UniversalTests(unittest.TestCase):
         with self.assertRaises(ValueError):sio.parse('(kicad_sch (text "unfinished))')
     def test_quoted_parentheses(self):self.assertEqual(sio.parse('(text "(not structure)")'),['text','(not structure)'])
     def test_sheet_cycle_rejected(self):
-        (self.root/'main.kicad_sch').write_text('(kicad_sch (sheet (property "Sheetfile" "main.kicad_sch")))')
+        (self.root/'main.kicad_sch').write_text('(kicad_sch (sheet (property "Sheetfile" "main.kicad_sch")))', encoding="utf-8")
         with self.assertRaises(ValueError):sio.sheets(self.root,'main.kicad_sch')
     def test_sheet_escape_rejected(self):
-        (self.root/'main.kicad_sch').write_text('(kicad_sch (sheet (property "Sheetfile" "../outside.kicad_sch")))')
+        (self.root/'main.kicad_sch').write_text('(kicad_sch (sheet (property "Sheetfile" "../outside.kicad_sch")))', encoding="utf-8")
         with self.assertRaises(ValueError):sio.sheets(self.root,'main.kicad_sch')
     def test_missing_sheet_rejected(self):
-        (self.root/'main.kicad_sch').write_text('(kicad_sch (sheet (property "Sheetfile" "absent.kicad_sch")))')
+        (self.root/'main.kicad_sch').write_text('(kicad_sch (sheet (property "Sheetfile" "absent.kicad_sch")))', encoding="utf-8")
         with self.assertRaises(FileNotFoundError):sio.sheets(self.root,'main.kicad_sch')
     def test_style_no_arbitrary_page_default(self):
-        (self.root/'main.kicad_sch').write_text(self.sch.replace('"A4"','"A2"'));r=self.audit();self.assertFalse(r['findings']);self.assertFalse(r['production_authorized'])
+        (self.root/'main.kicad_sch').write_text(self.sch.replace('"A4"','"A2"'), encoding="utf-8");r=self.audit();self.assertFalse(r['findings']);self.assertFalse(r['production_authorized'])
     def test_style_explicit_page_failure(self):
         self.policy['pages']={'main.kicad_sch':{'paper':'A3'}};self.assertEqual(self.audit()['status'],'BLOCKED')
     def test_style_source_change_invalidates(self):
-        self.policy['pages']={'main.kicad_sch':{'paper':'A4'}};(self.root/'spec.md').write_text('changed')
+        self.policy['pages']={'main.kicad_sch':{'paper':'A4'}};(self.root/'spec.md').write_text('changed', encoding="utf-8")
         with self.assertRaises(ValueError):self.audit()
     def hierarchy(self,wire=False):
-        (self.root/'sub.kicad_sch').write_text('(kicad_sch (hierarchical_label "DATA" (at 10 10 0)))')
-        (self.root/'main.kicad_sch').write_text('(kicad_sch (sheet (property "Sheetfile" "sub.kicad_sch") (pin "DATA" input (at 10 10 0)))'+('(wire (pts (xy 5 10) (xy 15 10)))' if wire else '')+')')
+        (self.root/'sub.kicad_sch').write_text('(kicad_sch (hierarchical_label "DATA" (at 10 10 0)))', encoding="utf-8")
+        (self.root/'main.kicad_sch').write_text('(kicad_sch (sheet (property "Sheetfile" "sub.kicad_sch") (pin "DATA" input (at 10 10 0)))'+('(wire (pts (xy 5 10) (xy 15 10)))' if wire else '')+')', encoding="utf-8")
     def test_hierarchy_matches_without_forced_wire(self):self.hierarchy();self.assertFalse(self.audit()['findings'])
     def test_hierarchy_mismatch(self):
-        self.hierarchy();(self.root/'sub.kicad_sch').write_text('(kicad_sch (hierarchical_label "OTHER"))');self.assertEqual(self.audit()['status'],'BLOCKED')
+        self.hierarchy();(self.root/'sub.kicad_sch').write_text('(kicad_sch (hierarchical_label "OTHER"))', encoding="utf-8");self.assertEqual(self.audit()['status'],'BLOCKED')
     def test_midsegment_sheet_pin_allowed(self):
         self.hierarchy(True);self.policy['require_sheet_pin_wire']=True;self.assertFalse(self.audit()['findings'])
     def test_explicit_sheet_wire_missing(self):
@@ -63,9 +63,9 @@ class UniversalTests(unittest.TestCase):
         self.policy['require_sheet_pin_wire']='yes'
         with self.assertRaises(ValueError):self.audit()
     def system_contract(self):
-        (self.root/'sub.kicad_sch').write_text('(kicad_sch (lib_symbols) (symbol (lib_id "TEST:X") (property "Reference" "U2")))')
-        (self.root/'main.kicad_sch').write_text('(kicad_sch (lib_symbols) (symbol (lib_id "TEST:X") (property "Reference" "U1")) (sheet (property "Sheetfile" "sub.kicad_sch")))')
-        (self.root/'overview.svg').write_text('<svg>TEST architecture</svg>')
+        (self.root/'sub.kicad_sch').write_text('(kicad_sch (lib_symbols) (symbol (lib_id "TEST:X") (property "Reference" "U2")))', encoding="utf-8")
+        (self.root/'main.kicad_sch').write_text('(kicad_sch (lib_symbols) (symbol (lib_id "TEST:X") (property "Reference" "U1")) (sheet (property "Sheetfile" "sub.kicad_sch")))', encoding="utf-8")
+        (self.root/'overview.svg').write_text('<svg>TEST architecture</svg>', encoding="utf-8")
         c={'schema_version':1,'project_id':'TEST','revision':'A','overview':{'sheet':'main.kicad_sch','file':'overview.svg','sha256':sha256(self.root/'overview.svg'),'source':{'document_id':'SPEC','locator':'§1'}},
            'modules':[{'id':'logic_a','name':'A','role':'source','sheet':'main.kicad_sch','components':['U1']},{'id':'logic_b','name':'B','role':'sink','sheet':'sub.kicad_sch','components':['U2']}],
            'interfaces':[{'id':'BUS1','kind':'digital','purpose':'TEST link','from_module':'logic_a','to_module':'logic_b','source':{'document_id':'SPEC','locator':'§2'},'nets':[{'name':'DATA','terminals':[{'ref':'U1','pin':'1'},{'ref':'U2','pin':'1'}]}],
@@ -84,7 +84,7 @@ class UniversalTests(unittest.TestCase):
         graph=self.system_contract();graph['components']['R3']={}
         with self.assertRaisesRegex(ValueError,'cover all components'):system.audit(self.root,'system.json','main.kicad_sch',graph,[{'id':'SPEC'}])
     def test_system_contract_allows_one_module_without_cross_module_links(self):
-        graph=self.system_contract();c=json.loads((self.root/'system.json').read_text());(self.root/'main.kicad_sch').write_text('(kicad_sch (lib_symbols) (symbol (lib_id "TEST:X") (property "Reference" "U1")) (symbol (lib_id "TEST:X") (property "Reference" "U2")))');c['modules']=[{'id':'whole','name':'Whole','role':'single module','sheet':'main.kicad_sch','components':['U1','U2']}];c['interfaces']=[];dump(self.root/'system.json',c)
+        graph=self.system_contract();c=json.loads((self.root/'system.json').read_text(encoding="utf-8"));(self.root/'main.kicad_sch').write_text('(kicad_sch (lib_symbols) (symbol (lib_id "TEST:X") (property "Reference" "U1")) (symbol (lib_id "TEST:X") (property "Reference" "U2")))', encoding="utf-8");c['modules']=[{'id':'whole','name':'Whole','role':'single module','sheet':'main.kicad_sch','components':['U1','U2']}];c['interfaces']=[];dump(self.root/'system.json',c)
         r=system.audit(self.root,'system.json','main.kicad_sch',graph,[{'id':'SPEC'}]);self.assertEqual(r['interface_count'],0)
     def draft(self):
         self.q={'schema_version':1,'design_basis':self.src,'top':'main.kicad_sch','project':'main.kicad_pro','files':{'main.kicad_sch':self.sch,'main.kicad_pro':'{}'},'expected':{'components':{'R1':{'value':'1k'}},'nets':{'SIG':[['R1','1']]}}}
@@ -112,7 +112,7 @@ class UniversalTests(unittest.TestCase):
     def fake_native(self,argv):
         out=pathlib.Path(argv[argv.index('--output')+1]);kind=argv[2]
         if kind=='export':
-            if argv[3]=='netlist':out.write_text('<export><components><comp ref="R1"><value>1k</value></comp></components><nets><net code="1" name="SIG"><node ref="R1" pin="1"/></net></nets></export>')
+            if argv[3]=='netlist':out.write_text('<export><components><comp ref="R1"><value>1k</value></comp></components><nets><net code="1" name="SIG"><node ref="R1" pin="1"/></net></nets></export>', encoding="utf-8")
             else:out.write_bytes(b'%PDF-TEST DOUBLE ONLY')
         else:dump(out,{'$schema':'https://schemas.kicad.org/erc.v1.json','source':'main.kicad_sch','coordinate_units':'mm','kicad_version':'10.0.7','included_severities':['error','warning','exclusion'],'ignored_checks':[],'sheets':[{'path':'/','violations':[]}]})
         return {'returncode':0,'command':argv,'stdout':'TEST DOUBLE','stderr':''}
@@ -176,13 +176,13 @@ class UniversalTests(unittest.TestCase):
         cfg['schematic_style']={'policy':'style.json'};cfg['require_schematic_style']=True
         cfg['stages']['schematic']['tasks'].append({'id':'style','category':'schematic_style','level':'阻断级','requirement':'TEST structure','strength':'mandatory','targets':{'refs':['U1'],'nets':['FB'],'layers':[]},'source_refs':[{'document_id':'TEST','locator':'§1'}],'check':{'kind':'semantic'}})
         dump(project/'review-config.json',cfg);out=self.base/'packet';prepare(project,project/'review-config.json','schematic',out)
-        packet=json.loads((out/'packet.json').read_text());self.assertIn('style.json',packet['baseline']);self.assertIn('schematic-style.json',packet['artifacts_sha256'])
+        packet=json.loads((out/'packet.json').read_text(encoding="utf-8"));self.assertIn('style.json',packet['baseline']);self.assertIn('schematic-style.json',packet['artifacts_sha256'])
     def frozen(self):
         dump(self.root/'freeze-log.json',{'operations':['copy','refill','save','reload'],'candidate_sha256':sha256(self.root/'main.kicad_pcb')})
     def fake_export(self,argv):
         p=pathlib.Path(argv[argv.index('--output')+1]);kind=argv[3]
         if kind in ('gerbers','drill'):p.mkdir(parents=True,exist_ok=True);p=p/('a.gbr' if kind=='gerbers' else 'a.drl')
-        p.parent.mkdir(parents=True,exist_ok=True);p.write_text('TEST DOUBLE OUTPUT, NOT MANUFACTURABLE')
+        p.parent.mkdir(parents=True,exist_ok=True);p.write_text('TEST DOUBLE OUTPUT, NOT MANUFACTURABLE', encoding="utf-8")
         return {'returncode':0,'command':argv,'stdout':'TEST DOUBLE','stderr':''}
     def test_export_positive_double_never_releases(self):
         self.export_config();self.frozen();out=self.base/'export'
@@ -195,7 +195,7 @@ class UniversalTests(unittest.TestCase):
             source=pathlib.Path(argv[-1])
             self.assertNotEqual(source.parent,self.root)
             self.assertTrue(source.is_file())
-            source.with_suffix('.kicad_prl').write_text('Test-only native CLI side effect')
+            source.with_suffix('.kicad_prl').write_text('Test-only native CLI side effect', encoding="utf-8")
             return self.fake_export(argv)
         env={'cli_exact_target':True,'pcbnew_exact_target':True,'kicad_cli':'TEST'}
         with patch.object(export,'environment',return_value=env),patch.object(export,'evaluate',return_value={'blocked':False,'inputs_sha256':{}}),patch.object(export,'run',side_effect=side_effect):
@@ -216,11 +216,11 @@ class UniversalTests(unittest.TestCase):
     def test_export_changed_source_invalidates(self):
         self.export_config();self.frozen();out=self.base/'export'
         def mutate(argv):
-            r=self.fake_export(argv);(self.root/'spec.md').write_text('changed during export');return r
+            r=self.fake_export(argv);(self.root/'spec.md').write_text('changed during export', encoding="utf-8");return r
         with patch.object(export,'environment',return_value={'cli_exact_target':True,'pcbnew_exact_target':True,'kicad_cli':'TEST'}),patch.object(export,'evaluate',return_value={'blocked':False,'inputs_sha256':{}}),patch.object(export,'run',side_effect=mutate):r=export.export(self.root,self.root/'config.json',out,True)
         self.assertEqual(r['status'],'BLOCKED');self.assertFalse((out/'gerber').exists())
     def test_export_stale_freeze_executes_nothing(self):
-        self.export_config();self.frozen();(self.root/'main.kicad_pcb').write_text((self.root/'main.kicad_pcb').read_text()+' ')
+        self.export_config();self.frozen();(self.root/'main.kicad_pcb').write_text((self.root/'main.kicad_pcb').read_text(encoding="utf-8")+' ', encoding="utf-8")
         with patch.object(export,'environment',return_value={'cli_exact_target':True,'pcbnew_exact_target':True,'kicad_cli':'TEST'}),patch.object(export,'evaluate',return_value={'blocked':False,'inputs_sha256':{}}),patch.object(export,'run') as runner:
             with self.assertRaises(ValueError):export.export(self.root,self.root/'config.json',self.base/'export',True)
             runner.assert_not_called()
@@ -236,7 +236,7 @@ class UniversalTests(unittest.TestCase):
         import shutil
         from mass_production_review import evaluate
         project=self.base/'npi';shutil.copytree(pathlib.Path(__file__).resolve().parents[1]/'fixtures/npi-demo',project)
-        cfg=json.loads((project/'review-config.json').read_text());cfg['workflow_contract']='missing-project-flow.json';dump(project/'review-config.json',cfg)
+        cfg=json.loads((project/'review-config.json').read_text(encoding="utf-8"));cfg['workflow_contract']='missing-project-flow.json';dump(project/'review-config.json',cfg)
         r=evaluate(project,project/'review-config.json','mass_production','pre_export',static_preview=True)
         self.assertTrue(any(f['rule']=='FLOW.NPI' for f in r['findings']));self.assertFalse(r['release_allowed'])
     def test_style_template_requires_semantic_task(self):

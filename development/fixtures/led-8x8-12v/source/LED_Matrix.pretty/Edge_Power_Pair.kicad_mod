@@ -1,0 +1,13 @@
+(footprint "Edge_Power_Pair"
+  (version 20240108)
+  (generator "konnect")
+  (layer "F.Cu")
+  (descr "Front solder pads: 1=+12V, 2=GND; no paste, no holes")
+  (attr smd)
+  (pad "1" smd rect (at -0.95 0) (size 1.2 2.2) (layers "F.Cu" "F.Mask")  )
+  (pad "2" smd rect (at 0.95 0) (size 1.2 2.2) (layers "F.Cu" "F.Mask")  )
+  (fp_rect (start -1.65 -1.2) (end 1.65 1.2) (stroke (width 0.05) (type solid)) (fill none) (layer "F.CrtYd"))
+  (fp_rect (start -1.55 -1.1) (end 1.55 1.1) (stroke (width 0.1) (type solid)) (fill none) (layer "F.Fab"))
+  (fp_text reference "REF**" (at 0.0000 -1.8000 0) (layer "F.SilkS") (effects (font (size 1 1) (thickness 0.15))))
+  (fp_text value "Edge_Power_Pair" (at 0.0000 1.8000 0) (layer "F.Fab") (effects (font (size 1 1) (thickness 0.15))))
+)

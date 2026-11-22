@@ -28,4 +28,6 @@ backups/
 !development/fixtures/**/*.kicad_sch
 !development/fixtures/**/*.kicad_pcb
 !development/fixtures/**/*.kicad_pro
+!development/fixtures/**/*.kicad_dru
+!development/fixtures/**/*.kicad_mod
 !dist/*.zip

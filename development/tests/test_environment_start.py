@@ -11,13 +11,13 @@ import environment_start as e
 class StartupTests(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.root=pathlib.Path(self.tmp.name);self.project=self.root/'source';self.project.mkdir();self.out=self.root/'report'
-        for n in ('demo.kicad_sch','demo.kicad_pcb','demo.kicad_pro'):(self.project/n).write_text('TEST ONLY')
+        for n in ('demo.kicad_sch','demo.kicad_pcb','demo.kicad_pro'):(self.project/n).write_text('TEST ONLY', encoding="utf-8")
         self.sig={'TEST':'TEST_ONLY'};self.env={'cli_exact_target':True,'pcbnew_exact_target':True,'kicad_cli':'TEST_CLI','cli_version':'10.0.7'}
         self.probe=patch.object(e,'signature',return_value=(self.sig,self.env));self.probe.start();self.addCleanup(self.probe.stop)
     def tearDown(self):self.tmp.cleanup()
     def setup(self,apply=False):return e.setup(self.project,'demo.kicad_sch','demo.kicad_pcb','demo.kicad_pro',self.out,apply=apply)
     def fake_run(self,args):
-        p=pathlib.Path(args[args.index('--output')+1]);p.write_text('%PDF-TEST' if p.suffix=='.pdf' else '<export/>' if p.suffix=='.xml' else '{}');return {'returncode':0,'command':args}
+        p=pathlib.Path(args[args.index('--output')+1]);p.write_text('%PDF-TEST' if p.suffix=='.pdf' else '<export/>' if p.suffix=='.xml' else '{}', encoding="utf-8");return {'returncode':0,'command':args}
     def ready(self):
         with patch.object(e,'run',side_effect=self.fake_run),patch.object(e,'read_netlist',return_value={'TEST':True}),patch('native_report.extract',return_value=[]),patch.object(e.importlib,'import_module',return_value=MagicMock()):
             return self.setup(True)
@@ -46,10 +46,10 @@ class StartupTests(unittest.TestCase):
              patch('native_report.extract',return_value=[]):
             e.setup(self.project,'demo.kicad_sch','demo.kicad_pcb','demo.kicad_pro',self.out,apply=True,cli_only=True)
         p=self.out/'startup-state.json'
-        state=json.loads(p.read_text())
+        state=json.loads(p.read_text(encoding="utf-8"))
         state['scope']='environment_only'
         state['status']='ENVIRONMENT_READY'
-        p.write_text(json.dumps(state))
+        p.write_text(json.dumps(state), encoding="utf-8")
         self.assertEqual(e.check(p)['status'],'BLOCKED')
 
     def test_preview_no_write(self):
@@ -63,9 +63,9 @@ class StartupTests(unittest.TestCase):
     def test_changed_signature_requires_full(self):
         self.ready();self.sig['TEST']='CHANGED';self.assertEqual(e.check(self.out/'startup-state.json')['status'],'FULL_SETUP_REQUIRED')
     def test_changed_evidence_requires_full(self):
-        self.ready();(self.out/'pcb.pdf').write_text('CHANGED');self.assertEqual(e.check(self.out/'startup-state.json')['status'],'FULL_SETUP_REQUIRED')
+        self.ready();(self.out/'pcb.pdf').write_text('CHANGED', encoding="utf-8");self.assertEqual(e.check(self.out/'startup-state.json')['status'],'FULL_SETUP_REQUIRED')
     def test_expired_record_requires_full(self):
-        self.ready();p=self.out/'startup-state.json';s=json.loads(p.read_text());s['checked_at']=(dt.datetime.now(dt.timezone.utc)-dt.timedelta(days=8)).isoformat();p.write_text(json.dumps(s));self.assertEqual(e.check(p)['status'],'FULL_SETUP_REQUIRED')
+        self.ready();p=self.out/'startup-state.json';s=json.loads(p.read_text(encoding="utf-8"));s['checked_at']=(dt.datetime.now(dt.timezone.utc)-dt.timedelta(days=8)).isoformat();p.write_text(json.dumps(s), encoding="utf-8");self.assertEqual(e.check(p)['status'],'FULL_SETUP_REQUIRED')
     def test_design_violations_not_environment_failure(self):
         with patch.object(e,'run',side_effect=self.fake_run),patch.object(e,'read_netlist',return_value={'TEST':True}),patch('native_report.extract',return_value=[{'severity':'error'}]),patch.object(e.importlib,'import_module',return_value=MagicMock()):r=self.setup(True)
         self.assertEqual(r['status'],'ENVIRONMENT_READY');self.assertEqual(r['design_issue_counts']['drc'],1);self.assertFalse(r['production_authorized'])

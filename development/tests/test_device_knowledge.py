@@ -12,14 +12,14 @@ import device_knowledge as d
 class KnowledgeTests(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.root=pathlib.Path(self.tmp.name);self.cache=self.root/'cache'
-        self.src=self.root/'source.md';self.src.write_text('TEST ONLY. Supply must be 3.0 to 3.6 V. No clock is required.\n')
+        self.src=self.root/'source.md';self.src.write_text('TEST ONLY. Supply must be 3.0 to 3.6 V. No clock is required.\n', encoding="utf-8")
         self.meta=dict(manufacturer='TEST',mpn='IC1',package='QFN',document_id='DS1',revision='A',title='TEST ONLY',source_url='https://example.com/source.pdf',kind='datasheet')
     def tearDown(self):self.tmp.cleanup()
     def setup_card(self):
         r=d.ingest(self.cache,self.meta,['example.com'],self.src,True);self.record=pathlib.Path(r['record'])
         p=self.cache/'card.json';d.draft(self.cache,self.record,p,True);c=d.read(p)
         c['items']=[dict(id='supply',category='power_domains',requirement='Supply 3.0–3.6 V',conditions='Normal operation, TEST fixture',locator='§1',quote='Supply must be 3.0 to 3.6 V.',strength='mandatory',verification_method='Compare actual supply')]
-        c['gaps']=[];c['status']='verified';e=self.cache/'test-evidence.txt';e.write_text('TEST DOUBLE ONLY, no real person approval')
+        c['gaps']=[];c['status']='verified';e=self.cache/'test-evidence.txt';e.write_text('TEST DOUBLE ONLY, no real person approval', encoding="utf-8")
         c['verification']=dict(reviewer='TEST_NOT_A_PERSON',date=d.today().isoformat(),reason='Synthetic test',source_identity_reason='Synthetic fixture',file=e.name,sha256=d.sha256(e),content_sha256=d.digest({k:c[k] for k in ('identity','record_sha256','items','gaps')}))
         d.write(p,c);self.card=p
         rec=d.read(self.record);self.q=dict(schema_version=1,max_check_age_days=30,devices=[dict(ref='U1',manufacturer='TEST',mpn='IC1',package='QFN',application='TEST',required_kinds=['datasheet'],cards=['card.json'],latest_checks={'datasheet':dict(date=d.today().isoformat(),revision='A',source_sha256=rec['source_sha256'],file=e.name,sha256=d.sha256(e),checked_by='TEST',result='current')})])
@@ -46,7 +46,7 @@ class KnowledgeTests(unittest.TestCase):
         opener=MagicMock();opener.open.return_value=Response()
         with patch.object(d,'public_url',side_effect=lambda url,hosts:url),patch.object(d.urllib.request,'build_opener',return_value=opener),patch.object(d,'extract',return_value='TEST extracted text'):
             r=d.ingest(self.cache,self.meta,['example.com'],None,True)
-        rec=d.read(r['record']);self.assertEqual(rec['acquisition'],'https_download');self.assertEqual(d.local(self.cache,rec['text_file']).read_text(),'TEST extracted text')
+        rec=d.read(r['record']);self.assertEqual(rec['acquisition'],'https_download');self.assertEqual(d.local(self.cache,rec['text_file']).read_text(encoding="utf-8"),'TEST extracted text')
     def test_download_html_response_rejected(self):
         class Response:
             url='https://example.com/source.pdf'
@@ -59,7 +59,7 @@ class KnowledgeTests(unittest.TestCase):
             with self.assertRaises(ValueError):d.ingest(self.cache,self.meta,['example.com'],None,True)
         self.assertFalse(self.cache.exists())
     def test_html_not_pdf(self):
-        self.src=self.root/'source.pdf';self.src.write_text('<html>login</html>')
+        self.src=self.root/'source.pdf';self.src.write_text('<html>login</html>', encoding="utf-8")
         with self.assertRaises(ValueError):d.ingest(self.cache,self.meta,['example.com'],self.src)
     def test_draft_not_trusted(self):
         r=d.ingest(self.cache,self.meta,['example.com'],self.src,True);p=self.cache/'draft.json';d.draft(self.cache,r['record'],p,True)
@@ -73,7 +73,7 @@ class KnowledgeTests(unittest.TestCase):
         self.setup_card();c=d.read(self.card);c['items'][0]['requirement']='Changed';d.write(self.card,c)
         self.assertEqual(d.audit(self.cache,self.q)['status'],'BLOCKED')
     def test_source_corruption(self):
-        self.setup_card();r=d.read(self.record);d.local(self.cache,r['source_file']).write_text('tampered')
+        self.setup_card();r=d.read(self.record);d.local(self.cache,r['source_file']).write_text('tampered', encoding="utf-8")
         self.assertEqual(d.audit(self.cache,self.q)['status'],'BLOCKED')
     def test_missing_errata(self):
         self.setup_card();self.q['devices'][0]['required_kinds'].append('errata');self.assertEqual(d.audit(self.cache,self.q)['status'],'BLOCKED')
@@ -93,7 +93,7 @@ class KnowledgeTests(unittest.TestCase):
         self.setup_card();q=self.root/'q.json';d.write(q,self.q);out=self.root/'project'/'sources'
         d.bundle(self.cache,q,out);self.assertFalse(out.exists());d.bundle(self.cache,q,out,True)
         rec={'manifest':'sources/device-bundle.json','sha256':d.sha256(out/'device-bundle.json')}
-        self.assertTrue(d.validate_bundle(out.parent,rec));(out/'card.json').write_text('{}')
+        self.assertTrue(d.validate_bundle(out.parent,rec));(out/'card.json').write_text('{}', encoding="utf-8")
         with self.assertRaises(ValueError):d.validate_bundle(out.parent,rec)
     def test_no_overwrite(self):
         self.setup_card();q=self.root/'q.json';d.write(q,self.q);out=self.root/'out';out.mkdir()
@@ -108,11 +108,11 @@ class KnowledgeTests(unittest.TestCase):
         cfg['documents'].append(dict(id='DEVICE',file='device-sources/'+source['source_file'],sha256=source['source_sha256'],title='TEST',revision='A',issuer='TEST',authority='datasheet',applicability='TEST ONLY',approved_by='TEST'))
         cfg['device_knowledge']={'manifest':'device-sources/device-bundle.json','sha256':d.sha256(out/'device-bundle.json'),'required_refs':['U1']}
         for spec in cfg['stages'].values():spec['component_sources']['U1'].append('DEVICE')
-        p=project/'provided.xml';p.write_text(p.read_text().replace('<field name="MPN">TEST_ONLY</field>','<field name="MPN">IC1</field><field name="Manufacturer">TEST</field><field name="Package">QFN</field>'))
+        p=project/'provided.xml';p.write_text(p.read_text(encoding="utf-8").replace('<field name="MPN">TEST_ONLY</field>','<field name="MPN">IC1</field><field name="Manufacturer">TEST</field><field name="Package">QFN</field>'), encoding="utf-8")
         d.write(project/'review-config.json',cfg);packet=self.root/'packet'
         prepare(project,project/'review-config.json','schematic',packet)
         manifest=d.read(packet/'packet.json');self.assertIn('device-sources/card.json',manifest['baseline'])
-        (out/'card.json').write_text('{}');r=validate(project,packet)
+        (out/'card.json').write_text('{}', encoding="utf-8");r=validate(project,packet)
         self.assertEqual(r['status'],'BLOCKED');self.assertTrue(any('device' in f['description'].lower() for f in r['findings']))
     def test_new_policy_missing_bundle_blocks(self):
         from test_static_review import fixture

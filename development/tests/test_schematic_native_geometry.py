@@ -60,8 +60,8 @@ class NativeGeometryTests(unittest.TestCase):
         original=symbol_geometry(self.root,self.root/'working.kicad_sch','Fixture:Fixture')
         long_name='UnreasonablyLongLibrarySymbolIdentifierWithNoDisplayedText'
         lib=SYM.replace('(symbol "Fixture"',f'(symbol "{long_name}"').replace('Fixture_1_1',f'{long_name}_1_1')
-        (self.root/'Fixture.kicad_sym').write_text(lib)
-        (self.root/'empty.kicad_sch').write_text('(kicad_sch (paper "A4") (lib_symbols))')
+        (self.root/'Fixture.kicad_sym').write_text(lib, encoding="utf-8")
+        (self.root/'empty.kicad_sch').write_text('(kicad_sch (paper "A4") (lib_symbols))', encoding="utf-8")
         other=symbol_geometry(self.root,self.root/'empty.kicad_sch',f'Fixture:{long_name}',library_file='Fixture.kicad_sym')
         self.assertEqual(original['body_bbox_mm'],other['body_bbox_mm'])
         self.assertEqual([f['bbox_mm'] for f in original['fields']],[f['bbox_mm'] for f in other['fields']])
@@ -71,8 +71,8 @@ class NativeGeometryTests(unittest.TestCase):
     def test_unset_value_inherits_actual_native_value_not_identifier_suffix(self):
         long_name='VeryLongSymbolNameNotPrintedInSchematic'
         lib=SYM.replace('(symbol "Fixture"',f'(symbol "{long_name}"').replace('Fixture_1_1',f'{long_name}_1_1')
-        (self.root/'Fixture.kicad_sym').write_text(lib)
-        (self.root/'empty.kicad_sch').write_text('(kicad_sch (paper "A4") (lib_symbols))')
+        (self.root/'Fixture.kicad_sym').write_text(lib, encoding="utf-8")
+        (self.root/'empty.kicad_sch').write_text('(kicad_sch (paper "A4") (lib_symbols))', encoding="utf-8")
         topo={('R1','1'):'SIG',('R1','2'):'GND'}
         g=prospective_geometry(self.root,self.root/'empty.kicad_sch',
           {'ref':'R1','lib_id':f'Fixture:{long_name}','library_file':'Fixture.kicad_sym'},topo,5.0)
@@ -88,8 +88,8 @@ class NativeGeometryTests(unittest.TestCase):
     def test_hidden_native_value_does_not_block_placement_space(self):
         hidden=SYM.replace('(property "Value" "Fixture" (at 0 -3.81 0) (effects (font (size 1.27 1.27))))',
                            '(property "Value" "Fixture" (at 0 -3.81 0) (effects (font (size 1.27 1.27)) (hide yes)))')
-        (self.root/'Fixture.kicad_sym').write_text(hidden)
-        (self.root/'empty.kicad_sch').write_text('(kicad_sch (paper "A4") (lib_symbols))')
+        (self.root/'Fixture.kicad_sym').write_text(hidden, encoding="utf-8")
+        (self.root/'empty.kicad_sch').write_text('(kicad_sch (paper "A4") (lib_symbols))', encoding="utf-8")
         topo={('R1','1'):'SIG',('R1','2'):'GND'}
         g=prospective_geometry(self.root,self.root/'empty.kicad_sch',
           {'ref':'R1','lib_id':'Fixture:Fixture','library_file':'Fixture.kicad_sym'},topo,5.0)
@@ -101,25 +101,25 @@ class NativeGeometryTests(unittest.TestCase):
     def test_instance_lib_id_not_in_rendered_collision_boxes(self):
         one=snapshot(self.root,'working.kicad_sch',self.protected)['pages']['working.kicad_sch']['objects'][0]
         expanded=SCH.replace('Fixture:Fixture','Fixture:AnExtremelyLongSymbolLibraryIdentifier')
-        (self.root/'other.kicad_sch').write_text(expanded)
+        (self.root/'other.kicad_sch').write_text(expanded, encoding="utf-8")
         two=snapshot(self.root,'other.kicad_sch',self.protected)['pages']['other.kicad_sch']['objects'][0]
         self.assertEqual(one['bbox_mm'],two['bbox_mm'])
         self.assertEqual(one['collision_boxes_mm'],two['collision_boxes_mm'])
 
     def test_resolve_before_placement_from_actual_kicad_sym(self):
-        (self.root/'empty.kicad_sch').write_text('(kicad_sch (paper "A4") (lib_symbols))')
+        (self.root/'empty.kicad_sch').write_text('(kicad_sch (paper "A4") (lib_symbols))', encoding="utf-8")
         g=symbol_geometry(self.root,self.root/'empty.kicad_sch','Fixture:Fixture',1,1,'Fixture.kicad_sym')
         self.assertEqual(len(g['pins']),2)
         self.assertEqual(g['source']['file'],'Fixture.kicad_sym')
     def test_installed_library_env_resolves_without_per_symbol_file(self):
-        (self.root/'empty.kicad_sch').write_text('(kicad_sch (paper "A4") (lib_symbols))')
+        (self.root/'empty.kicad_sch').write_text('(kicad_sch (paper "A4") (lib_symbols))', encoding="utf-8")
         with patch.dict('os.environ',{'KICAD10_SYMBOL_DIR':str(self.root)}):
             g=symbol_geometry(self.root,self.root/'empty.kicad_sch','Fixture:Fixture')
         self.assertEqual(len(g['pins']),2)
 
     def test_project_symbol_table_uri_resolves_before_placement(self):
-        (self.root/'empty.kicad_sch').write_text('(kicad_sch (paper "A4") (lib_symbols))')
-        (self.root/'sym-lib-table').write_text('(sym_lib_table (lib (name "Fixture") (type "KiCad") (uri "${KIPRJMOD}/Fixture.kicad_sym") (options "") (descr "")))')
+        (self.root/'empty.kicad_sch').write_text('(kicad_sch (paper "A4") (lib_symbols))', encoding="utf-8")
+        (self.root/'sym-lib-table').write_text('(sym_lib_table (lib (name "Fixture") (type "KiCad") (uri "${KIPRJMOD}/Fixture.kicad_sym") (options "") (descr "")))', encoding="utf-8")
         g=symbol_geometry(self.root,self.root/'empty.kicad_sch','Fixture:Fixture')
         self.assertEqual([x['number'] for x in g['pins']],['1','2'])
 
@@ -171,8 +171,8 @@ class NativeGeometryTests(unittest.TestCase):
             snapshot(self.root,'working.kicad_sch',{'*':[]})
     def test_unknown_graphic_blocks(self):
         s=SYM.replace('(rectangle (start', '(polygon (start')
-        (self.root/'Fixture.kicad_sym').write_text(s)
-        (self.root/'empty.kicad_sch').write_text('(kicad_sch (paper "A4") (lib_symbols))')
+        (self.root/'Fixture.kicad_sym').write_text(s, encoding="utf-8")
+        (self.root/'empty.kicad_sch').write_text('(kicad_sch (paper "A4") (lib_symbols))', encoding="utf-8")
         with self.assertRaisesRegex(ValueError,'Unsupported'):
             symbol_geometry(self.root,self.root/'empty.kicad_sch','Fixture:Fixture',library_file='Fixture.kicad_sym')
 
@@ -181,10 +181,10 @@ class NativePrePlacementTests(unittest.TestCase):
         t=tempfile.TemporaryDirectory();self.addCleanup(t.cleanup);self.root=pathlib.Path(t.name)
         (self.root/'main.kicad_sch').write_text('(kicad_sch (paper "A4") (lib_symbols))',encoding='utf-8')
         (self.root/'Fixture.kicad_sym').write_text(SYM,encoding='utf-8')
-        (self.root/'basis.txt').write_text('Independent pin-to-net graph, fixture only')
+        (self.root/'basis.txt').write_text('Independent pin-to-net graph, fixture only', encoding="utf-8")
         self.topo={'schema_version':1,'source':{'file':'basis.txt','sha256':sha(self.root/'basis.txt'),'locator':'test fixture'},
                    'pins':[{'ref':r,'pin':p,'net':n} for r in ('R1','R2') for p,n in (('1','GND' if r=='R1' else 'SIG'),('2','SIG' if r=='R1' else 'GND'))]}
-        (self.root/'topo.json').write_text(json.dumps(self.topo))
+        (self.root/'topo.json').write_text(json.dumps(self.topo), encoding="utf-8")
         self.req={'schema_version':1,'schematic':'main.kicad_sch','schematic_sha256':sha(self.root/'main.kicad_sch'),
                   'geometry_mode':'native_auto','protected_regions_by_page':{'*':[{'id':'title','kind':'title_block','bbox_mm':[220,165,292,208]}]},
                   'page':'main.kicad_sch','topology_file':'topo.json','topology_sha256':sha(self.root/'topo.json'),
@@ -205,17 +205,17 @@ class NativePrePlacementTests(unittest.TestCase):
         self.assertFalse(r['executed'])
     def test_changed_native_library_invalidates_preflight_receipt(self):
         r=layout(self.root,self.req)
-        (self.root/'request.json').write_text(json.dumps(self.req))
+        (self.root/'request.json').write_text(json.dumps(self.req), encoding="utf-8")
         r['request_sha256']=sha(self.root/'request.json')
         (self.root/'03_REPORTS').mkdir()
-        (self.root/'03_REPORTS/receipt.json').write_text(json.dumps(r))
+        (self.root/'03_REPORTS/receipt.json').write_text(json.dumps(r), encoding="utf-8")
         self.assertTrue(authorize(self.root,'request.json',self.root/'03_REPORTS/receipt.json')['allow_placement_batch'])
-        (self.root/'Fixture.kicad_sym').write_text(SYM+'\n')
+        (self.root/'Fixture.kicad_sym').write_text(SYM+'\n', encoding="utf-8")
         with self.assertRaisesRegex(ValueError,'Pre-placement source changed'):
             authorize(self.root,'request.json',self.root/'03_REPORTS/receipt.json')
     def test_wrong_native_pin_number_stops_before_writing(self):
         self.topo['pins'].append({'ref':'R1','pin':'3','net':'X'})
-        (self.root/'topo.json').write_text(json.dumps(self.topo))
+        (self.root/'topo.json').write_text(json.dumps(self.topo), encoding="utf-8")
         self.req['topology_sha256']=sha(self.root/'topo.json')
         with self.assertRaisesRegex(ValueError,'extraneous pins'):
             layout(self.root,self.req)

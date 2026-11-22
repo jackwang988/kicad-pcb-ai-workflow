@@ -115,9 +115,11 @@ def confirm(root,proposal_file,confirmed_by,decision,approval_output,fab_output)
        'next_action':'Apply through authorized Konnect then verify REAL active project Board Setup and native preflight',
        'executed':False,'production_authorized':False}
     # Exclusive creations: approval cannot exist without its corresponding immutable fab.
-    with fab_path.open('x',encoding='utf-8') as out:out.write(fab_text)
+    # The receipt hashes the exact UTF-8/LF payload above. Do not let Windows
+    # translate it to CRLF and immediately invalidate the immutable receipt.
+    with fab_path.open('x',encoding='utf-8',newline='\n') as out:out.write(fab_text)
     try:
-        with approval_path.open('x',encoding='utf-8') as out:out.write(json.dumps(a,ensure_ascii=False,indent=2)+'\n')
+        with approval_path.open('x',encoding='utf-8',newline='\n') as out:out.write(json.dumps(a,ensure_ascii=False,indent=2)+'\n')
     except Exception:
         fab_path.unlink()
         raise
