@@ -1,5 +1,7 @@
 # R10 main integration and native validation evidence — 2026-11-18
 
+> **2026-11-21 · R10.0.2**：[新增 LED 本机端到端案例](07-led-e2e-and-silkscreen.md)已达原生 ERC/DRC 零违规和受检工程导出；其正式 freeze、工程签字、板厂与实物测试仍未覆盖。它不改变下文早期合成互通样板的非零 DRC 记录，也不等于所有功能验收。
+
 [Current full architecture and 16-node / 7-stage execution diagrams](06-current-skill-full-flow.md) · [Seven-stage routing runtime contract](../../kicad-pcb-ai-workflow/references/freerouting-seven-stage.md) · [Legacy R10 acceptance history](../../R10_RELEASE_NOTES.md)
 
 ## R10 正式验收记录（2026-11-18 · 维护者确认）

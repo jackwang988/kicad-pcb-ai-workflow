@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "kind": "maintainer_local_native_observation",
+  "date": "2026-11-21",
+  "platform": "Windows x86_64",
+  "kicad_version": "10.0.8",
+  "scope": "one 60mm single-copper-side LED design; native CLI checks and MCP-assisted edits/exports",
+  "native_DRC": {
+    "errors": 0,
+    "warnings": 0,
+    "unconnected": 0
+  },
+  "native_ERC": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "warnings_before": {
+    "silk_over_copper": 135,
+    "silk_overlap": 64,
+    "footprint_symbol_field_mismatch": 80
+  },
+  "warnings_after": {
+    "silk_over_copper": 0,
+    "silk_overlap": 0,
+    "footprint_symbol_field_mismatch": 0
+  },
+  "footprints": 84,
+  "LEDs": 64,
+  "resistors": 16,
+  "power_pad_pairs": 4,
+  "nets": 66,
+  "pads": 168,
+  "tracks": 205,
+  "vias": 0,
+  "filled_GND_zones": 1,
+  "field_values_verified": 376,
+  "field_style_edits": 84,
+  "custom_field_values": 208,
+  "mandatory_metadata_values": 168,
+  "source_hashes": {
+    "fp-lib-table": "9890fe9967d3a9059b67fe50b0c81d138ea1d5f5b3854a32b670afacf35dfc98",
+    "LED_Matrix.kicad_sym": "3397021d0e01992f8e71d214f4f01dab8a82f728e8299580b1bb17f370a455fb",
+    "LED_Matrix_8x8_12V.kicad_dru": "20afb08c9bf2bfab59ab70ceb43fa2b72ee405490fd2c05da5a42d95608b6068",
+    "LED_Matrix_8x8_12V.kicad_pcb": "ff3a1ec530da8b8f27dfba17465142b448248b9a575763b118718e2d97a0c7ea",
+    "LED_Matrix_8x8_12V.kicad_pro": "04da8b243834215aa00bf3cf52ea6f3a501228729789c43c6b48bc170dc8b8de",
+    "LED_Matrix_8x8_12V.kicad_sch": "c5ddcf8023612651206a01fdc764341530cc2303da841d36cf548a39e8af691d",
+    "sym-lib-table": "f8979ef795c52470be558e37ca82a7a2b62e2be1228c629aeab4b86d705db1e7",
+    "LED_Matrix.pretty/Edge_Power_Pair.kicad_mod": "85a1b70c5b673204d20024c0a921ff477d669642f1d656b8c777d0be007f42aa",
+    "LED_Matrix.pretty/WE_150283RS73103.kicad_mod": "c8ab1031d3a4c7bd7c6ac4b94ee62b89d84e0c62211c9f05aa17eb00e2bc7357"
+  },
+  "original_board_sha256": "ff3a1ec530da8b8f27dfba17465142b448248b9a575763b118718e2d97a0c7ea",
+  "MCP": {
+    "base_version": "0.13.0",
+    "base_commit": "6bbe3e4f890ba1d37c0e5d5f38ccd03d90958c9e",
+    "extension_server_version": "0.13.0+led.fields.1",
+    "revision_1_executable_sha256": "59c41aea12b3bd0bd536e364ac84b57c5023ab8ea156ceedb38b6765cbea3f55",
+    "revision_2_executable_sha256": "00fea1b7be5599316ce9c3993bf0f07fdec8cf487fcd52c786c12282a3676ac7",
+    "field_tool_schema_sha256": "984f5e9eca56f659407f4c97bfb1558fddf73860c96ddb630b7c0f460fd5ee98",
+    "field_tool": "set_placed_footprint_fields",
+    "unit_tests": {
+      "passed": 3,
+      "failed": 0
+    },
+    "stock_0_13_0_and_0_14_1_placed_field_edit_support": false,
+    "binary_distributed": false
+  },
+  "export": {
+    "physical_copper_sides": 1,
+    "profile_centerline_mm": [
+      60,
+      60
+    ],
+    "profile_graphical_bbox_mm": [
+      60.05,
+      60.05
+    ],
+    "copper_pads_verified": 168,
+    "copper_tracks_verified": 205,
+    "mask_openings": 168,
+    "paste_apertures": 160,
+    "holes": 0,
+    "original_Gerber_zip_sha256": "36c43abc938e50b58bc3e1e9a0ca0cfc619fe6cffa4216a081f52b0c0c735ed6",
+    "resistor_MPN": "not_selected_specification_only",
+    "status": "EXPORTED_NOT_RELEASED"
+  },
+  "not_verified": [
+    "automatic replay of every design operation on a clean second workstation",
+    "formal G1-G4 engineer signatures",
+    "formal freeze_candidate.py handoff/finalize gate",
+    "CPL assembly delivery",
+    "this LED board through Freerouting DSN/SES roundtrip",
+    "multilayer/high-speed/RF/thermal design generality",
+    "factory CAM/EQ and manufacturing approval",
+    "prototype electrical/brightness/thermal measurements"
+  ],
+  "production_authorized": false
+}

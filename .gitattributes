@@ -1,0 +1,5 @@
+# Native fixture/provenance hashes bind exact exported bytes on every platform.
+kicad-pcb-ai-workflow/** text eol=lf
+# Native serializers' CRLF/tab-only lines are evidence, not hand-edited style.
+development/fixtures/led-8x8-12v/** -text -whitespace
+development/konnect-field-extension/pcb_fields.rs -text

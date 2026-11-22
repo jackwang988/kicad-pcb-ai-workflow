@@ -1,0 +1,28 @@
+{
+  "status": "PASS",
+  "before_board_sha256": "1f858a7ecc1b63dcd30e63c2f406a4a6d887f99acd2d74879aea2a505382be0d",
+  "after_board_sha256": "ff3a1ec530da8b8f27dfba17465142b448248b9a575763b118718e2d97a0c7ea",
+  "schematic_unchanged": true,
+  "copper_and_placement_unchanged": true,
+  "protected_geometry_unchanged": true,
+  "board_notes_repositioned": [
+    {
+      "text": "8x8 RED / 12V / 1k",
+      "x": 130,
+      "y": 129.4
+    },
+    {
+      "text": "SINGLE F.Cu",
+      "x": 130,
+      "y": 136.8
+    }
+  ],
+  "numeric_tolerance_mm": 2e-06,
+  "serialization_quantization": [],
+  "footprints": 84,
+  "reference_positions_verified": 84,
+  "field_values_verified": 376,
+  "tracks": 205,
+  "vias": 0,
+  "zones": 1
+}

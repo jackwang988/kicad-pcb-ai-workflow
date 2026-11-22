@@ -136,7 +136,10 @@ class EntryTests(unittest.TestCase):
             entry.compile_bundle(self.root, 'workflow.json', '../outside', True)
         target = pathlib.Path(self.temp.name) / 'elsewhere'
         target.mkdir()
-        (self.root / 'link').symlink_to(target, target_is_directory=True)
+        try:(self.root / 'link').symlink_to(target, target_is_directory=True)
+        except OSError as exc:
+            if getattr(exc,'winerror',None)==1314:self.skipTest('Host lacks Windows symlink privilege; capable CI must exercise this case')
+            raise
         with self.assertRaises(ValueError):
             entry.compile_bundle(self.root, 'workflow.json', 'link/bundle', True)
         self.assertFalse((target / 'bundle').exists())
@@ -169,7 +172,8 @@ class EntryTests(unittest.TestCase):
         tool, args = entry.command(self.root, 'workflow.json', 'control-r1', 'manufacturing.export', opts)
         self.assertEqual(tool, 'manufacturing_export')
         self.assertNotIn('--apply', args)
-        self.assertIn(str(self.root / 'control-r1/npi.json'), args)
+        self.assertEqual(pathlib.Path(args[args.index('--config')+1]).resolve(),
+                         (self.root / 'control-r1/npi.json').resolve())
         opts['apply'] = True
         self.assertIn('--apply', entry.command(self.root, 'workflow.json', 'control-r1', 'manufacturing.export', opts)[1])
 

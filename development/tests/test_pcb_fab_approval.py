@@ -1,5 +1,6 @@
 """Synthetic KiCad FR4 structures and human-authorization protocol; no real KiCad GUI claim."""
 import json
+import hashlib
 import sys
 import tempfile
 import unittest
@@ -82,6 +83,10 @@ class FactoryConsentTests(unittest.TestCase):
         self.assertEqual(result['status'],'FAB_PROFILE_APPROVAL_CURRENT')
         (self.root/'demo.kicad_pcb').write_text(board_string(with_stack=False))
         with self.assertRaisesRegex(ValueError,'stackup'):fab.validate_for_layout(self.root,self.request())
+    def test_approval_hash_binds_the_actual_written_bytes_on_windows_too(self):
+        self.preview();receipt=self.accept();payload=(self.root/self.fabric).read_bytes()
+        self.assertNotIn(b'\r\n',payload)
+        self.assertEqual(receipt['fab_rules_sha256'],hashlib.sha256(payload).hexdigest())
     def test_fab_rule_edit_invalidates_confirmation(self):
         self.preview();self.accept();p=self.root/self.fabric
         p.write_text(p.read_text().replace('0.7','0.4'))
@@ -101,7 +106,8 @@ class FactoryConsentTests(unittest.TestCase):
     def test_workflow_preview_requires_no_apply_and_confirm_requires_user(self):
         tool,args=workflow.command(self.root,'workflow.json',None,'pcb.fab_preview',
             {'fab_board':'demo.kicad_pcb','fab_layers':'2','fab_proposal':'03_REPORTS/proposal.json'})
-        self.assertEqual(tool,'pcb_fab_approval');self.assertEqual(args[:2],['preview',str(self.root)])
+        self.assertEqual(tool,'pcb_fab_approval');self.assertEqual(args[0],'preview')
+        self.assertEqual(Path(args[1]).resolve(),self.root.resolve())
         with self.assertRaisesRegex(ValueError,'only valid|preview is read-only'):
             workflow.command(self.root,'workflow.json',None,'pcb.fab_preview',{'apply':True,'fab_board':'demo.kicad_pcb','fab_layers':'2'})
         with self.assertRaisesRegex(ValueError,'confirm'):

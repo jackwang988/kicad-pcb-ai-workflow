@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "source_url": "https://codeload.github.com/mixelpixx/Konnect/zip/6bbe3e4f890ba1d37c0e5d5f38ccd03d90958c9e",
+  "source_commit": "6bbe3e4f890ba1d37c0e5d5f38ccd03d90958c9e",
+  "source_archive_sha256": "a848a8ebeb601bfd8e52d72ddd60ba40122a802bb220a1770dcf91fd3230c20b",
+  "base_file_sha256": {
+    "crates/konnect-core/src/tools/mod.rs": "9b20fe14844888ffa68e9838a8312eb809d4e119a0a400b3641cfa62e024c7e8",
+    "crates/konnect-core/src/tools/pcb_components.rs": "d2f0226606f0cbb57ed8961e7f093b6532a660e2ef0dd8d5d2efe5da5857f6b7",
+    "Cargo.toml": "70f14445a4a0d488230549751fc1b01e05bfd4b52e2c4b68cd76feab9b7e501a",
+    "Cargo.lock": "60d54cdb64f5e686f0475abe0cab72c655fca7cb6756b6cb03f66404daebef99"
+  },
+  "extension_module_sha256": "c2ca33e2c1a2399fd727b61c1a45dfe92beaf7b6925d37a3b5743db96362e6cf",
+  "server_version": "0.13.0+led.fields.1",
+  "license": "AGPL-3.0-only",
+  "tested_kicad": [
+    "10.0.8"
+  ],
+  "known_scope": "Windows LED example, all four mandatory fields present; per-project first-use validation required",
+  "binary_distributed": false
+}

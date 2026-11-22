@@ -41,6 +41,13 @@ def validate(core):
     header = re.match(r'^---\n(.*?)\n---\n', md, re.S)
     if not header or set(re.findall(r'^([\w-]+):', header[1], re.M)) != {'name','description'}:
         raise ValueError('Skill metadata must have name and description only')
+    description=re.search(r'^description:\s*(.*)$',header[1],re.M).group(1)
+    if not description or (not description.startswith(('"',"'")) and re.search(r':(?:\s|$)',description)):
+        raise ValueError('Quote a description containing a YAML colon followed by whitespace')
+    if description.startswith('"'):
+        try:parsed_description=json.loads(description)
+        except ValueError as exc:raise ValueError('Invalid quoted Skill description') from exc
+        if not isinstance(parsed_description,str):raise ValueError('Skill description must be a string')
     if 'name: kicad-pcb-ai-workflow' not in header[1] or len(md.splitlines()) >= 500:
         raise ValueError('Invalid Skill name or oversized entry')
     for p in actual:

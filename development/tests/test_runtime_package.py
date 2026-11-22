@@ -36,6 +36,12 @@ class PackageTests(unittest.TestCase):
         self.assertEqual(r.findings, [])
         self.assertEqual(set(runtime_inventory(self.clone)), RUNTIME_TOOLS)
 
+    def test_unquoted_yaml_colon_description_is_not_publishable(self):
+        path=self.clone/'SKILL.md';text=path.read_text(encoding='utf-8')
+        lines=text.splitlines();lines[2]='description: Invalid metadata: ambiguous scalar'
+        path.write_text('\n'.join(lines)+'\n',encoding='utf-8')
+        with self.assertRaisesRegex(ValueError,'YAML colon'):build_release.validate(self.clone)
+
     def test_removing_any_required_tool_blocks_inventory_gate(self):
         for name in sorted(RUNTIME_TOOLS):
             p = self.clone/'scripts'/(name+'.py')
@@ -80,7 +86,10 @@ class PackageTests(unittest.TestCase):
     def test_symlinked_tool_is_rejected_even_with_identical_bytes(self):
         p = self.clone/'scripts/doctor.py'
         p.unlink()
-        p.symlink_to(ROOT/'scripts/doctor.py')
+        try:p.symlink_to(ROOT/'scripts/doctor.py')
+        except OSError as exc:
+            if getattr(exc,'winerror',None)==1314:self.skipTest('Host lacks Windows symlink privilege; capable CI must exercise this case')
+            raise
         with self.assertRaisesRegex(ValueError, 'Missing/changed'):
             runtime_inventory(self.clone)
 

@@ -1,0 +1,3 @@
+﻿References,Quantity,Value,Footprint,Manufacturer,MPN,Specification,Datasheet,Description,ProcurementNotes
+D1-D64,64,RED,LED_Matrix:WE_150283RS73103,Wurth Elektronik,150283RS73103,,https://www.we-online.com/components/products/datasheet/150283RS73103.pdf,,"Red LED, 2835; pin 1 = anode, pin 2 = cathode"
+R1-R16,16,1k,Resistor_SMD:R_1206_3216Metric,,,1k 1% 1206 0.25W,,,Specification only; manufacturer and MPN not selected

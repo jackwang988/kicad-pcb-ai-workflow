@@ -62,7 +62,10 @@ class WorkspaceTokenTest(unittest.TestCase):
         external.mkdir()
         target=self.root/'02_CHECKPOINTS'
         target.rmdir()
-        target.symlink_to(external,target_is_directory=True)
+        try:target.symlink_to(external,target_is_directory=True)
+        except OSError as exc:
+            if getattr(exc,'winerror',None)==1314:self.skipTest('Host lacks Windows symlink privilege; capable CI must exercise this case')
+            raise
         with self.assertRaisesRegex(ValueError,'Symlinked'):
             workflow.workspace_action(self.args('checkpoint',label='X',apply=True))
         target.unlink()

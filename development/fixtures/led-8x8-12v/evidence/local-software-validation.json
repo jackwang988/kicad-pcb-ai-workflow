@@ -1,0 +1,25 @@
+{
+  "software_tests": {
+    "run": 508,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3,
+    "skip_reason": "Windows error 1314: symlink creation privilege absent; capable CI required"
+  },
+  "r10_tests": {
+    "run": 37,
+    "failures": 0,
+    "errors": 0
+  },
+  "skill_validator": "PASS",
+  "native_saved_case": "PASS",
+  "not_live_MCP_replay": true,
+  "production_authorized": false,
+  "subsequent_metadata_guard_package_suite": {
+    "run": 14,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1,
+    "scope": "Includes the newly added malformed-frontmatter rejection; skip is unavailable Windows symlink privilege"
+  }
+}

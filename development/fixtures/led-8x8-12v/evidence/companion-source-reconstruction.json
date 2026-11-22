@@ -1,0 +1,14 @@
+{
+  "status": "SOURCE_MATCHES_LOCALLY_TESTED_PATCH",
+  "comparison": "UTF-8 text with newline normalization; field module exact byte hash is separately pinned",
+  "canonical_source_hashes": {
+    "Cargo.toml": "6bc26d53f8cd571410798eb0acf2c1dc336583c565f4ccade7ab5bc76b8e7060",
+    "Cargo.lock": "699a4d4af56f4c1975abbee0fc39816fdfdb3f21c6bda8efde55a30b8e10ebfe",
+    "crates/konnect-core/src/tools/mod.rs": "3f07974a7278a0127774e60749d55b7b9750f6d73085da1e3c76e8d83f512a52",
+    "crates/konnect-core/src/tools/pcb_components.rs": "6b7396cfa9f01f4a47f0e9b0e1c2bbabf69d304d5f04c93945239ce587aef42f",
+    "crates/konnect-core/src/tools/pcb_fields.rs": "c2ca33e2c1a2399fd727b61c1a45dfe92beaf7b6925d37a3b5743db96362e6cf"
+  },
+  "source_build_reexecuted": false,
+  "new_workstation_native_acceptance": false,
+  "host_configuration_changed": false
+}
