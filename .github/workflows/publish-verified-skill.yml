@@ -1,4 +1,4 @@
-name: Publish KiCad R10 RC1 prerelease (gated)
+name: Legacy RC1 validation (publication retired)
 
 # Real KiCad verification is mandatory; Konnect live validation is explicitly
 # out of scope of this prerelease. Never publish from a pull request.
@@ -60,6 +60,10 @@ jobs:
           retention-days: 90
 
   publish-r10-rc1:
+    # Historical release names must not be rebuilt from later source revisions.
+    # Keep native/software validation above; publish new versions through
+    # release-r10-stable.yml with unique tags and source-bound provenance.
+    if: false
     needs: [verify-python, verify-kicad-native]
     runs-on: ubuntu-24.04
     steps:
