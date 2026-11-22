@@ -25,17 +25,17 @@ class FreeroutingProtectedInputsTests(unittest.TestCase):
     def test_dsn_netclass_names_are_read(self):
         with tempfile.TemporaryDirectory() as temp:
             p = Path(temp) / "board.dsn"
-            p.write_text('(pcb demo (network (class GND GND) (class "RF" SIG) (class SIGNAL GPIO)))')
+            p.write_text('(pcb demo (network (class GND GND) (class "RF" SIG) (class SIGNAL GPIO)))', encoding="utf-8")
             self.assertEqual(router.specctra_netclasses(p), {"GND", "RF", "SIGNAL"})
 
     def run_adapter(self, folder, *extra):
         dsn = folder / "board.dsn"
         if not dsn.exists():
-            dsn.write_text('(pcb demo (network (class GND GND) (class SIGNAL A B)))')
+            dsn.write_text('(pcb demo (network (class GND GND) (class SIGNAL A B)))', encoding="utf-8")
         out = folder / "result"
         cmd = [sys.executable, str(SCRIPT), "--dsn", str(dsn),
                "--output-dir", str(out), *extra]
-        run = subprocess.run(cmd, capture_output=True, text=True)
+        run = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8")
         return run, json.loads(run.stdout), out
 
     def test_apply_requires_reviewed_dsn_hash(self):
@@ -49,7 +49,7 @@ class FreeroutingProtectedInputsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             dsn = root / "board.dsn"
-            dsn.write_text('(pcb demo (network (class GND GND)))')
+            dsn.write_text('(pcb demo (network (class GND GND)))', encoding="utf-8")
             digest = hashlib.sha256(dsn.read_bytes()).hexdigest()
             run, result, out = self.run_adapter(root, "--apply", "--expected-dsn-sha256", digest)
             self.assertEqual(run.returncode, 2)
@@ -66,7 +66,7 @@ class FreeroutingProtectedInputsTests(unittest.TestCase):
     def test_implicit_rules_file_cannot_be_silently_loaded(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            (root / "board.rules").write_text("(rules unknown)")
+            (root / "board.rules").write_text("(rules unknown)", encoding="utf-8")
             run, result, out = self.run_adapter(root)
             self.assertEqual(run.returncode, 2)
             self.assertEqual(result["reason"], "UNAPPROVED_ADJACENT_RULES")
@@ -83,9 +83,9 @@ class FreeroutingProtectedInputsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             rules = root / "verified.rules"
-            rules.write_text("(rules verified)")
+            rules.write_text("(rules verified)", encoding="utf-8")
             dsn = root / "board.dsn"
-            dsn.write_text('(pcb demo (network (class GND GND)))')
+            dsn.write_text('(pcb demo (network (class GND GND)))', encoding="utf-8")
             digest = hashlib.sha256(dsn.read_bytes()).hexdigest()
             run, result, out = self.run_adapter(
                 root, "--apply", "--expected-dsn-sha256", digest,
@@ -102,7 +102,7 @@ class FreeroutingProtectedInputsTests(unittest.TestCase):
             (root / "board.dsn").write_text(
                 '(pcb demo (network (net GND (pins J1-1)) '
                 '(net GPIO (pins J1-2)) (class kicad_default GND GPIO (rule (width 200))) '
-                '(class GND (rule (width 200)))))')
+                '(class GND (rule (width 200)))))', encoding="utf-8")
             self.assertEqual(router.specctra_netclass_members(root / "board.dsn")["GND"],
                              "kicad_default")
             run, result, out = self.run_adapter(root, "--exclude-netclasses", "GND")
@@ -115,7 +115,7 @@ class FreeroutingProtectedInputsTests(unittest.TestCase):
             root = Path(temp)
             (root / "board.dsn").write_text(
                 '(pcb demo (network (net GND (pins J1-1)) (net GPIO (pins J1-2)) '
-                '(class GND GND (rule (width 200))) (class SIGNAL GPIO)))')
+                '(class GND GND (rule (width 200))) (class SIGNAL GPIO)))', encoding="utf-8")
             self.assertEqual(router.specctra_netclass_members(root / "board.dsn"),
                              {"GND": "GND", "GPIO": "SIGNAL"})
             run, result, out = self.run_adapter(root, "--exclude-netclasses", "GND")
@@ -127,10 +127,10 @@ class FreeroutingProtectedInputsTests(unittest.TestCase):
             root = Path(temp)
             dsn = root / "board.dsn"
             dsn.write_text('(pcb demo (network (net GND (pins J1-1)) '
-                           '(net GPIO (pins J1-2)) (class GND GND) (class SIGNAL GPIO)))')
+                           '(net GPIO (pins J1-2)) (class GND GND) (class SIGNAL GPIO)))', encoding="utf-8")
             native = root / "map.json"
             native.write_text(json.dumps({"dsn_sha256": hashlib.sha256(dsn.read_bytes()).hexdigest(),
-                                         "net_to_class": {"GND": "GND", "GPIO": "Default"}}))
+                                         "net_to_class": {"GND": "GND", "GPIO": "Default"}}), encoding="utf-8")
             mhash = hashlib.sha256(native.read_bytes()).hexdigest()
             run, result, _ = self.run_adapter(
                 root, "--netclass-map", str(native),
@@ -142,7 +142,7 @@ class FreeroutingProtectedInputsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             dsn = root / "board.dsn"
-            dsn.write_text('(pcb demo (network (class GND GND)))')
+            dsn.write_text('(pcb demo (network (class GND GND)))', encoding="utf-8")
             digest = hashlib.sha256(dsn.read_bytes()).hexdigest()
             run, result, out = self.run_adapter(root, "--apply",
                                                 "--expected-dsn-sha256", digest,
@@ -155,7 +155,7 @@ class FreeroutingProtectedInputsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             (root / "board.dsn").write_text(
-                '(pcb demo (network (class kicad_default GND) (class GND GND)))')
+                '(pcb demo (network (class kicad_default GND) (class GND GND)))', encoding="utf-8")
             run, result, out = self.run_adapter(root, "--exclude-netclasses", "GND")
             self.assertEqual(run.returncode, 2)
             self.assertEqual(result["reason"], "DSN_NETCLASS_MEMBERSHIP_UNVERIFIABLE")

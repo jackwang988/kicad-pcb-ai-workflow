@@ -113,12 +113,12 @@ class MigrationTests(unittest.TestCase):
 
     def test_saved_footprint_lock_and_position_without_pcbnew(self):
         self.assertEqual(kc.inspect_saved_board(self.can_board)['U1']['x'],10)
-        self.can_board.write_text(board(locked=True))
+        self.can_board.write_text(board(locked=True), encoding="utf-8")
         self.assertTrue(kc.inspect_saved_board(self.can_board)['U1']['locked'])
 
     def test_placement_only_expected_change_and_other_refs_protected(self):
         before=kc.inspect_saved_board(self.can_board)
-        self.can_board.write_text(board(x=25,y=30))
+        self.can_board.write_text(board(x=25,y=30), encoding="utf-8")
         after=kc.inspect_saved_board(self.can_board)
         self.assertEqual(kc.verify_fixture_change(before,after,{'kind':'placement','placements':{'U1':{'x':25,'y':30,'rotation':0}}})['expected_moved'],['U1'])
         with self.assertRaisesRegex(ValueError,'not reached'):
@@ -131,7 +131,7 @@ class MigrationTests(unittest.TestCase):
             def __init__(self,target):self.target=target;self.calls=[]
             def call(self,name,args=None):
                 self.calls.append(name)
-                if name=='save_project':self.target.write_text(board(x=25,y=30))
+                if name=='save_project':self.target.write_text(board(x=25,y=30), encoding="utf-8")
                 return {'structuredContent':{'ok':True}}
             def tools(self):return [{'name':'save_project'}]
         fake=FakeCall(self.can_board)
@@ -148,7 +148,7 @@ class MigrationTests(unittest.TestCase):
         class FakeCall:
             def __init__(self,target):self.target=target
             def call(self,name,args=None):
-                if name=='save_project':self.target.write_text(board(x=25,y=30))
+                if name=='save_project':self.target.write_text(board(x=25,y=30), encoding="utf-8")
                 return {'structuredContent':{'ok':True}}
             def tools(self):return [{'name':'save_project'}]
         with patch.object(kc,'require_live_board',return_value={'editor_state':{'kicad_version':{'full_version':'10.0.8'}}}):
@@ -176,11 +176,11 @@ class MigrationTests(unittest.TestCase):
     def test_first_use_zone_fill_verifies_saved_polygons(self):
         before='(kicad_pcb (zone (net 1) (name "GND")))'
         after='(kicad_pcb (zone (net 1) (name "GND") (filled_polygon (pts (xy 0 0)))))'
-        self.src_board.write_text(before);self.can_board.write_text(before)
+        self.src_board.write_text(before, encoding="utf-8");self.can_board.write_text(before, encoding="utf-8")
         class Fake:
             def __init__(self,target):self.target=target
             def call(self,name,args=None):
-                if name=='save_project':self.target.write_text(after)
+                if name=='save_project':self.target.write_text(after, encoding="utf-8")
                 return {'structuredContent':{'ok':True}}
             def tools(self):return [{'name':'save_project'}]
         with patch.object(kc,'require_live_board',return_value={'editor_state':{'kicad_version':{'full_version':'10.0.8'}}}):
@@ -206,15 +206,15 @@ class MigrationTests(unittest.TestCase):
 
     def test_freeze_requires_real_matching_operation_receipt(self):
         dest=self.root/'new-freeze';fr.prepare(self.src,'main.kicad_pcb',dest,apply=True)
-        receipt=self.root/'fake.json';receipt.write_text(json.dumps({'status':'OPERATION_EXECUTED_REQUIRES_PROJECT_REVIEW','tool':'foo'}))
+        receipt=self.root/'fake.json';receipt.write_text(json.dumps({'status':'OPERATION_EXECUTED_REQUIRES_PROJECT_REVIEW','tool':'foo'}), encoding="utf-8")
         with self.assertRaisesRegex(ValueError,'No exact matching Konnect'):
             fr.finalize(dest,'main.kicad_pcb',receipt)
         self.assertFalse((dest/'freeze-log.json').exists())
 
     def test_freeze_rejects_source_change(self):
         dest=self.root/'new-freeze';fr.prepare(self.src,'main.kicad_pcb',dest,apply=True)
-        self.src_board.write_text(board(x=34))
-        receipt=self.root/'fake.json';receipt.write_text('{}')
+        self.src_board.write_text(board(x=34), encoding="utf-8")
+        receipt=self.root/'fake.json';receipt.write_text('{}', encoding="utf-8")
         with self.assertRaisesRegex(ValueError,'Source/candidate'):
             fr.finalize(dest,'main.kicad_pcb',receipt)
 
@@ -224,17 +224,17 @@ class MigrationTests(unittest.TestCase):
             kc.pin_binary_before_launch(binary)
         enrollment=self.root/'pin.json'
         enrollment.write_text(json.dumps({'schema_version':1,'approved_for_local_use':False,
-             'executable_sha256':kc.sha(binary),'version':'0.15.0','build_commit':'abcdef','eligible_kicad_versions':['10.0.9']}))
+             'executable_sha256':kc.sha(binary),'version':'0.15.0','build_commit':'abcdef','eligible_kicad_versions':['10.0.9']}), encoding="utf-8")
         with self.assertRaisesRegex(ValueError,'Invalid or mismatching'):
             kc.pin_binary_before_launch(binary,enrollment)
-        data=json.loads(enrollment.read_text());data['approved_for_local_use']=True
-        enrollment.write_text(json.dumps(data))
+        data=json.loads(enrollment.read_text(encoding="utf-8"));data['approved_for_local_use']=True
+        enrollment.write_text(json.dumps(data), encoding="utf-8")
         digest,profile=kc.pin_binary_before_launch(binary,enrollment)
         self.assertEqual(digest,kc.sha(binary))
         self.assertEqual(profile['eligible_kicad_versions'],['10.0.9'])
 
     def test_registry_invalid_does_not_silently_pass(self):
-        reg=self.root/'bad.json';reg.write_text('{"schema_version":1,"records":[]}')
+        reg=self.root/'bad.json';reg.write_text('{"schema_version":1,"records":[]}', encoding="utf-8")
         with self.assertRaisesRegex(ValueError,'Invalid capability registry'):
             kc.load_registry(reg)
 

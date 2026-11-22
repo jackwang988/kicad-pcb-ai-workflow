@@ -34,12 +34,12 @@ class GuardTests(unittest.TestCase):
         if not empty:ET.SubElement(ET.SubElement(nets,'net',code='1',name=net),'node',ref='U1',pin=pin,pintype='passive')
         p=self.p/name;p.write_bytes(ET.tostring(root));return p
     def test_invalid_inputs_cli_exit_2(self):
-        a=self.p/'a';b=self.p/'b';a.write_text('(export (nets))');b.write_text('not a netlist')
-        r=subprocess.run([sys.executable,str(ROOT/'scripts/netlist_guard.py'),str(a),str(b)],capture_output=True,text=True)
+        a=self.p/'a';b=self.p/'b';a.write_text('(export (nets))', encoding="utf-8");b.write_text('not a netlist', encoding="utf-8")
+        r=subprocess.run([sys.executable,str(ROOT/'scripts/netlist_guard.py'),str(a),str(b)],capture_output=True,text=True, encoding="utf-8")
         self.assertEqual(r.returncode,2);self.assertEqual(json.loads(r.stdout)['status'],'BLOCKED')
     def test_changed_pin_cli_exit_1(self):
         a=self.xml('a.xml');b=self.xml('b.xml',pin='2')
-        r=subprocess.run([sys.executable,str(ROOT/'scripts/netlist_guard.py'),str(a),str(b)],capture_output=True,text=True)
+        r=subprocess.run([sys.executable,str(ROOT/'scripts/netlist_guard.py'),str(a),str(b)],capture_output=True,text=True, encoding="utf-8")
         self.assertEqual(r.returncode,1)
     def test_zero_networks_need_explicit_opt_in(self):
         a=self.xml('a.xml',empty=True);b=self.xml('b.xml',empty=True)
@@ -90,51 +90,51 @@ class GuardTests(unittest.TestCase):
         self.assertLess(signed_gap({**a,'angle':0},{**b,'angle':0}),0)
     def test_missing_and_open_courtyard_block(self):
         for content in ['','(fp_line (start 0 0) (end 1 0) (layer "F.CrtYd"))']:
-            f=self.p/'b.kicad_pcb';f.write_text('(kicad_pcb (footprint "F" (property "Reference" "U1") '+content+'))')
+            f=self.p/'b.kicad_pcb';f.write_text('(kicad_pcb (footprint "F" (property "Reference" "U1") '+content+'))', encoding="utf-8")
             r=Review({},'mass_production','pre_export');eg.inspect_courtyards(r,f,{},self.p)
             self.assertTrue(any(x['rule']=='ENG.COURTYARD' for x in r.findings))
     def bom(self):
         f=self.p/'bom.csv'
-        f.write_text('Reference,MPN,Manufacturer,Footprint,Specification,Variant,DNP,Supplier,ApprovedAlternatives\nR1,PART-A,MFG,0402,10k 1%,default,no,SUP,NONE\nR2,PART-B,MFG,0402,10k 1%,default,no,SUP,NONE\nR3,PART-A,MFG,0402,10k 1%,default,yes,SUP,NONE\n')
+        f.write_text('Reference,MPN,Manufacturer,Footprint,Specification,Variant,DNP,Supplier,ApprovedAlternatives\nR1,PART-A,MFG,0402,10k 1%,default,no,SUP,NONE\nR2,PART-B,MFG,0402,10k 1%,default,no,SUP,NONE\nR3,PART-A,MFG,0402,10k 1%,default,yes,SUP,NONE\n', encoding="utf-8")
         return f
     def test_bom_mpn_and_dnp_not_merged(self):
         self.assertEqual(len(grouped(read_bom(self.bom()))),3)
     def test_cpl_must_exactly_match_fitted_variant(self):
-        c=self.p/'cpl.csv';c.write_text('Reference,PosX,PosY,Rotation,Side\nR1,1,2,0,Top\nR2,2,2,90,Bottom\n')
+        c=self.p/'cpl.csv';c.write_text('Reference,PosX,PosY,Rotation,Side\nR1,1,2,0,Top\nR2,2,2,90,Bottom\n', encoding="utf-8")
         self.assertEqual(check_cpl(read_bom(self.bom()),c,'default')['status'],'PASS')
         with c.open('a') as f:f.write('R3,3,2,0,Top\n')
         with self.assertRaises(ValueError):check_cpl(read_bom(self.bom()),c,'default')
     def test_freeze_preview_never_creates_or_changes_engineering_files(self):
-        src=self.p/'src';src.mkdir();board=src/'b.kicad_pcb';board.write_text('fixture');digest=sha256(board)
+        src=self.p/'src';src.mkdir();board=src/'b.kicad_pcb';board.write_text('fixture', encoding="utf-8");digest=sha256(board)
         result=freeze(src,'b.kicad_pcb',self.p/'candidate')
         self.assertEqual(result['status'],'PREVIEW');self.assertFalse((self.p/'candidate').exists());self.assertEqual(sha256(board),digest)
     def test_stale_frozen_candidate_blocks_before_native_execution(self):
-        p=self.p/'candidate';p.mkdir();(p/'b.kicad_pcb').write_text('new')
-        c=p/'config.json';c.write_text(json.dumps({'inputs':{'board':'b.kicad_pcb'}}))
-        (p/'freeze-log.json').write_text(json.dumps({'operations':['copy','refill','save','reload'],'candidate_sha256':'wrong'}))
+        p=self.p/'candidate';p.mkdir();(p/'b.kicad_pcb').write_text('new', encoding="utf-8")
+        c=p/'config.json';c.write_text(json.dumps({'inputs':{'board':'b.kicad_pcb'}}), encoding="utf-8")
+        (p/'freeze-log.json').write_text(json.dumps({'operations':['copy','refill','save','reload'],'candidate_sha256':'wrong'}), encoding="utf-8")
         with self.assertRaises(ValueError):validate(p,c,self.p/'evidence')
         self.assertFalse((self.p/'evidence').exists())
     def build(self,gerber='not a Gerber'):
-        candidate=self.p/'package';candidate.mkdir();(candidate/'a.gbr').write_text(gerber)
+        candidate=self.p/'package';candidate.mkdir();(candidate/'a.gbr').write_text(gerber, encoding="utf-8")
         auth={'reviewer':'fixture','date':'2026-10-17','factory':'F','order_scope':'TEST ONLY'}
         manifest={'level':'D2','production_authorization':auth,'source_sha256':{},'output_sha256':{'a.gbr':sha256(candidate/'a.gbr')}}
-        (candidate/'build-manifest.json').write_text(json.dumps(manifest));return candidate,manifest
+        (candidate/'build-manifest.json').write_text(json.dumps(manifest), encoding="utf-8");return candidate,manifest
     def test_nonempty_fake_gerber_is_not_accepted(self):
         candidate,_=self.build();r=Review({},'mass_production','release')
         eg.inspect_production(r,self.p/'source',{'delivery_manifest':{'gerber':['a.gbr']}},{},candidate)
         self.assertTrue(any('Gerber structural marker' in x['description'] for x in r.findings))
     def test_d0_cannot_publish_as_d2(self):
-        candidate,manifest=self.build();manifest['level']='D0';(candidate/'build-manifest.json').write_text(json.dumps(manifest))
+        candidate,manifest=self.build();manifest['level']='D0';(candidate/'build-manifest.json').write_text(json.dumps(manifest), encoding="utf-8")
         r=Review({},'mass_production','release');eg.inspect_production(r,self.p/'source',{}, {},candidate)
         self.assertTrue(any('D2' in x['description'] for x in r.findings))
     def test_tool_inventory_detects_changed_active_tool(self):
         clone=self.p/'clone';shutil.copytree(ROOT,clone,ignore=shutil.ignore_patterns('__pycache__'))
-        tool=clone/'scripts/netlist_guard.py';tool.write_text(tool.read_text()+'\n# tampered\n')
+        tool=clone/'scripts/netlist_guard.py';tool.write_text(tool.read_text(encoding="utf-8")+'\n# tampered\n', encoding="utf-8")
         r=Review({},'mass_production','pre_export')
         with patch.object(eg,'__file__',str(clone/'scripts/engineering_gate.py')):eg.inspect_inventory(r)
         self.assertTrue(any(x['rule']=='TOOLS.INVENTORY' for x in r.findings))
     def test_all_25_findings_remain_traceable_and_not_falsely_closed(self):
-        data=json.loads((ROOT.parent/'development/history/repair-status.json').read_text())
+        data=json.loads((ROOT.parent/'development/history/repair-status.json').read_text(encoding="utf-8"))
         self.assertEqual({x['id'] for x in data['items']},{f'R{x:02d}' for x in range(1,26)})
         self.assertFalse(data['production_ready'])
 

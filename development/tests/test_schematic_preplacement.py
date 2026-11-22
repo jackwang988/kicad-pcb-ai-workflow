@@ -17,9 +17,9 @@ class PrePlacementTests(unittest.TestCase):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.root=Path(self.temp.name)/'project';self.root.mkdir()
         (self.root/'main.kicad_sch').write_text('(kicad_sch (paper "A4"))',encoding='utf-8')
-        (self.root/'render.svg').write_text('<svg>fixture only</svg>')
-        (self.root/'geometry-source.txt').write_text('Verified library example fixture')
-        (self.root/'electrical-basis.txt').write_text('Independent net contract: R1.2->R2.1=SIG; R1.1 and R2.2=GND')
+        (self.root/'render.svg').write_text('<svg>fixture only</svg>', encoding="utf-8")
+        (self.root/'geometry-source.txt').write_text('Verified library example fixture', encoding="utf-8")
+        (self.root/'electrical-basis.txt').write_text('Independent net contract: R1.2->R2.1=SIG; R1.1 and R2.2=GND', encoding="utf-8")
         self.topo={'schema_version':1,'source':{'file':'electrical-basis.txt','sha256':sha(self.root/'electrical-basis.txt'),'locator':'fixture expected graph'},'pins':[
              {'ref':'R1','pin':'1','net':'GND'},{'ref':'R1','pin':'2','net':'SIG'},
              {'ref':'R2','pin':'1','net':'SIG'},{'ref':'R2','pin':'2','net':'GND'}]}
@@ -62,12 +62,12 @@ class PrePlacementTests(unittest.TestCase):
         self.req['symbols'][0]['candidate_positions_mm']=[[245,180]]
         self.assertEqual(self.check()['status'],'BLOCKED')
     def test_existing_symbol_collision_preflight(self):
-        sch=self.root/'main.kicad_sch';sch.write_text('(kicad_sch (paper "A4") (symbol (uuid "existing")))')
+        sch=self.root/'main.kicad_sch';sch.write_text('(kicad_sch (paper "A4") (symbol (uuid "existing")))', encoding="utf-8")
         self.req['schematic_sha256']=sha(sch);self.geometry['pages']['main.kicad_sch']['schematic_sha256']=sha(sch)
         self.geometry['pages']['main.kicad_sch']['objects'].append({'uuid':'existing','kind':'symbol','bbox_mm':[33,33,48,48]})
         self.assertEqual(self.check()['status'],'BLOCKED')
     def test_existing_wire_blocks_candidate(self):
-        sch=self.root/'main.kicad_sch';sch.write_text('(kicad_sch (paper "A4") (wire (uuid "w1")))')
+        sch=self.root/'main.kicad_sch';sch.write_text('(kicad_sch (paper "A4") (wire (uuid "w1")))', encoding="utf-8")
         self.req['schematic_sha256']=sha(sch);self.geometry['pages']['main.kicad_sch']['schematic_sha256']=sha(sch)
         self.geometry['pages']['main.kicad_sch']['objects'].append({'uuid':'w1','kind':'wire','bbox_mm':[38,36,42,44]})
         self.assertEqual(self.check()['status'],'BLOCKED')
@@ -81,10 +81,10 @@ class PrePlacementTests(unittest.TestCase):
         self.req['symbols'][0]['geometry']['fields'].append({'name':'Note','bbox_mm':[-12,-1,-9,2]})
         self.assertEqual(self.check()['status'],'BLOCKED')
     def test_stale_current_schematic_refused(self):
-        self.check();(self.root/'main.kicad_sch').write_text('modified')
+        self.check();(self.root/'main.kicad_sch').write_text('modified', encoding="utf-8")
         with self.assertRaisesRegex(ValueError,'Schematic changed'):layout(self.root,self.req)
     def test_missing_native_uuid_refused(self):
-        sch=self.root/'main.kicad_sch';sch.write_text('(kicad_sch (paper "A4") (symbol (uuid "new")))')
+        sch=self.root/'main.kicad_sch';sch.write_text('(kicad_sch (paper "A4") (symbol (uuid "new")))', encoding="utf-8")
         self.req['schematic_sha256']=sha(sch);self.geometry['pages']['main.kicad_sch']['schematic_sha256']=sha(sch)
         with self.assertRaisesRegex(ValueError,'UUID'):self.check()
     def test_wrong_electrical_pin_net_blocks(self):
@@ -101,24 +101,24 @@ class PrePlacementTests(unittest.TestCase):
         r=self.check();self.assertEqual(r['status'],'PREPLACEMENT_FEASIBLE_FOR_DECLARED_GEOMETRY',r)
         self.assertEqual(r['placements']['R1']['position_mm'],[40,40])
     def test_a_star_detours_existing_obstacle(self):
-        sch=self.root/'main.kicad_sch';sch.write_text('(kicad_sch (paper "A4") (text (uuid "note")))')
+        sch=self.root/'main.kicad_sch';sch.write_text('(kicad_sch (paper "A4") (text (uuid "note")))', encoding="utf-8")
         self.req['schematic_sha256']=sha(sch);self.geometry['pages']['main.kicad_sch']['schematic_sha256']=sha(sch)
         self.geometry['pages']['main.kicad_sch']['objects'].append({'uuid':'note','kind':'text','bbox_mm':[70,35,85,45]})
         r=self.check();self.assertEqual(r['status'],'PREPLACEMENT_FEASIBLE_FOR_DECLARED_GEOMETRY',r)
         self.assertGreater(len(r['trial_routes'][0]['path_mm']),2)
     def test_gate_requires_same_project_and_receipt(self):
         r=self.check();self.write('request.json',self.req);r['request_sha256']=sha(self.root/'request.json')
-        receipt=Path(self.temp.name)/'immutable-receipt.json';receipt.write_text(json.dumps(r))
+        receipt=Path(self.temp.name)/'immutable-receipt.json';receipt.write_text(json.dumps(r), encoding="utf-8")
         x=authorize(self.root,'request.json',receipt)
         self.assertEqual(x['status'],'PREPLACEMENT_RECEIPT_CURRENT_FOR_NEXT_BATCH')
         self.assertFalse(x['executed'])
-        (self.root/'main.kicad_sch').write_text('(kicad_sch (paper "A4"))\n')
+        (self.root/'main.kicad_sch').write_text('(kicad_sch (paper "A4"))\n', encoding="utf-8")
         with self.assertRaises(ValueError):authorize(self.root,'request.json',receipt)
     def test_two_nets_cannot_short_through_route(self):
         # Both GND terminals have power-label reservations. SIG uses a separate route.
         result=self.check();self.assertEqual(result['trial_routes'][0]['net'],'SIG')
     def test_existing_render_change_invalidates(self):
-        self.check();(self.root/'render.svg').write_text('changed view')
+        self.check();(self.root/'render.svg').write_text('changed view', encoding="utf-8")
         with self.assertRaisesRegex(ValueError,'Rendered view'):layout(self.root,self.req)
     def test_missing_title_block_refused(self):
         self.geometry['pages']['main.kicad_sch']['protected_regions']=[]
@@ -159,14 +159,14 @@ class PrePlacementTests(unittest.TestCase):
         self.req['max_trial_wire_length_mm']=10
         r=self.check();self.assertEqual(r['status'],'PREPLACEMENT_GEOMETRY_READY_ROUTE_REVIEW_REQUIRED');self.assertIsNone(r['trial_routes'])
     def test_excessive_bends_block_under_strict_project_policy(self):
-        sch=self.root/'main.kicad_sch';sch.write_text('(kicad_sch (paper "A4") (text (uuid "note")))')
+        sch=self.root/'main.kicad_sch';sch.write_text('(kicad_sch (paper "A4") (text (uuid "note")))', encoding="utf-8")
         self.req['schematic_sha256']=sha(sch)
         self.geometry['pages']['main.kicad_sch']['schematic_sha256']=sha(sch)
         self.geometry['pages']['main.kicad_sch']['objects'].append({'uuid':'note','kind':'text','bbox_mm':[70,35,85,45]})
         self.req['max_trial_wire_bends']=0
         r=self.check();self.assertEqual(r['status'],'PREPLACEMENT_FEASIBLE_FOR_DECLARED_GEOMETRY');self.assertTrue(all(x['bends']==0 for x in r['trial_routes']))
     def test_no_path_when_all_corridors_blocked(self):
-        sch=self.root/'main.kicad_sch';sch.write_text('(kicad_sch (paper "A4") (text (uuid "wall")))')
+        sch=self.root/'main.kicad_sch';sch.write_text('(kicad_sch (paper "A4") (text (uuid "wall")))', encoding="utf-8")
         self.req['schematic_sha256']=sha(sch);self.geometry['pages']['main.kicad_sch']['schematic_sha256']=sha(sch)
         self.geometry['pages']['main.kicad_sch']['objects'].append({'uuid':'wall','kind':'text','bbox_mm':[70,1,75,160]})
         # Detour may remain possible above or below, a wall spanning full page height blocks.
@@ -182,7 +182,7 @@ class PrePlacementTests(unittest.TestCase):
 
     def test_rotation_rescues_candidate_before_mcp_write(self):
         doc=self.root/'main.kicad_sch'
-        doc.write_text('(kicad_sch (paper "A4") (text (uuid "existing-note")))')
+        doc.write_text('(kicad_sch (paper "A4") (text (uuid "existing-note")))', encoding="utf-8")
         self.req['schematic_sha256']=sha(doc)
         self.geometry['pages']['main.kicad_sch']['schematic_sha256']=sha(doc)
         self.geometry['pages']['main.kicad_sch']['objects'].append({'uuid':'existing-note','kind':'text','bbox_mm':[43,31,46,34]})
@@ -198,7 +198,7 @@ class PrePlacementTests(unittest.TestCase):
         self.write('request.json',self.req)
         result['request_sha256']=sha(self.root/'request.json')
         receipt=Path(self.temp.name)/'receipt.json'
-        receipt.write_text(json.dumps(result))
+        receipt.write_text(json.dumps(result), encoding="utf-8")
         with patch('schematic_preplacement.layout',side_effect=AssertionError('repeat A*')):
             actual=gate.authorize(self.root,'request.json',receipt)
         self.assertTrue(actual['allow_placement_batch'])
@@ -212,7 +212,7 @@ class PrePlacementTests(unittest.TestCase):
         self.write('request.json',self.req)
         result['request_sha256']=sha(self.root/'request.json')
         receipt=Path(self.temp.name)/'receipt.json'
-        receipt.write_text(json.dumps(result))
+        receipt.write_text(json.dumps(result), encoding="utf-8")
         actual=gate.authorize(self.root,'request.json',receipt)
         self.assertEqual(actual['status'],'PREPLACEMENT_GEOMETRY_CURRENT_WIRING_REVIEW_REQUIRED')
         self.assertFalse(actual['allow_unverified_wiring'])

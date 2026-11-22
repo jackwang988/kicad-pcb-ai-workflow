@@ -144,7 +144,7 @@ class RoutingSevenStageAuditTests(unittest.TestCase):
 
     def test_final_unconnected_drc_is_rejected(self):
         (self.root / 'drc.json').write_text(json.dumps({
-            'violations': [], 'unconnected_items': [{'type': 'unconnected'}]}))
+            'violations': [], 'unconnected_items': [{'type': 'unconnected'}]}), encoding="utf-8")
         self.prepare_final()
         with self.assertRaises(seven.RoutingBlocked) as error:
             seven.audit(self.root, self.write_cfg(), 'final')
@@ -152,7 +152,7 @@ class RoutingSevenStageAuditTests(unittest.TestCase):
 
     def test_final_warning_drc_is_rejected(self):
         (self.root / 'drc.json').write_text(json.dumps({
-            'violations': [{'severity': 'warning'}], 'unconnected_items': []}))
+            'violations': [{'severity': 'warning'}], 'unconnected_items': []}), encoding="utf-8")
         self.prepare_final()
         with self.assertRaises(seven.RoutingBlocked) as error:
             seven.audit(self.root, self.write_cfg(), 'final')
@@ -239,21 +239,21 @@ class RoutingSevenStageAuditTests(unittest.TestCase):
             source = source.replace(
                 '(filled_polygon (layer "B.Cu") (pts (xy 0 0)))', '')
             p.write_text(source, encoding='utf-8')
-        cfg = json.loads((self.root / 'ground.json').read_text())
+        cfg = json.loads((self.root / 'ground.json').read_text(encoding="utf-8"))
         cfg['first_filled_board'] = self.bind('first-fill.kicad_pcb')
         cfg['stitched_board'] = self.bind('stitched.kicad_pcb')
-        (self.root / 'ground.json').write_text(json.dumps(cfg))
+        (self.root / 'ground.json').write_text(json.dumps(cfg), encoding="utf-8")
         out = seven.ground_audit(self.root, 'ground.json')
         self.assertEqual(out['initial_unfilled_ground_layers']['GND'], ['B.Cu'])
 
     def test_initial_unanchored_zone_without_stitch_blocks(self):
         self.ground_fixture(add_stitch=False)
         p = self.root / 'first-fill.kicad_pcb'
-        p.write_text(p.read_text().replace(
-            '(filled_polygon (layer "B.Cu") (pts (xy 0 0)))', ''))
-        cfg = json.loads((self.root / 'ground.json').read_text())
+        p.write_text(p.read_text(encoding="utf-8").replace(
+            '(filled_polygon (layer "B.Cu") (pts (xy 0 0)))', ''), encoding="utf-8")
+        cfg = json.loads((self.root / 'ground.json').read_text(encoding="utf-8"))
         cfg['first_filled_board'] = self.bind('first-fill.kicad_pcb')
-        (self.root / 'ground.json').write_text(json.dumps(cfg))
+        (self.root / 'ground.json').write_text(json.dumps(cfg), encoding="utf-8")
         with self.assertRaises(seven.RoutingBlocked) as err:
             seven.ground_audit(self.root, 'ground.json')
         self.assertEqual(err.exception.code, 'GND_FIRST_FILL_UNANCHORED')
@@ -266,18 +266,18 @@ class RoutingSevenStageAuditTests(unittest.TestCase):
 
     def test_ground_requires_approved_via_whitelist(self):
         self.ground_fixture()
-        cfg = json.loads((self.root / 'ground.json').read_text())
+        cfg = json.loads((self.root / 'ground.json').read_text(encoding="utf-8"))
         cfg['approved_stitching_vias'] = []
-        (self.root / 'ground.json').write_text(json.dumps(cfg))
+        (self.root / 'ground.json').write_text(json.dumps(cfg), encoding="utf-8")
         with self.assertRaises(seven.RoutingBlocked) as error:
             seven.ground_audit(self.root, 'ground.json')
         self.assertEqual(error.exception.code, 'UNAUTHORIZED_GND_STITCHING_VIA')
 
     def test_ground_rejects_wrong_via_size_or_net(self):
         self.ground_fixture()
-        cfg = json.loads((self.root / 'ground.json').read_text())
+        cfg = json.loads((self.root / 'ground.json').read_text(encoding="utf-8"))
         cfg['approved_stitching_vias'][0]['min_diameter_mm'] = 0.8
-        (self.root / 'ground.json').write_text(json.dumps(cfg))
+        (self.root / 'ground.json').write_text(json.dumps(cfg), encoding="utf-8")
         with self.assertRaises(seven.RoutingBlocked) as error:
             seven.ground_audit(self.root, 'ground.json')
         self.assertEqual(error.exception.code, 'STITCH_VIA_UNDERSIZED')
@@ -361,16 +361,16 @@ class RoutingSevenStageAuditTests(unittest.TestCase):
         for name in ('post-route.kicad_pcb', 'first-fill.kicad_pcb',
                      'stitched.kicad_pcb', 'last-fill.kicad_pcb'):
             path = self.root / name
-            raw = path.read_text()
+            raw = path.read_text(encoding="utf-8")
             path.write_text(raw[:-1] + ' ' + (moved if name == 'first-fill.kicad_pcb'
-                                               else original) + ')')
-        cfg = json.loads((self.root / 'ground.json').read_text())
+                                               else original) + ')', encoding="utf-8")
+        cfg = json.loads((self.root / 'ground.json').read_text(encoding="utf-8"))
         for attr, filename in (('pre_ground_board', 'post-route.kicad_pcb'),
                                ('first_filled_board', 'first-fill.kicad_pcb'),
                                ('stitched_board', 'stitched.kicad_pcb'),
                                ('final_refilled_board', 'last-fill.kicad_pcb')):
             cfg[attr] = self.bind(filename)
-        (self.root / 'ground.json').write_text(json.dumps(cfg))
+        (self.root / 'ground.json').write_text(json.dumps(cfg), encoding="utf-8")
         with self.assertRaises(seven.RoutingBlocked) as err:
             seven.ground_audit(self.root, 'ground.json')
         self.assertEqual(err.exception.code, 'GND_FOOTPRINT_CHANGED')
@@ -378,12 +378,12 @@ class RoutingSevenStageAuditTests(unittest.TestCase):
     def test_ground_audit_does_not_ignore_wrong_net_for_existing_via(self):
         self.ground_fixture(add_stitch=False)
         p = self.root / 'first-fill.kicad_pcb'
-        p.write_text(p.read_text()[:-1] + ' '
+        p.write_text(p.read_text(encoding="utf-8")[:-1] + ' '
                      '(via (at 4 4) (size 0.6) (drill 0.3) '
-                     '(layers "F.Cu" "B.Cu") (net 1) (uuid "rogue")))')
-        cfg = json.loads((self.root / 'ground.json').read_text())
+                     '(layers "F.Cu" "B.Cu") (net 1) (uuid "rogue")))', encoding="utf-8")
+        cfg = json.loads((self.root / 'ground.json').read_text(encoding="utf-8"))
         cfg['first_filled_board'] = self.bind('first-fill.kicad_pcb')
-        (self.root / 'ground.json').write_text(json.dumps(cfg))
+        (self.root / 'ground.json').write_text(json.dumps(cfg), encoding="utf-8")
         with self.assertRaises(seven.RoutingBlocked) as err:
             seven.ground_audit(self.root, 'ground.json')
         self.assertEqual(err.exception.code, 'GROUND_FIRST_FILL_CHANGED_VIAS')
@@ -416,9 +416,9 @@ class RoutingSevenStageAuditTests(unittest.TestCase):
 
     def test_final_rejects_stale_ground_gate_board(self):
         self.prepare_final()
-        report = json.loads((self.root / 'ground-report.json').read_text())
+        report = json.loads((self.root / 'ground-report.json').read_text(encoding="utf-8"))
         report['final_refilled_sha256'] = '0' * 64
-        (self.root / 'ground-report.json').write_text(json.dumps(report))
+        (self.root / 'ground-report.json').write_text(json.dumps(report), encoding="utf-8")
         self.config['gnd_completion_report'] = self.bind('ground-report.json')
         with self.assertRaises(seven.RoutingBlocked) as error:
             seven.audit(self.root, self.write_cfg(), 'final')

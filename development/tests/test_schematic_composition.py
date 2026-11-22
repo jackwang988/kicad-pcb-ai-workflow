@@ -12,8 +12,8 @@ class CompTest(unittest.TestCase):
 (symbol (lib_id "power:+12V") (property "Reference" "#PWR01") (property "Value" "+12V") (uuid "p1"))
 (symbol (lib_id "power:GND") (property "Reference" "#PWR02") (property "Value" "GND") (uuid "p2"))
 (symbol (lib_id "Device:R") (property "Reference" "R1") (property "Value" "10k") (uuid "r1"))
-(polyline (uuid "f1")) (polyline (uuid "f2")))''')
-  self.view=self.root/'main.svg';self.view.write_text('<svg>sample rendered evidence placeholder for geometry review</svg>')
+(polyline (uuid "f1")) (polyline (uuid "f2")))''', encoding="utf-8")
+  self.view=self.root/'main.svg';self.view.write_text('<svg>sample rendered evidence placeholder for geometry review</svg>', encoding="utf-8")
   self.boxes=[{'uuid':'p1','kind':'symbol','bbox_mm':[20,20,28,35]},
               {'uuid':'p2','kind':'symbol','bbox_mm':[20,45,28,60]},
               {'uuid':'r1','kind':'symbol','bbox_mm':[65,25,72,40]},
@@ -25,15 +25,15 @@ class CompTest(unittest.TestCase):
    'complete_object_inventory':True,'visible_fields_included':True,
    'protected_regions':[{'id':'document-title','kind':'title_block','bbox_mm':[220,175,291,207]}],
    'objects':self.boxes}}}
-  p=self.root/'geometry.json';p.write_text(json.dumps(geometry))
+  p=self.root/'geometry.json';p.write_text(json.dumps(geometry), encoding="utf-8")
   composition={'schema_version':1,'required':True,'geometry':{'file':p.name,'sha256':sha256(p),'evidence_file':self.view.name,'evidence_sha256':sha256(self.view),'locator':'sample fixture view'},'power':{'rails':['+12V','GND']},'partition':{'mode':'auto','modules':[{'id':'supply','page':self.doc.name,'frame_uuid':'f1'},{'id':'logic','page':self.doc.name,'frame_uuid':'f2'}], 'max_occupancy':0.75}}
   if modify:modify(composition,geometry)
-  q=self.root/'style.json';q.write_text(json.dumps({'schema_version':1,'pages':{},'composition':composition}))
+  q=self.root/'style.json';q.write_text(json.dumps({'schema_version':1,'pages':{},'composition':composition}), encoding="utf-8")
   return audit(self.root,'main.kicad_sch','style.json')
  def test_good_project_still_needs_visual_review(self):
   a=self.go();self.assertEqual(a['findings'],[]);self.assertEqual(a['status'],'DECLARED_STRUCTURE_CHECKS_COMPLETE');self.assertIn('GEOMETRY_SCREENED_REQUIRES_RENDER_REVIEW',[x.get('status') for x in a['checks']]);self.assertFalse(a['production_authorized'])
  def test_dense_but_clear_page_is_advisory(self):
-  self.doc.write_text(self.doc.read_text().removesuffix(')')+' (text (uuid "large-note")))')
+  self.doc.write_text(self.doc.read_text(encoding="utf-8").removesuffix(')')+' (text (uuid "large-note")))', encoding="utf-8")
   self.boxes.append({'uuid':'large-note','kind':'text','bbox_mm':[10,85,205,150]})
   result=self.go(lambda policy,geometry:policy['partition'].update(max_occupancy=0.2))
   self.assertFalse(any(f['rule']=='SHEET_PARTITION_POLICY.CAPACITY' for f in result['findings']))
@@ -52,12 +52,12 @@ class CompTest(unittest.TestCase):
   r=self.go(lambda q,g:q['partition'].update(mode='hierarchical'))
   self.assertIn('SHEET_PARTITION_POLICY.MODE',[x['rule'] for x in r['findings']])
  def test_stale_geometry(self):
-  r=self.go(lambda q,g:None);self.doc.write_text(self.doc.read_text()+'\n');r=audit(self.root,self.doc.name,'style.json');self.assertIn('COMPOSITION.STALE_SCHEMATIC',[x['rule'] for x in r['findings']])
+  r=self.go(lambda q,g:None);self.doc.write_text(self.doc.read_text(encoding="utf-8")+'\n', encoding="utf-8");r=audit(self.root,self.doc.name,'style.json');self.assertIn('COMPOSITION.STALE_SCHEMATIC',[x['rule'] for x in r['findings']])
  def test_incomplete_object_coverage(self):
   self.boxes=self.boxes[:-1]
   r=self.go();self.assertIn('TITLE_BLOCK_CLEAR.INCOMPLETE',[x['rule'] for x in r['findings']])
  def test_native_rail_label_is_not_a_power_symbol(self):
-  self.doc.write_text(self.doc.read_text().replace('"r1"))','"r1")) (label "+12V" (uuid "lab1"))'))
+  self.doc.write_text(self.doc.read_text(encoding="utf-8").replace('"r1"))','"r1")) (label "+12V" (uuid "lab1"))'), encoding="utf-8")
   self.boxes.append({'uuid':'lab1','kind':'label','bbox_mm':[90,20,105,28]})
   r=self.go();self.assertIn('POWER_SYMBOL_POLICY.LABEL',[x['rule'] for x in r['findings']])
  def test_title_zone_is_correct_even_when_id_does_not_say_title(self):
@@ -83,13 +83,13 @@ class CompTest(unittest.TestCase):
  def test_plan_requires_title_reserve(self):
   with self.assertRaises(ValueError):plan_partition({'schema_version':1,'paper':'A4','modules':[{'id':'A','estimated_box_mm':[10,10]}]})
  def test_pwr_flag_does_not_substitute_for_rail(self):
-  self.doc.write_text(self.doc.read_text().replace('power:+12V','power:PWR_FLAG'))
+  self.doc.write_text(self.doc.read_text(encoding="utf-8").replace('power:+12V','power:PWR_FLAG'), encoding="utf-8")
   r=self.go();self.assertIn('POWER_SYMBOL_POLICY.MISSING',[x['rule'] for x in r['findings']])
  def test_two_real_hierarchical_pages_pass_declared_screening(self):
-  self.doc.write_text(self.doc.read_text().removesuffix(')') +
-    ' (sheet (property "Sheetfile" "child.kicad_sch") (pin "DATA") (uuid "s1")))')
+  self.doc.write_text(self.doc.read_text(encoding="utf-8").removesuffix(')') +
+    ' (sheet (property "Sheetfile" "child.kicad_sch") (pin "DATA") (uuid "s1")))', encoding="utf-8")
   child=self.root/'child.kicad_sch'
-  child.write_text('(kicad_sch (paper "A4") (hierarchical_label "DATA" (uuid "hl1")))')
+  child.write_text('(kicad_sch (paper "A4") (hierarchical_label "DATA" (uuid "hl1")))', encoding="utf-8")
   self.boxes.append({'uuid':'s1','kind':'sheet','bbox_mm':[140,85,190,110]})
   def amend(policy,geometry):
    geometry['pages']['child.kicad_sch']={
@@ -97,7 +97,7 @@ class CompTest(unittest.TestCase):
     'complete_object_inventory':True,'visible_fields_included':True,
     'protected_regions':[{'id':'title','kind':'title_block','bbox_mm':[220,175,291,207]}],
     'objects':[{'uuid':'hl1','kind':'hierarchical_label','bbox_mm':[20,22,36,30]}]}
-   gfile=self.root/'geometry.json';gfile.write_text(json.dumps(geometry))
+   gfile=self.root/'geometry.json';gfile.write_text(json.dumps(geometry), encoding="utf-8")
    policy['geometry']['sha256']=sha256(gfile)
    policy['partition']={'mode':'hierarchical','max_occupancy':0.75,
                         'modules':[{'id':'overview','page':'main.kicad_sch'},
@@ -106,6 +106,6 @@ class CompTest(unittest.TestCase):
   self.assertEqual(r['findings'],[])
   self.assertEqual(len([x for x in r['checks'] if x.get('rule')=='TITLE_BLOCK_CLEAR']),2)
  def test_preserve_legacy_mode(self):
-  (self.root/'style.json').write_text(json.dumps({'schema_version':1,'pages':{}}));r=audit(self.root,self.doc.name,'style.json');self.assertEqual(r['status'],'DECLARED_STRUCTURE_CHECKS_COMPLETE');self.assertEqual(r['checks'][-1]['status'],'NOT_CONFIGURED_LEGACY_REVIEW_REQUIRED')
+  (self.root/'style.json').write_text(json.dumps({'schema_version':1,'pages':{}}), encoding="utf-8");r=audit(self.root,self.doc.name,'style.json');self.assertEqual(r['status'],'DECLARED_STRUCTURE_CHECKS_COMPLETE');self.assertEqual(r['checks'][-1]['status'],'NOT_CONFIGURED_LEGACY_REVIEW_REQUIRED')
 
 if __name__=='__main__': unittest.main()

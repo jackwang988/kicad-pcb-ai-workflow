@@ -47,7 +47,7 @@ def audit_netlist(path,case=CASE):
         terms=frozenset((value(p,'ref'),value(p,'pin')) for p in children(n,'node') if not value(p,'ref').startswith('#'))
         if terms:actual.append(terms)
     expected=collections.defaultdict(set)
-    for p in json.loads((case/'expected-pin-nets.json').read_text())['pins']:
+    for p in json.loads((case/'expected-pin-nets.json').read_text(encoding="utf-8"))['pins']:
         if not p['ref'].startswith('#'):expected[p['net']].add((p['ref'],p['pin']))
     if len(actual)!=66 or set(actual)!={frozenset(v) for v in expected.values()}:raise ValueError('Independent endpoint partition changed')
     return 66
@@ -134,15 +134,15 @@ def audit_gerbers(directory,pads,segments,filled):
 def verify(cli,output,case=CASE):
     out=Path(output).resolve()
     if out.exists():raise ValueError('Fresh native output directory required')
-    observed=json.loads((case/'evidence/observed-validation.json').read_text())
+    observed=json.loads((case/'evidence/observed-validation.json').read_text(encoding="utf-8"))
     for rel,h in observed['source_hashes'].items():
         if sha(case/'source'/rel)!=h:raise ValueError('Published case source changed: '+rel)
     out.mkdir(parents=True);source=out/'source';shutil.copytree(case/'source',source)
     commands=[]
     def run(*args):
         command=[str(cli),*map(str,args)];result=subprocess.run(command,capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=180)
-        commands.append({'argv':command,'returncode':result.returncode,'stderr':result.stderr[-1500:]})
-        if result.returncode:raise ValueError('Native command failed: '+str(command)+': '+result.stderr[-1500:])
+        commands.append({'argv':command,'returncode':result.returncode,'stdout':result.stdout[-1500:],'stderr':result.stderr[-1500:]})
+        if result.returncode:raise ValueError('Native command failed: '+str(command)+': '+(result.stderr or result.stdout)[-1500:])
         return result.stdout.strip()
     version=run('version')
     if version!='10.0.8':raise ValueError('This acceptance case requires exact KiCad 10.0.8, got '+version)
@@ -150,7 +150,7 @@ def verify(cli,output,case=CASE):
     run('pcb','drc','--format','json','--schematic-parity','--severity-all','--exit-code-violations','--output',out/'DRC.json',pcb)
     run('sch','erc','--format','json','--severity-all','--exit-code-violations','--output',out/'ERC.json',sch)
     for name in ['DRC.json','ERC.json']:
-        data=json.loads((out/name).read_text())
+        data=json.loads((out/name).read_text(encoding="utf-8"))
         if native_violations(data):raise ValueError('Nonzero native warning/error: '+name)
         if name=='DRC.json' and any(k not in data or data[k] for k in ['violations','unconnected_items','schematic_parity']):raise ValueError('Incomplete/nonempty native DRC categories')
     run('sch','export','netlist','--format','kicadsexpr','--output',out/'netlist.net',sch);nets=audit_netlist(out/'netlist.net',case)

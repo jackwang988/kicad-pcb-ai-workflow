@@ -31,7 +31,7 @@ class LedCaseDeliveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'manufacturer/MPN'):case.audit_bom(self.bom())
     def test_source_rule_change_blocks_before_native_subprocess(self):
         clone=self.base/'case';shutil.copytree(case.CASE,clone)
-        p=clone/'source'/('LED_Matrix_8x8_12V.kicad_pro');data=json.loads(p.read_text());data['board']['design_settings']['rule_severities']['silk_over_copper']='ignore';p.write_text(json.dumps(data))
+        p=clone/'source'/('LED_Matrix_8x8_12V.kicad_pro');data=json.loads(p.read_text(encoding="utf-8"));data['board']['design_settings']['rule_severities']['silk_over_copper']='ignore';p.write_text(json.dumps(data), encoding="utf-8")
         with patch.object(case.subprocess,'run') as run:
             with self.assertRaisesRegex(ValueError,'Published case source changed'):case.verify('must-not-run',self.base/'out',clone)
             run.assert_not_called()

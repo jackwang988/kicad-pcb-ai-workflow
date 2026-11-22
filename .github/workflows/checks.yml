@@ -47,6 +47,7 @@ jobs:
           test "$(kicad-cli version)" = "10.0.8"
           mkdir -p "$HOME/.config/kicad/10.0"
           cp /usr/share/kicad/template/fp-lib-table "$HOME/.config/kicad/10.0/fp-lib-table"
+          cp /usr/share/kicad/template/sym-lib-table "$HOME/.config/kicad/10.0/sym-lib-table"
       - name: Revalidate saved LED case with native zero-warning checks and actual exports
         run: python -B development/native_led_8x8_e2e.py --output /tmp/native-led-case
       - name: Verify exact public companion source can be prepared

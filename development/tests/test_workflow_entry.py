@@ -28,13 +28,13 @@ class EntryTests(unittest.TestCase):
         self.write_master()
 
     def write_master(self):
-        (self.root / 'workflow.json').write_text(entry.encoded(self.master))
+        (self.root / 'workflow.json').write_text(entry.encoded(self.master), encoding="utf-8")
 
     def build(self):
         return entry.compile_bundle(self.root, 'workflow.json', 'control-r1', True)
 
     def cli(self, *args):
-        return subprocess.run([sys.executable, '-B', str(ROOT / 'scripts/workflow.py'), *args], capture_output=True, text=True)
+        return subprocess.run([sys.executable, '-B', str(ROOT / 'scripts/workflow.py'), *args], capture_output=True, text=True, encoding="utf-8")
 
     def test_shared_input_and_variant_propagate_without_engineering_defaults(self):
         self.master['shared']['inputs']['schematic'] = 'new-name.kicad_sch'
@@ -105,13 +105,13 @@ class EntryTests(unittest.TestCase):
     def test_bundle_change_even_with_rehashed_manifest_blocks(self):
         self.build()
         p = self.root / 'control-r1/static.json'
-        c = json.loads(p.read_text())
+        c = json.loads(p.read_text(encoding="utf-8"))
         c['require_system_integration'] = False
-        p.write_text(entry.encoded(c))
+        p.write_text(entry.encoded(c), encoding="utf-8")
         m = self.root / 'control-r1/bundle.json'
-        q = json.loads(m.read_text())
+        q = json.loads(m.read_text(encoding="utf-8"))
         q['files'][p.name] = sha256(p)
-        m.write_text(entry.encoded(q))
+        m.write_text(entry.encoded(q), encoding="utf-8")
         with self.assertRaisesRegex(ValueError, 'Generated config changed'):
             entry.load_bundle(self.root, 'workflow.json', 'control-r1')
 
@@ -184,7 +184,7 @@ class EntryTests(unittest.TestCase):
         self.assertEqual(entry.TASKS['pcb.gate'],'static_review_gate')
         self.assertIn('NO full-board DRC',entry.METHODS['placement'])
         self.assertIn('full native DRC',entry.METHODS['pcb_review'])
-        source=(ROOT/'scripts/workflow.py').read_text()
+        source=(ROOT/'scripts/workflow.py').read_text(encoding="utf-8")
         self.assertIn("'--phase', 'pre_route' if task.endswith('_pre') else 'final'",source)
     def test_readonly_gate_does_not_accept_apply(self):
         self.build()
@@ -197,7 +197,7 @@ class EntryTests(unittest.TestCase):
             entry.command(self.root, 'workflow.json', 'control-r1', 'pcb.gate', {'packet': 'packet', 'ai_review': 'ai.json'})
         packet = self.root / 'packet'
         packet.mkdir()
-        (packet / 'packet.json').write_text('{"stage":"schematic"}')
+        (packet / 'packet.json').write_text('{"stage":"schematic"}', encoding="utf-8")
         _, args = entry.command(self.root, 'workflow.json', 'control-r1', 'schematic.gate', {'packet': str(packet), 'ai_review': 'ai.json', 'engineer_review': 'human.json'})
         self.assertIn('human.json', args)
 
@@ -205,7 +205,7 @@ class EntryTests(unittest.TestCase):
         self.build()
         packet = self.root / 'packet'
         packet.mkdir()
-        (packet / 'packet.json').write_text('{"stage":"pcb"}')
+        (packet / 'packet.json').write_text('{"stage":"pcb"}', encoding="utf-8")
         with self.assertRaisesRegex(ValueError, 'different stage'):
             entry.command(self.root, 'workflow.json', 'control-r1', 'schematic.gate', {'packet': str(packet), 'ai_review': 'ai.json', 'engineer_review': 'human.json'})
 

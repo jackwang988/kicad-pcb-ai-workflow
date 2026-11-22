@@ -26,7 +26,7 @@ class WorkflowTests(unittest.TestCase):
     def run_static(self):
         return review.evaluate(self.project,self.config,'mass_production','release',static_preview=True)
     def test_skill_entrypoint_exposes_mass_production_gate(self):
-        text=(ROOT/'SKILL.md').read_text()
+        text=(ROOT/'SKILL.md').read_text(encoding="utf-8")
         self.assertIn('--mode mass_production',text)
         self.assertIn('references/dfx-npi.md',text)
         self.assertIn('npi_release.py',text)
@@ -57,8 +57,8 @@ class WorkflowTests(unittest.TestCase):
         with bom.open('a') as f: f.write('U1,PART,MFG,FOOTPRINT,VALUE\n')
         self.assertTrue(any(x['rule']=='BOM.DUPLICATE' and x['level']=='阻断级' for x in self.run_static()['findings']))
     def test_input_path_escape_is_rejected(self):
-        data=json.loads(self.config.read_text()); data['inputs']['board']='../../outside.kicad_pcb'
-        self.config.write_text(json.dumps(data))
+        data=json.loads(self.config.read_text(encoding="utf-8")); data['inputs']['board']='../../outside.kicad_pcb'
+        self.config.write_text(json.dumps(data), encoding="utf-8")
         with self.assertRaises(ValueError): self.run_static()
     def test_prototype_does_not_grant_mass_production_release(self):
         report=review.evaluate(self.project,self.config,'prototype','release')
@@ -69,27 +69,27 @@ class WorkflowTests(unittest.TestCase):
             source=Path(command[-1])
             self.assertFalse(source.is_relative_to(self.project))
             self.assertEqual(source.read_bytes(),(self.project/source.name).read_bytes())
-            path=Path(command[command.index('--output')+1]); path.write_text('{"unexpected": []}')
+            path=Path(command[command.index('--output')+1]); path.write_text('{"unexpected": []}', encoding="utf-8")
             return {'returncode':0}
         with patch.object(review,'run',side_effect=fake_run):
             review.native_checks(r,{'cli_version':'10.0.7','cli_exact_target':True,'kicad_cli':'fake-cli'},self.project,self.project/'npi-demo.kicad_sch',self.project/'npi-demo.kicad_pcb')
         self.assertEqual(sum(x['rule']=='NATIVE.SCHEMA' for x in r.findings),2)
     def test_preview_no_write_and_apply_freshness_guard(self):
         # Stub only the review verdict to isolate publication behavior.
-        candidate=self.base/'candidate'; candidate.mkdir(); (candidate/'file.gbr').write_text('fixture'); (candidate/'build-manifest.json').write_text('{}')
+        candidate=self.base/'candidate'; candidate.mkdir(); (candidate/'file.gbr').write_text('fixture', encoding="utf-8"); (candidate/'build-manifest.json').write_text('{}', encoding="utf-8")
         destination=self.base/'release'; cfg=self.base/'release-config.json'
-        cfg.write_text(json.dumps({'delivery_manifest':{'gerber':['file.gbr']}}))
+        cfg.write_text(json.dumps({'delivery_manifest':{'gerber':['file.gbr']}}), encoding="utf-8")
         verdict={'release_allowed':True,'counts':{},'inputs_sha256':{str(candidate/'file.gbr'):sha256(candidate/'file.gbr')}}
         with patch.object(npi_release,'evaluate',return_value=verdict):
             result=npi_release.release(self.project,cfg,candidate,destination)
             self.assertTrue(result['preview']); self.assertFalse(destination.exists())
-            (candidate/'file.gbr').write_text('changed')
+            (candidate/'file.gbr').write_text('changed', encoding="utf-8")
             with self.assertRaises(ValueError): npi_release.release(self.project,cfg,candidate,destination,True)
         self.assertFalse(destination.exists())
     def test_apply_copies_only_manifest_to_new_directory(self):
         candidate=self.base/'candidate'; candidate.mkdir()
-        (candidate/'file.gbr').write_text('fixture'); (candidate/'build-manifest.json').write_text('{}'); (candidate/'unlisted.txt').write_text('not for release')
-        cfg=self.base/'release-config.json'; cfg.write_text(json.dumps({'delivery_manifest':{'gerber':['file.gbr']}}))
+        (candidate/'file.gbr').write_text('fixture', encoding="utf-8"); (candidate/'build-manifest.json').write_text('{}', encoding="utf-8"); (candidate/'unlisted.txt').write_text('not for release', encoding="utf-8")
+        cfg=self.base/'release-config.json'; cfg.write_text(json.dumps({'delivery_manifest':{'gerber':['file.gbr']}}), encoding="utf-8")
         verdict={'release_allowed':True,'counts':{},'inputs_sha256':{str(candidate/'file.gbr'):sha256(candidate/'file.gbr')}}
         destination=self.base/'release'
         with patch.object(npi_release,'evaluate',return_value=verdict):

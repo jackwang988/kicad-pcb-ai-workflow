@@ -63,6 +63,7 @@ jobs:
           /usr/bin/python3 -c 'import pcbnew; assert "10.0.8" in pcbnew.GetBuildVersion()'
           mkdir -p "$HOME/.config/kicad/10.0"
           cp /usr/share/kicad/template/fp-lib-table "$HOME/.config/kicad/10.0/fp-lib-table"
+          cp /usr/share/kicad/template/sym-lib-table "$HOME/.config/kicad/10.0/sym-lib-table"
       - name: Mandatory zero-warning saved LED case and actual Gerber BOM exports
         run: python -B development/native_led_8x8_e2e.py --output /tmp/r10-led-native
       - name: Verify reproducible source-only MCP companion

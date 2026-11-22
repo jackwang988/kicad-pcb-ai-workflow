@@ -91,7 +91,7 @@ class CacheFirstTests(unittest.TestCase):
 
     def test_missing_identity_never_uses_near_match(self):
         dk.register(self.cache,self.previous,apply=True)
-        q=json.loads(self.new.read_text())
+        q=json.loads(self.new.read_text(encoding="utf-8"))
         q['devices'][0]['package']='QFN-48'
         write(self.new,q)
         result=dk.resolve(self.cache,self.new)
@@ -100,13 +100,13 @@ class CacheFirstTests(unittest.TestCase):
 
     def test_stale_check_cannot_be_reused_as_current(self):
         dk.register(self.cache,self.previous,apply=True)
-        q=json.loads(self.new.read_text())
+        q=json.loads(self.new.read_text(encoding="utf-8"))
         q['max_check_age_days']=0
         write(self.new,q)
         # Registry is current today, zero-day policy should pass.
         self.assertEqual(dk.resolve(self.cache,self.new)['status'],'CACHE_HIT_READY_FOR_AUDIT')
         # Place policy-sensitive check into the past while preserving evidence.
-        old=json.loads(self.previous.read_text())
+        old=json.loads(self.previous.read_text(encoding="utf-8"))
         old['devices'][0]['latest_checks']['datasheet']['date']=(dt.date.today()-dt.timedelta(days=4)).isoformat()
         old['max_check_age_days']=0
         write(self.previous,old)
@@ -122,14 +122,14 @@ class CacheFirstTests(unittest.TestCase):
     def test_modified_verified_card_fails_closed(self):
         dk.register(self.cache,self.previous,apply=True)
         p=self.cache/'cards'/'demo.json'
-        data=json.loads(p.read_text());data['items'][0]['requirement']='tampered';write(p,data)
+        data=json.loads(p.read_text(encoding="utf-8"));data['items'][0]['requirement']='tampered';write(p,data)
         result=dk.resolve(self.cache,self.new)
         self.assertEqual(result['entries'][0]['status'],'INVALID_CACHE_ENTRY')
 
     def test_no_unreviewed_card_registration(self):
-        data=json.loads(self.previous.read_text())
+        data=json.loads(self.previous.read_text(encoding="utf-8"))
         card=self.cache/'cards'/'demo.json'
-        raw=json.loads(card.read_text());raw['status']='draft';write(card,raw)
+        raw=json.loads(card.read_text(encoding="utf-8"));raw['status']='draft';write(card,raw)
         result=dk.register(self.cache,self.previous,apply=True)
         self.assertEqual(result['status'],'BLOCKED')
 
@@ -138,7 +138,7 @@ class CacheFirstTests(unittest.TestCase):
         command=[sys.executable,'-B',str(SKILL/'scripts'/'workflow.py'),'run',str(self.root),
                  '--task','architecture.sources_resolve','--device-cache',str(self.cache),
                  '--device-inventory',self.new.name,'--device-output','workflow-resolved.json','--apply']
-        cp=subprocess.run(command,capture_output=True,text=True,timeout=20)
+        cp=subprocess.run(command,capture_output=True,text=True,timeout=20, encoding="utf-8")
         self.assertEqual(cp.returncode,0,cp.stdout+'\n'+cp.stderr)
         self.assertEqual(json.loads(cp.stdout)['status'],'CACHE_HIT_READY_FOR_AUDIT')
         self.assertTrue((self.root/'workflow-resolved.json').is_file())
@@ -167,7 +167,7 @@ class CacheFirstTests(unittest.TestCase):
         manifest=self.root/'g1-sources'/'device-bundle.json'
         binding={'manifest':'g1-sources/device-bundle.json','sha256':h(manifest)}
         card=self.root/'g1-sources'/'cards'/'demo.json'
-        current=json.loads(card.read_text())
+        current=json.loads(card.read_text(encoding="utf-8"))
         current['items'][0]['requirement']='tampered review input'
         write(card,current)
         with self.assertRaises(ValueError):dk.project_review_cache(self.root,binding)
@@ -187,7 +187,7 @@ class CacheFirstTests(unittest.TestCase):
         with patch.object(review.shutil,'which',side_effect=AssertionError('pdftotext must not run')):
             origin=review.materialize_review_text(doc,output,original_hash,{original_hash:cached})
         self.assertEqual(origin,'verified_project_device_cache')
-        self.assertEqual(output.read_text(),cached.read_text())
+        self.assertEqual(output.read_text(encoding="utf-8"),cached.read_text(encoding="utf-8"))
         with self.assertRaises(ValueError):
             review.materialize_review_text(doc,self.root/'wrong.txt','0'*64,{original_hash:cached})
 
@@ -197,7 +197,7 @@ class CacheFirstTests(unittest.TestCase):
         binding={'manifest':'frozen/device-bundle.json','sha256':h(manifest),
                  'required_refs':['U1']}
         source_path=next((self.root/'frozen'/'objects').iterdir())
-        record=json.loads(next((self.root/'frozen'/'records').glob('*.json')).read_text())
+        record=json.loads(next((self.root/'frozen'/'records').glob('*.json')).read_text(encoding="utf-8"))
         (self.root/'demo.kicad_sch').write_text('(kicad_sch (version 20250101))',encoding='utf-8')
         (self.root/'demo.kicad_pro').write_text('{}',encoding='utf-8')
         xml='''<export><components><comp ref="U1"><value>DEMO-1234</value>
@@ -225,10 +225,10 @@ class CacheFirstTests(unittest.TestCase):
         outcome=review.prepare(self.root,self.root/'review.json','schematic',self.root/'g1-packet')
         self.assertEqual(outcome['status'],'PACKET_READY_FOR_AI')
         self.assertFalse(outcome['native_ready'])  # Synthetic netlist is NOT a native ERC pass.
-        packet=json.loads((self.root/'g1-packet'/'packet.json').read_text())
+        packet=json.loads((self.root/'g1-packet'/'packet.json').read_text(encoding="utf-8"))
         self.assertEqual(packet['device_knowledge_brief'],'device-knowledge-brief.json')
         self.assertEqual(packet['documents'][0]['text_origin'],'verified_project_device_cache')
-        brief=json.loads((self.root/'g1-packet'/'device-knowledge-brief.json').read_text())
+        brief=json.loads((self.root/'g1-packet'/'device-knowledge-brief.json').read_text(encoding="utf-8"))
         self.assertEqual(brief['devices'][0]['items'][0]['item_id'],'power-vcc')
         self.assertIn('Read the verified device-card brief referenced by packet.json/device_knowledge_brief first',
                       (self.root/'g1-packet'/'review-request.md').read_text(encoding='utf-8'))
